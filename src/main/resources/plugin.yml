@@ -1,0 +1,11 @@
+main: de.greensurvivors.green_treasure.GreenTreasure
+name: GreenTreasure
+version: 0.0.1
+api-version: 1.19
+author: Bergtiger, Feuerreiter
+
+commands:
+  greentresure:
+    aliases:
+      - gt
+    description: All green treasure commands.
