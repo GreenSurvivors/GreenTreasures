@@ -8,4 +8,6 @@ commands:
   greentresure:
     aliases:
       - gt
+      - gchest
+      - gtreasure
     description: All green treasure commands.
