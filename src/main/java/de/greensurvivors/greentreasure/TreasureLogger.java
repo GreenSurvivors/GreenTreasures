@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure;
+package de.greensurvivors.greentreasure;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;

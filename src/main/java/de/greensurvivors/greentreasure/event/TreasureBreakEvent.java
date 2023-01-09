@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure.event;
+package de.greensurvivors.greentreasure.event;
 
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;

@@ -1,12 +1,12 @@
-package de.greensurvivors.green_treasure.config;
+package de.greensurvivors.greentreasure.config;
 
-import de.greensurvivors.green_treasure.GreenTreasure;
-import de.greensurvivors.green_treasure.TreasureLogger;
-import de.greensurvivors.green_treasure.data_objects.PlayerLootDetail;
-import de.greensurvivors.green_treasure.data_objects.PlayerLootDetailCallback;
-import de.greensurvivors.green_treasure.data_objects.TreasureInfo;
-import de.greensurvivors.green_treasure.language.Lang;
-import de.greensurvivors.green_treasure.listener.TreasureListener;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.TreasureLogger;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetailCallback;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.language.Lang;
+import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;

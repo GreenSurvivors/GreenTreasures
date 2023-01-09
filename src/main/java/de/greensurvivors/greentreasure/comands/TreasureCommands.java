@@ -1,15 +1,15 @@
-package de.greensurvivors.green_treasure.comands;
+package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.green_treasure.GreenTreasure;
-import de.greensurvivors.green_treasure.Utils;
-import de.greensurvivors.green_treasure.config.TreasureConfig;
-import de.greensurvivors.green_treasure.data_objects.PeekedTreasure;
-import de.greensurvivors.green_treasure.data_objects.PlayerLootDetail;
-import de.greensurvivors.green_treasure.data_objects.TreasureInfo;
-import de.greensurvivors.green_treasure.language.Lang;
-import de.greensurvivors.green_treasure.listener.CommandInventoriesListener;
-import de.greensurvivors.green_treasure.listener.TreasureListener;
-import de.greensurvivors.green_treasure.permission.Perm;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.language.Lang;
+import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
+import de.greensurvivors.greentreasure.listener.TreasureListener;
+import de.greensurvivors.greentreasure.permission.Perm;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.apache.commons.lang.BooleanUtils;

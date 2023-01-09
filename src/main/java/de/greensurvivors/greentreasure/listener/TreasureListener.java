@@ -1,12 +1,12 @@
-package de.greensurvivors.green_treasure.listener;
+package de.greensurvivors.greentreasure.listener;
 
-import de.greensurvivors.green_treasure.config.TreasureConfig;
-import de.greensurvivors.green_treasure.data_objects.TreasureInfo;
-import de.greensurvivors.green_treasure.event.TreasureBreakEvent;
-import de.greensurvivors.green_treasure.event.TreasureCloseEvent;
-import de.greensurvivors.green_treasure.event.TreasureOpenEvent;
-import de.greensurvivors.green_treasure.language.Lang;
-import de.greensurvivors.green_treasure.permission.Perm;
+import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
+import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
+import de.greensurvivors.greentreasure.event.TreasureOpenEvent;
+import de.greensurvivors.greentreasure.language.Lang;
+import de.greensurvivors.greentreasure.permission.Perm;
 import net.kyori.adventure.text.Component;
 import net.minecraft.world.entity.vehicle.ContainerEntity;
 import org.bukkit.Bukkit;
@@ -25,7 +25,7 @@ import org.bukkit.inventory.ItemStack;
 
 import java.util.*;
 
-import static de.greensurvivors.green_treasure.Utils.cleanLocation;
+import static de.greensurvivors.greentreasure.Utils.cleanLocation;
 
 public class TreasureListener implements Listener {
     private static TreasureListener instance;

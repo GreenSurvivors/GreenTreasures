@@ -1,9 +1,9 @@
-package de.greensurvivors.green_treasure;
+package de.greensurvivors.greentreasure;
 
-import de.greensurvivors.green_treasure.comands.TreasureCommands;
-import de.greensurvivors.green_treasure.config.TreasureConfig;
-import de.greensurvivors.green_treasure.listener.CommandInventoriesListener;
-import de.greensurvivors.green_treasure.listener.TreasureListener;
+import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
+import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;

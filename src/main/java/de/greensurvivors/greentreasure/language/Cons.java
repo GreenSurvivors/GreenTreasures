@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure.language;
+package de.greensurvivors.greentreasure.language;
 
 public interface Cons {
 	String

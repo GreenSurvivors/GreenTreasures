@@ -1,6 +1,6 @@
-package de.greensurvivors.green_treasure.event;
+package de.greensurvivors.greentreasure.event;
 
-import de.greensurvivors.green_treasure.data_objects.TreasureInfo;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;

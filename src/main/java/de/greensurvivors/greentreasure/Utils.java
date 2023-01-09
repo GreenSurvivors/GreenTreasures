@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure;
+package de.greensurvivors.greentreasure;
 
 import org.bukkit.Location;
 import org.jetbrains.annotations.Nullable;

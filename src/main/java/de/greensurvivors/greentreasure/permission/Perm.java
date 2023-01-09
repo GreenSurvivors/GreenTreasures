@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure.permission;
+package de.greensurvivors.greentreasure.permission;
 
 import org.bukkit.command.CommandSender;
 

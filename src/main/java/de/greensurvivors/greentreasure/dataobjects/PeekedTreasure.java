@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure.data_objects;
+package de.greensurvivors.greentreasure.dataobjects;
 
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;

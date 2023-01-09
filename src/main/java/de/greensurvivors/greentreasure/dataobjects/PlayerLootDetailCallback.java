@@ -1,4 +1,4 @@
-package de.greensurvivors.green_treasure.data_objects;
+package de.greensurvivors.greentreasure.dataobjects;
 
 /**
  * technical interface to give information form async back to the main thread via the function "onQueryDone"

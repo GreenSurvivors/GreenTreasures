@@ -1,4 +1,4 @@
-main: de.greensurvivors.green_treasure.GreenTreasure
+main: de.greensurvivors.greentreasure.GreenTreasure
 name: GreenTreasure
 version: 0.0.1
 api-version: 1.19

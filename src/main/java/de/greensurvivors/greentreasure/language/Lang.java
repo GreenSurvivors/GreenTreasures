@@ -1,7 +1,7 @@
-package de.greensurvivors.green_treasure.language;
+package de.greensurvivors.greentreasure.language;
 
-import de.greensurvivors.green_treasure.Utils;
-import de.greensurvivors.green_treasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.comands.TreasureCommands;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;

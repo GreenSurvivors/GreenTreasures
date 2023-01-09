@@ -1,7 +1,7 @@
-package de.greensurvivors.green_treasure.config;
+package de.greensurvivors.greentreasure.config;
 
-import de.greensurvivors.green_treasure.GreenTreasure;
-import de.greensurvivors.green_treasure.TreasureLogger;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.TreasureLogger;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;

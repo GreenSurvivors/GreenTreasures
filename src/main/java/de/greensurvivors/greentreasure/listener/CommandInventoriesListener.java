@@ -1,10 +1,10 @@
-package de.greensurvivors.green_treasure.listener;
+package de.greensurvivors.greentreasure.listener;
 
-import de.greensurvivors.green_treasure.config.TreasureConfig;
-import de.greensurvivors.green_treasure.data_objects.PeekedTreasure;
-import de.greensurvivors.green_treasure.data_objects.TreasureInfo;
-import de.greensurvivors.green_treasure.event.TreasureCloseEvent;
-import de.greensurvivors.green_treasure.language.Lang;
+import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
+import de.greensurvivors.greentreasure.language.Lang;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
