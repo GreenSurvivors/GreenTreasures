@@ -449,7 +449,10 @@ public class TreasureConfig {
         Bukkit.getScheduler().runTask(GreenTreasure.inst(), () -> {
             // clear cache
             TreasureListener.inst().clearTreasures();
-            Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), this::loadTreasures);
+            Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () ->{
+                loadTreasures();
+                ImportLegacy.inst().importLegacyData();
+            });
         });
     }
 }

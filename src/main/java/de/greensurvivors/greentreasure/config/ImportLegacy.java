@@ -68,6 +68,9 @@ public class ImportLegacy {
         return String.join(".", args);
     }
 
+    /**
+     * import legacy treasures
+     */
     private void importTreasureData(){
         File[] legacyWorldFolders = new File(GreenTreasure.inst().getDataFolder().getAbsolutePath() + File.separator + MOTHER_FOLDER + File.separator + TREASURE_FOLDER).listFiles();
 
@@ -166,6 +169,9 @@ public class ImportLegacy {
         }
     }
 
+    /**
+     * import player data
+     */
     private void importPlayerData(){
         File[] legacyPlayerFiles = new File(GreenTreasure.inst().getDataFolder().getAbsolutePath() + File.separator + MOTHER_FOLDER + File.separator + TREASURE_FOLDER).listFiles();
 
@@ -232,11 +238,5 @@ public class ImportLegacy {
                 }
             }
         }
-
-
-
-
-
-
     }
 }
