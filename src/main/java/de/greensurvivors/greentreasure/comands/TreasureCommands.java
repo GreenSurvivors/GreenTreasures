@@ -51,7 +51,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
             SET = "set",
             RANDOM = "random",
             UNLIMITED = "unlimited",
-            GLOBAL = "global";
+            GLOBAL = "global", SHARED = "shared";
 
     // time suffixes
     private static final String
@@ -96,7 +96,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         switch (args[1].toLowerCase()) {
                             case RANDOM -> handleSetRandom(commandSender, args);
                             case UNLIMITED -> handleSetUnlimited(commandSender, args);
-                            case GLOBAL -> handleSetGlobal(commandSender, args);
+                            case GLOBAL, SHARED -> handleSetGlobal(commandSender, args);
                             case FORGET -> handleSetForget(commandSender, args);
                             default -> {
                                 return false;
@@ -219,6 +219,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         }
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_GLOBAL)){
                             arguments.add(GLOBAL);
+                            arguments.add(SHARED);
                         }
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_FORGET)){
                             arguments.add(FORGET);
@@ -256,6 +257,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         }
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_GLOBAL)){
                             arguments.add(GLOBAL);
+                            arguments.add(SHARED);
                         }
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_FORGET)){
                             arguments.add(FORGET);
@@ -289,7 +291,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                             arguments.add("5.0");
                             arguments.add("2.0");
                         }
-                        case UNLIMITED, GLOBAL -> {
+                        case UNLIMITED, GLOBAL, SHARED -> {
                             arguments.add(Boolean.TRUE.toString());
                             arguments.add(Boolean.FALSE.toString());
                         }
