@@ -259,6 +259,8 @@ public class TreasureListener implements Listener {
                 }
             } else {
                 ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
+                // don't open the original block inventory
+                event.setCancelled(true);
             }
         }
     }

@@ -151,7 +151,10 @@ public class ImportLegacy {
                                 TreasureConfig.inst().setUnlimited(location, isUnLimited);
                                 TreasureConfig.inst().setRandom(location, (int)(randomChance * 100));
 
+                                //remove the treasure form the plugin and then v it
+                                treasureChestPlugin.getManager().removeTreasure(location);
                                 tresureFile.delete();
+
                                 inventorySizes.put(location, contents.length);
                                 TreasureLogger.log(Level.INFO, "imported treasure" + tresureFile.getPath());
                             } else {
