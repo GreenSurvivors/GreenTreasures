@@ -129,7 +129,7 @@ public class TreasureConfig {
      * @param timeStamp when has the player last opened the treasure?
      * @param unlootedTreasure the inventory with all the remaining items. null means the player will be reset
      */
-    public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
+    public void savePlayerDetail(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
         PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
         FileConfiguration cfg = playerFile.getCfg();
 

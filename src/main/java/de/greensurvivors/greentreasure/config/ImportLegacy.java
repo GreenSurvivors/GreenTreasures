@@ -231,7 +231,7 @@ public class ImportLegacy {
                                             if (inventorySize != null) {
                                                 List<ItemStack> unLootedItems = Arrays.stream((new ItemStack[inventorySize])).toList();
 
-                                                TreasureConfig.inst().savePlayerDetailAsync(uuid, location, timeStamp, unLootedItems);
+                                                TreasureConfig.inst().savePlayerDetail(uuid, location, timeStamp, unLootedItems);
                                             }
                                         }
                                     });

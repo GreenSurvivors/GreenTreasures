@@ -108,7 +108,7 @@ public class TreasureListener implements Listener {
 
             if (eLocation != null){
                 openInventories.remove(event.getView());
-                TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : eUUID, eLocation, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
+                TreasureConfig.inst().savePlayerDetail(treasureInfo.isGlobal() ? null : eUUID, eLocation, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
             }
         }
     }

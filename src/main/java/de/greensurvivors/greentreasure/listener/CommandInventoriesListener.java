@@ -115,7 +115,7 @@ public class CommandInventoriesListener implements Listener {
                 new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
 
                 peekingTreasures.remove(event.getView());
-                TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : peekedTreasure.playerPeeked(), location, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                TreasureConfig.inst().savePlayerDetail(treasureInfo.isGlobal() ? null : peekedTreasure.playerPeeked(), location, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
             }
         }
     }
