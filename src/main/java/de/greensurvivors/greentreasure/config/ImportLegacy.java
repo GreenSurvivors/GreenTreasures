@@ -4,6 +4,8 @@ import com.mtihc.minecraft.treasurechest.v8.core.ITreasureChest;
 import com.mtihc.minecraft.treasurechest.v8.plugin.TreasureChestPlugin;
 import de.greensurvivors.greentreasure.TreasureLogger;
 import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.apache.commons.io.FilenameUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -142,12 +144,12 @@ public class ImportLegacy {
                                 String type = treasureChest.getContainer().getType().name().toUpperCase();
 
 
-                                TreasureConfig.inst().saveTreasureAsync(location, Arrays.stream(contents).toList(), type);
+                                TreasureConfig.inst().saveTreasure(location, Arrays.stream(contents).toList(), type);
 
-                                TreasureConfig.inst().setForgetAsync(location, forget_time);
-                                TreasureConfig.inst().setGlobalAsync(location, isGLobal);
-                                TreasureConfig.inst().setUnlimitedAsync(location, isUnLimited);
-                                TreasureConfig.inst().setRandomAsync(location, (int)(randomChance * 100));
+                                TreasureConfig.inst().setForget(location, forget_time);
+                                TreasureConfig.inst().setGlobal(location, isGLobal);
+                                TreasureConfig.inst().setUnlimited(location, isUnLimited);
+                                TreasureConfig.inst().setRandom(location, (int)(randomChance * 100));
 
                                 tresureFile.delete();
                                 inventorySizes.put(location, contents.length);
@@ -215,6 +217,14 @@ public class ImportLegacy {
                                             long timeStamp = cfg.getLong(buildKey(worldName, coordinatesStr), DEFAULT_TIME_STAMP);
 
                                             Integer inventorySize = inventorySizes.get(location);
+                                            //if treasure was not imported this instance, try to get it via already loaded ones
+                                            if (inventorySize == null){
+                                                TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
+                                                if (treasureInfo != null){
+                                                    inventorySize = treasureInfo.itemLoot().size();
+                                                }
+                                            }
+
                                             if (inventorySize != null) {
                                                 List<ItemStack> unLootedItems = Arrays.stream((new ItemStack[inventorySize])).toList();
 

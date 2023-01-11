@@ -18,9 +18,10 @@ public class PlayerFile {
     public static final String FOLDER = "playerFiles";
 
     public PlayerFile(String playerID, Location location) {
-        this.path = FOLDER + File.separator + playerID + File.separator + location.getWorld().getName() + File.separator;
+        // for some reason linux doesn't handle '-' very well in folderNames.
+        this.path = (FOLDER + File.separator + playerID + File.separator + location.getWorld().getName() + File.separator).replace("-", "_");
 
-        this.fileName = location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+        this.fileName = location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ() + ".yml";
     }
 
 
@@ -35,7 +36,7 @@ public class PlayerFile {
 
         // save modified configuration
         cfg.options().setHeader(Collections.singletonList(String.format(
-                fileName.replace("_", " ") + " playerFile for %s (%s)",
+                fileName.replace(" .yml", "").replace("_", " ") + " playerFile for %s (%s)",
                 GreenTreasure.inst().getName(),
                 GreenTreasure.inst().getDescription().getVersion())));
         cfg.options().parseComments(true);

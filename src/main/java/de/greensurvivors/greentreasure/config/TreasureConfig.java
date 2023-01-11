@@ -130,23 +130,21 @@ public class TreasureConfig {
      * @param unlootedTreasure the inventory with all the remaining items. null means the player will be reset
      */
     public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
-            FileConfiguration cfg = playerFile.getCfg();
+        PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
+        FileConfiguration cfg = playerFile.getCfg();
 
-            String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
+        String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
 
-            if (unlootedTreasure != null && !unlootedTreasure.isEmpty()){
-                cfg.set(buildKey(keyFirstPart, ITEM_LIST), serializeItemList(unlootedTreasure));
-            } else {
-                cfg.set(buildKey(keyFirstPart, ITEM_LIST), null);
-            }
+        if (unlootedTreasure != null && !unlootedTreasure.isEmpty()){
+            cfg.set(buildKey(keyFirstPart, ITEM_LIST), serializeItemList(unlootedTreasure));
+        } else {
+            cfg.set(buildKey(keyFirstPart, ITEM_LIST), null);
+        }
 
-            cfg.set(buildKey(keyFirstPart, TIME_STAMP), timeStamp);
+        cfg.set(buildKey(keyFirstPart, TIME_STAMP), timeStamp);
 
-            playerFile.saveCfg();
-        });
+        playerFile.saveCfg();
     }
 
     /**
@@ -154,19 +152,17 @@ public class TreasureConfig {
      * @param uuid the UUID of a looting player null means global
      * @param location the location of a treasure, the information for identify a treasure
      */
-    public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
-            FileConfiguration cfg = playerFile.getCfg();
+    public void forgetPlayer(@Nullable UUID uuid, @NotNull Location location) {
+        PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
+        FileConfiguration cfg = playerFile.getCfg();
 
-            String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
+        String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
 
-            cfg.set(buildKey(keyFirstPart, ITEM_LIST), null);
-            cfg.set(buildKey(keyFirstPart, TIME_STAMP), null);
+        cfg.set(buildKey(keyFirstPart, ITEM_LIST), null);
+        cfg.set(buildKey(keyFirstPart, TIME_STAMP), null);
 
-            playerFile.saveCfg();
-        });
+        playerFile.saveCfg();
     }
 
     /**
@@ -226,7 +222,7 @@ public class TreasureConfig {
     private File getTreasureFile(@NotNull Location location){
         String pathAndFile = TREASURE_FOLDER + File.separator +
                 location.getWorld().getName() + File.separator +
-                location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+                location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ() +  ".yml";
 
         return new File(GreenTreasure.inst().getDataFolder(), pathAndFile);
     }
@@ -278,145 +274,131 @@ public class TreasureConfig {
     }
 
     /**
-     * public set a treasure internally async
+     * save a treasure
      * @param location the location of a treasure, the information for identify a treasure
      * @param lootItems list of items a player should receive upon opening the treasure. Size must match the inventory size of the given type.
      * @param type type of treasure. it's imported to identify the opened Inventory
      */
-    public void saveTreasureAsync(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type){
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            File treasureFile = getTreasureFile(location);
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-            setDefaults(cfg);
+    public void saveTreasure(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type){
+        File treasureFile = getTreasureFile(location);
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+        setDefaults(cfg);
 
-            String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
+        String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
 
-            cfg.set(buildKey(cfgKey, ITEM_LIST), serializeItemList(lootItems));
-            cfg.set(buildKey(cfgKey, TREASURE_TYPE), type);
+        cfg.set(buildKey(cfgKey, ITEM_LIST), serializeItemList(lootItems));
+        cfg.set(buildKey(cfgKey, TREASURE_TYPE), type);
 
-            try {
-                cfg.save(treasureFile);
-            } catch (IOException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-            }
+        try {
+            cfg.save(treasureFile);
+        } catch (IOException e) {
+            TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+        }
 
-            //reload treasures
-            loadTreasuresSave();
-        });
+        //reload treasures
+        loadTreasuresSave();
     }
 
     /**
-     * public set the random slot chance internally async
+     * set the random slot chance
      * @param location the location of a treasure, the information for identify a treasure
      * @param slotChance how probable it is for a slot to be in the freshly opened treasure
      */
-    public void setRandomAsync(@NotNull Location location, int slotChance) {
-        // set random async
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            File treasureFile = getTreasureFile(location);
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-            setDefaults(cfg);
+    public void setRandom(@NotNull Location location, int slotChance) {
+        File treasureFile = getTreasureFile(location);
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+        setDefaults(cfg);
 
-            String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), SLOT_CHANCE);
+        String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), SLOT_CHANCE);
 
-            cfg.set(cfgKey, slotChance);
+        cfg.set(cfgKey, slotChance);
 
-            try {
-                cfg.save(treasureFile);
-            } catch (IOException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-            }
+        try {
+            cfg.save(treasureFile);
+        } catch (IOException e) {
+            TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+        }
 
-            //reload treasures
-            loadTreasuresSave();
-        });
+        //reload treasures
+        loadTreasuresSave();
     }
 
     /**
-     * public set the global status internally async
+     * set the global status
      * @param location the location of a treasure, the information for identify a treasure
      * @param isGlobal if the Inventory is globally shared across all players
      */
-    public void setGlobalAsync(@NotNull Location location, boolean isGlobal) {
-        // set global async
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            File treasureFile = getTreasureFile(location);
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-            setDefaults(cfg);
+    public void setGlobal(@NotNull Location location, boolean isGlobal) {
+        File treasureFile = getTreasureFile(location);
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+        setDefaults(cfg);
 
-            String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_GLOBAL);
+        String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_GLOBAL);
 
-            cfg.set(cfgKey, isGlobal);
+        cfg.set(cfgKey, isGlobal);
 
-            try {
-                cfg.save(treasureFile);
-            } catch (IOException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-            }
+        try {
+            cfg.save(treasureFile);
+        } catch (IOException e) {
+            TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+        }
 
-            //reload treasures
-            loadTreasuresSave();
-        });
+        //reload treasures
+        loadTreasuresSave();
     }
 
     /**
-     * public set the unlimited status internally async
+     * set the unlimited status
      * @param location the location of a treasure, the information for identify a treasure
      * @param isUnLimited if one can loot the treasure as often as one wants
      */
-    public void setUnlimitedAsync(@NotNull Location location, boolean isUnLimited) {
-        // set unlimited async
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            File treasureFile = getTreasureFile(location);
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-            setDefaults(cfg);
+    public void setUnlimited(@NotNull Location location, boolean isUnLimited) {
+        File treasureFile = getTreasureFile(location);
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+        setDefaults(cfg);
 
-            String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_UNLIMITED);
+        String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_UNLIMITED);
 
-            cfg.set(cfgKey, isUnLimited);
+        cfg.set(cfgKey, isUnLimited);
 
-            try {
-                cfg.save(treasureFile);
-            } catch (IOException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-            }
+        try {
+            cfg.save(treasureFile);
+        } catch (IOException e) {
+            TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+        }
 
-            //reload treasures
-            loadTreasuresSave();
-        });
+        //reload treasures
+        loadTreasuresSave();
     }
 
     /**
-     * public set the forget-period internally async
+     * set the forget-period
      * @param location the location of a treasure, the information for identify a treasure
      * @param forgettingPeriod the period in milliseconds how long a Treasure has to be not looted until it is filled again.
      *                         negative values mean the Treasure will never restock.
      */
-    public void setForgetAsync(Location location, long forgettingPeriod) {
-        // set forget async
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            File treasureFile = getTreasureFile(location);
-            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-            setDefaults(cfg);
+    public void setForget(Location location, long forgettingPeriod) {
+        File treasureFile = getTreasureFile(location);
+        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+        setDefaults(cfg);
 
-            String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                    COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), FORGETTING_PERIOD);
+        String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
+                COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), FORGETTING_PERIOD);
 
-            cfg.set(cfgKey, forgettingPeriod);
+        cfg.set(cfgKey, forgettingPeriod);
 
-            try {
-                cfg.save(treasureFile);
-            } catch (IOException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-            }
+        try {
+            cfg.save(treasureFile);
+        } catch (IOException e) {
+            TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+        }
 
-            //reload treasures
-            loadTreasuresSave();
-        });
+        //reload treasures
+        loadTreasuresSave();
     }
 
 

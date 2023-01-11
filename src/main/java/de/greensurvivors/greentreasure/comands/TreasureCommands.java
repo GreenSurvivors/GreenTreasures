@@ -366,7 +366,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                 Location location = container.getBlock().getLocation();
                 List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 
-                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name());
+                TreasureConfig.inst().saveTreasure(location, itemStacks, container.getBlock().getType().name());
 
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE.get().replace(Lang.TYPE,
                         container.customName() == null ? container.getBlock().getType().name() :
@@ -389,7 +389,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
             Container container = getContainer(commandSender);
 
             if (container != null){
-                TreasureConfig.inst().saveTreasureAsync(container.getBlock().getLocation(), null, null);
+                TreasureConfig.inst().saveTreasure(container.getBlock().getLocation(), null, null);
                 TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation());
 
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE.get().replace(Lang.TYPE,
@@ -628,7 +628,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                 TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(container.getLocation());
 
                 if (treasureInfo != null && treasureInfo.isGlobal()){
-                    TreasureConfig.inst().forgetPlayerAsync(null, container.getBlock().getLocation());
+                    TreasureConfig.inst().forgetPlayer(null, container.getBlock().getLocation());
 
                     commandSender.sendMessage(Lang.build(Lang.FORGET_ALL.get()));
                     return;
@@ -656,7 +656,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                     }
                 }
 
-                TreasureConfig.inst().forgetPlayerAsync(uuidToForget, container.getBlock().getLocation());
+                TreasureConfig.inst().forgetPlayer(uuidToForget, container.getBlock().getLocation());
                 commandSender.sendMessage(Lang.build(Lang.FORGET_PLAYER.get().replace(Lang.UUID, uuidToForget.toString())));
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
@@ -705,7 +705,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
 
                             slotPercentage = Math.max(Math.min(slotPercentage, 10000), 0);
 
-                            TreasureConfig.inst().setRandomAsync(container.getLocation(), slotPercentage);
+                            TreasureConfig.inst().setRandom(container.getLocation(), slotPercentage);
 
                             commandSender.sendMessage(Lang.build(Lang.SET_RANDOM.get().replace(Lang.VALUE, String.valueOf(((float)slotPercentage) / 100.0f))));
                         } else {
@@ -741,7 +741,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null){
-                            TreasureConfig.inst().setUnlimitedAsync(container.getLocation(), isUnLimited);
+                            TreasureConfig.inst().setUnlimited(container.getLocation(), isUnLimited);
 
                             commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED.get().replace(Lang.VALUE, String.valueOf(isUnLimited))));
                         } else {
@@ -777,7 +777,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null){
-                            TreasureConfig.inst().setGlobalAsync(container.getLocation(), isUnLimited);
+                            TreasureConfig.inst().setGlobal(container.getLocation(), isUnLimited);
 
                             commandSender.sendMessage(Lang.build(Lang.SET_GLOBAL.get().replace(Lang.VALUE, String.valueOf(isUnLimited))));
                         } else {
@@ -891,7 +891,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                             }
                         }
 
-                        TreasureConfig.inst().setForgetAsync(container.getLocation(), forgetPeriod);
+                        TreasureConfig.inst().setForget(container.getLocation(), forgetPeriod);
 
                         //negative values turn forget off
                         if (forgetPeriod < 0){
