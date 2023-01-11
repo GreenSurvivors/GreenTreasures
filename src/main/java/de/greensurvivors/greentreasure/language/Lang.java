@@ -25,53 +25,53 @@ public enum Lang implements Cons {
 
 	FORMAT_LOCATION (String.format("&f%s&6, &f%s&e, &f%s&e, &f%s", WORLD, X, Y, Z)),
 
-	HELP_WIKI ("&aSee more detailed information on the wiki page."),
+	HELP_WIKI ("&7See more detailed information on the wiki page."),
 
 	PLUGIN_HEADER ("&a-<(&6GreenTreasure&a)>-"),
 	PLUGIN_VERSION (String.format("&aVersion&6: &e%s", VALUE)),
 
 	RELOAD ("&aReloaded."),
 
-	TREASURE_ALREADYLOOTED ("You already looted this treasure."),
-	TREASURE_FOUND_LIMITED("You found treasure!"),
-	TREASURE_FOUND_UNLIMITED("You found treasure! Take as much as you want!"),
+	TREASURE_ALREADYLOOTED ("&7You already looted this treasure."),
+	TREASURE_FOUND_LIMITED("&aYou found treasure!"),
+	TREASURE_FOUND_UNLIMITED("&aYou found treasure! Take as much as you want!"),
 
-	TREASURE_CREATE(String.format("%s was created as treasure.", TYPE)),
-	TREASURE_DELETE(String.format("%s was removed as treasure.", TYPE)),
+	TREASURE_CREATE(String.format("&a%s was created as treasure.", TYPE)),
+	TREASURE_DELETE(String.format("&a%s was removed as treasure.", TYPE)),
 
 	TREASURE_COMMAND_CREATE (String.format("/%s %s", TreasureCommands.CMD, TreasureCommands.CREATE)),
 	TREASURE_COMMAND_DELETE (String.format("/%s %s", TreasureCommands.CMD, TreasureCommands.DELETE)),
 
 	NO_TREASURE (String.format("&cYou are not looking at a treasure. Use &6'&e%s&6' first.", TREASURE_COMMAND_CREATE.get())),
 
-	FORGET_PLAYER (String.format("The treasure forgot %s has ever found it.", UUID)),
-	FORGET_ALL ("The Treasure forgot anybody has ever found it."),
+	FORGET_PLAYER (String.format("&aThe treasure forgot &6'&e%s&6'&a has ever found it.", UUID)),
+	FORGET_ALL ("&aThe Treasure forgot anybody has ever found it."),
 
-	SET_RANDOM (String.format("Treasure was set with a slot chance of %s", VALUE)),
-	SET_FORGET (String.format("Treasure forgets every %s.", VALUE)),
-	REMOVE_FORGET("The treasure never forgets."),
-	SET_UNLIMITED ("The treasure is now lootable a unlimited amount of times."),
-	SET_GLOBAL("The treasure inventory is now shared by every player."),
+	SET_RANDOM (String.format("&aTreasure was set with a slot chance of &e%s %%&a.", VALUE)),
+	SET_FORGET (String.format("&aTreasure forgets every %s.", VALUE)),
+	REMOVE_FORGET("&aThe treasure never forgets."),
+	SET_UNLIMITED ("&aThe treasure is now lootable a unlimited amount of times."),
+	SET_GLOBAL("&aThe treasure inventory is now shared by every player."),
 
-	NOT_LOOKINGAT_CONTAINER ("You are not looking at a container."),
+	NOT_LOOKINGAT_CONTAINER ("&cYou are not looking at a container."),
 
-	DONT_BREAK_CONTAINER_USER ("You are not allowed to break this Treasure."),
-	DONT_BREAK_CONTAINER_ADMIN (String.format("This is a Treasure. If you want to remove it, use %s first", TREASURE_COMMAND_DELETE.get())),
+	DONT_BREAK_CONTAINER_USER ("&cYou are not allowed to break this Treasure."),
+	DONT_BREAK_CONTAINER_ADMIN (String.format("&cThis is a Treasure. If you want to remove it, use &6'&e%s&6'&c first", TREASURE_COMMAND_DELETE.get())),
 
 	LIST_HEADER_PLAYER(String.format("&a-<(List: &6%s&a)>-", VALUE)),
 	LIST_HEADER_TREASURES("&a-<(&6treasures&a)>-"),
-	LIST_PLAYER (String.format("%s was looted last: %s.", LOCATION, VALUE)),
+	LIST_PLAYER (String.format("&7%s was looted last: %s.", LOCATION, VALUE)),
 	LIST_NEVER ("never"),
-	LIST_TREASURE_BODY(String.format("%s with slot chance of %s%% is global: %s is unlimited: %s", LOCATION, VALUE, GLOBAL, UNLIMITED)),
-	LIST_TREASURE_FORGETPERIOD(String.format(" resetting every %s", VALUE)),
+	LIST_TREASURE_BODY(String.format("&7%s with slot chance of &e%s%%&7 is global&6: &e%s&7 is unlimited&6: &e%s&7", LOCATION, VALUE, GLOBAL, UNLIMITED)),
+	LIST_TREASURE_FORGETPERIOD(String.format(" resetting every &e%s&7", VALUE)),
 	TRUE("true"),
 	FALSE("false"),
 
-	TREASURE_EDITED ("Treasure saved with new content."),
+	TREASURE_EDITED ("&aTreasure saved with new content."),
 
-	PEEK_PLAYER (String.format("Treasure of %s", VALUE)),
+	PEEK_PLAYER (String.format("&7Treasure of %s", VALUE)),
 	PEEK_GLOBAL ("Global treasure"),
-	PEEK_WARNING ("Warning: This inventory is not sync. If the Player (or a player in case of global) has the treasure open at the same time, problems may occur.");
+	PEEK_WARNING ("&6Warning: This inventory is not sync. If the Player (or a player in case of global) has the treasure open at the same time, problems may occur.");
 
 
 

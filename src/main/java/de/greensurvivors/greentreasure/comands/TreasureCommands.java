@@ -553,14 +553,14 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                                 long timeStamp= playerLootDetail.lastLootedTimeStamp();
 
                                 if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())){
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get()));
+                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
 
                                     // clone every item stack and put it into the new inventory
                                     nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : s.clone()).toArray(ItemStack[]::new));
 
                                     player.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
                                 } else {
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get()));
+                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
                                     // get items left there last time
                                     nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
 
