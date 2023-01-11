@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "de.greensurvivors"
-version = "0.0.2-SNAPSHOT"
+version = "0.0.3-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
 //java.sourceCompatibility = JavaVersion.VERSION_17
 
@@ -24,10 +24,19 @@ repositories {
     maven {
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+
+    //prebuilt jars from public gits
+    maven {
+        url = uri("https://jitpack.io/")
+    }
 }
 
 dependencies {
     paperDevBundle("1.19.2-R0.1-SNAPSHOT")
+    //get prebuilt from jitpack.io
+    //compileOnly("com.github.HenrikoMagnifico","TreasureChestX","8dbc187c09")
+    //local installation in case jitpack doesn't work
+    compileOnly("com.mtihc.minecraft.treasurechest.v8.plugin","TreasureChest","8.5")
 }
 
 tasks {

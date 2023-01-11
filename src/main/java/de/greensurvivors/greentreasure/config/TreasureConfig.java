@@ -25,6 +25,8 @@ import java.util.regex.Pattern;
 
 public class TreasureConfig {
     private final String
+            TREASURE_FOLDER = "treasures";
+    private final String
             WORLDS = "worlds",
             COORDS = "coords",
             TIME_STAMP = "timeStamp",
@@ -129,7 +131,7 @@ public class TreasureConfig {
      */
     public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString());
+            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
             FileConfiguration cfg = playerFile.getCfg();
 
             String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
@@ -154,7 +156,7 @@ public class TreasureConfig {
      */
     public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString());
+            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
             FileConfiguration cfg = playerFile.getCfg();
 
             String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
@@ -177,7 +179,7 @@ public class TreasureConfig {
 
             if (playerFiles != null){
                 for (File file : playerFiles){
-                    PlayerFile playerFile = new PlayerFile(file.getName());
+                    PlayerFile playerFile = new PlayerFile(file.getName(), location);
                     FileConfiguration cfg = playerFile.getCfg();
 
                     String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
@@ -201,7 +203,7 @@ public class TreasureConfig {
     public void getPlayerLootDetailAsync(@Nullable UUID uuid, @NotNull Location location, @NotNull PlayerLootDetailCallback playerLootDetailCallback){
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             // load player loot detail information async
-            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString());
+            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
             FileConfiguration cfg = playerFile.getCfg();
 
             String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
@@ -219,13 +221,21 @@ public class TreasureConfig {
     }
 
     /**
+     * get a treasureFile from a location
+     */
+    private File getTreasureFile(@NotNull Location location){
+        String pathAndFile = TREASURE_FOLDER + File.separator +
+                location.getWorld().getName() + File.separator +
+                location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+
+        return new File(GreenTreasure.inst().getDataFolder(), pathAndFile);
+    }
+
+    /**
      * Load main configurations.
      */
     public void reloadMain() {
         loadLanguage();
-
-        GreenTreasure.inst().reloadConfig();
-        saveDefaults();
         loadTreasuresSave();
     }
 
@@ -261,13 +271,10 @@ public class TreasureConfig {
     /**
      * Save default configuration values.
      */
-    private void saveDefaults() {
-        FileConfiguration cfg = GreenTreasure.inst().getConfig();
-
+    private void setDefaults(FileConfiguration cfg) {
         cfg.options().setHeader(List.of(GreenTreasure.inst().getName() + " " + GreenTreasure.inst().getDescription().getVersion()));
         cfg.options().copyDefaults(true);
         cfg.options().parseComments(true);
-        GreenTreasure.inst().saveConfig();
     }
 
     /**
@@ -278,14 +285,21 @@ public class TreasureConfig {
      */
     public void saveTreasureAsync(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type){
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            FileConfiguration cfg = GreenTreasure.inst().getConfig();
+            File treasureFile = getTreasureFile(location);
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+            setDefaults(cfg);
 
             String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
                     COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
 
             cfg.set(buildKey(cfgKey, ITEM_LIST), serializeItemList(lootItems));
             cfg.set(buildKey(cfgKey, TREASURE_TYPE), type);
-            GreenTreasure.inst().saveConfig();
+
+            try {
+                cfg.save(treasureFile);
+            } catch (IOException e) {
+                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+            }
 
             //reload treasures
             loadTreasuresSave();
@@ -300,13 +314,20 @@ public class TreasureConfig {
     public void setRandomAsync(@NotNull Location location, int slotChance) {
         // set random async
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            FileConfiguration cfg = GreenTreasure.inst().getConfig();
+            File treasureFile = getTreasureFile(location);
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+            setDefaults(cfg);
 
             String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
                     COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), SLOT_CHANCE);
 
             cfg.set(cfgKey, slotChance);
-            GreenTreasure.inst().saveConfig();
+
+            try {
+                cfg.save(treasureFile);
+            } catch (IOException e) {
+                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+            }
 
             //reload treasures
             loadTreasuresSave();
@@ -321,13 +342,20 @@ public class TreasureConfig {
     public void setGlobalAsync(@NotNull Location location, boolean isGlobal) {
         // set global async
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            FileConfiguration cfg = GreenTreasure.inst().getConfig();
+            File treasureFile = getTreasureFile(location);
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+            setDefaults(cfg);
 
             String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
                     COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_GLOBAL);
 
             cfg.set(cfgKey, isGlobal);
-            GreenTreasure.inst().saveConfig();
+
+            try {
+                cfg.save(treasureFile);
+            } catch (IOException e) {
+                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+            }
 
             //reload treasures
             loadTreasuresSave();
@@ -342,13 +370,20 @@ public class TreasureConfig {
     public void setUnlimitedAsync(@NotNull Location location, boolean isUnLimited) {
         // set unlimited async
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            FileConfiguration cfg = GreenTreasure.inst().getConfig();
+            File treasureFile = getTreasureFile(location);
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+            setDefaults(cfg);
 
             String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
                     COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_UNLIMITED);
 
             cfg.set(cfgKey, isUnLimited);
-            GreenTreasure.inst().saveConfig();
+
+            try {
+                cfg.save(treasureFile);
+            } catch (IOException e) {
+                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+            }
 
             //reload treasures
             loadTreasuresSave();
@@ -364,13 +399,20 @@ public class TreasureConfig {
     public void setForgetAsync(Location location, long forgettingPeriod) {
         // set forget async
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            FileConfiguration cfg = GreenTreasure.inst().getConfig();
+            File treasureFile = getTreasureFile(location);
+            FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+            setDefaults(cfg);
 
             String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
                     COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), FORGETTING_PERIOD);
 
             cfg.set(cfgKey, forgettingPeriod);
-            GreenTreasure.inst().saveConfig();
+
+            try {
+                cfg.save(treasureFile);
+            } catch (IOException e) {
+                TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+            }
 
             //reload treasures
             loadTreasuresSave();
@@ -382,63 +424,78 @@ public class TreasureConfig {
      * load the loot of the containers
      */
     private void loadTreasures(){
-        FileConfiguration cfg = GreenTreasure.inst().getConfig();
+        File treasureMotherFolder = new File(GreenTreasure.inst().getDataFolder(), TREASURE_FOLDER);
 
-        // load worlds
-        if (cfg.contains(WORLDS)){
-            ConfigurationSection cfgSection_Worlds = cfg.getConfigurationSection(WORLDS);
+        //get worldFolders
+        File[] worldFolders = treasureMotherFolder.listFiles();
+        if (worldFolders != null){
+            for (File worldFolder : worldFolders){
 
-            if (cfgSection_Worlds != null){
-                cfgSection_Worlds.getKeys(false).forEach(worldName -> {
-                    World world = Bukkit.getWorld(worldName);
+                //get treasureFiles
+                File[] treasureFiles = worldFolder.listFiles();
+                if (treasureFiles != null){
+                    for (File treasureFile : treasureFiles){
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
 
-                    if (world != null){
-                        //load coordinates of  containers
-                        if (cfg.contains(buildKey(WORLDS, worldName, COORDS))){
-                            ConfigurationSection cfgSection_coords = cfg.getConfigurationSection(buildKey(WORLDS, worldName, COORDS));
+                        // load worlds
+                        if (cfg.contains(WORLDS)){
+                            ConfigurationSection cfgSection_Worlds = cfg.getConfigurationSection(WORLDS);
 
-                            if (cfgSection_coords != null){
-                                cfgSection_coords.getKeys(false).forEach(coordStr -> {
-                                    if (COORD_PATTERN.matcher(coordStr).find()){
-                                        String[] coordsArray = coordStr.split(";");
-                                        int x = Integer.parseInt(coordsArray[0]);
-                                        int y = Integer.parseInt(coordsArray[1]);
-                                        int z = Integer.parseInt(coordsArray[2]);
-                                        Location location = new Location(world, x, y, z);
+                            if (cfgSection_Worlds != null){
+                                cfgSection_Worlds.getKeys(false).forEach(worldName -> {
+                                    World world = Bukkit.getWorld(worldName);
 
-                                        //load loot
-                                        List<?> itemObjs = cfg.getList(buildKey(WORLDS, worldName, COORDS, coordStr, ITEM_LIST));
+                                    if (world != null){
+                                        //load coordinates of  containers
+                                        if (cfg.contains(buildKey(WORLDS, worldName, COORDS))){
+                                            ConfigurationSection cfgSection_coords = cfg.getConfigurationSection(buildKey(WORLDS, worldName, COORDS));
 
-                                        long forgetting_time = cfg.getLong(buildKey(WORLDS, worldName, COORDS, coordStr, FORGETTING_PERIOD), DEFAULT_FORGETTING_PERIOD);
-                                        int slotChance = cfg.getInt(buildKey(WORLDS, worldName, COORDS, coordStr, SLOT_CHANCE), DEFAULT_SLOT_CHANCE);
-                                        boolean isUnlimited = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_UNLIMITED), DEFAULT_IS_UNLIMITED);
-                                        boolean isShared = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_GLOBAL), DEFAULT_IS_GLOBAL);
-                                        String TreasureType = cfg.getString(buildKey(buildKey(WORLDS, worldName, COORDS, coordStr, TREASURE_TYPE)), DEFAULT_TYPE);
+                                            if (cfgSection_coords != null){
+                                                cfgSection_coords.getKeys(false).forEach(coordStr -> {
+                                                    if (COORD_PATTERN.matcher(coordStr).find()){
+                                                        String[] coordsArray = coordStr.split(";");
+                                                        int x = Integer.parseInt(coordsArray[0]);
+                                                        int y = Integer.parseInt(coordsArray[1]);
+                                                        int z = Integer.parseInt(coordsArray[2]);
+                                                        Location location = new Location(world, x, y, z);
 
-                                        if (itemObjs != null){
-                                            TreasureListener.inst().addTreasure(location, new TreasureInfo(deserializeItemList(itemObjs), forgetting_time, slotChance, isUnlimited, isShared, TreasureType));
+                                                        //load loot
+                                                        List<?> itemObjs = cfg.getList(buildKey(WORLDS, worldName, COORDS, coordStr, ITEM_LIST));
+
+                                                        long forgetting_time = cfg.getLong(buildKey(WORLDS, worldName, COORDS, coordStr, FORGETTING_PERIOD), DEFAULT_FORGETTING_PERIOD);
+                                                        int slotChance = cfg.getInt(buildKey(WORLDS, worldName, COORDS, coordStr, SLOT_CHANCE), DEFAULT_SLOT_CHANCE);
+                                                        boolean isUnlimited = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_UNLIMITED), DEFAULT_IS_UNLIMITED);
+                                                        boolean isShared = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_GLOBAL), DEFAULT_IS_GLOBAL);
+                                                        String TreasureType = cfg.getString(buildKey(buildKey(WORLDS, worldName, COORDS, coordStr, TREASURE_TYPE)), DEFAULT_TYPE);
+
+                                                        if (itemObjs != null){
+                                                            TreasureListener.inst().addTreasure(location, new TreasureInfo(deserializeItemList(itemObjs), forgetting_time, slotChance, isUnlimited, isShared, TreasureType));
+                                                        } else {
+                                                            TreasureLogger.log(Level.WARNING, "No or malformed item list found. Skipping.");
+                                                        }
+                                                    } else {
+                                                        TreasureLogger.log(Level.WARNING, String.format("Malformed coordinates string was found: '%s'. Skipping.", coordStr));
+                                                    }
+                                                });
+                                            } else {
+                                                TreasureLogger.log(Level.WARNING, "coordinate keyword was given but no coordinates where found.");
+                                            }
                                         } else {
-                                            TreasureLogger.log(Level.WARNING, "No or malformed item list found. Skipping.");
+                                            TreasureLogger.log(Level.FINE, "World was given but no coordinates where defined.");
                                         }
                                     } else {
-                                        TreasureLogger.log(Level.WARNING, String.format("Malformed coordinates string was found: '%s'. Skipping.", coordStr));
+                                        TreasureLogger.log(Level.WARNING, "No such world '%s' was found. Skipping.");
                                     }
                                 });
                             } else {
-                                TreasureLogger.log(Level.WARNING, "coordinate keyword was given but no coordinates where found.");
+                                TreasureLogger.log(Level.FINE, "Treasure keyword was given but no worlds where found.");
                             }
                         } else {
-                            TreasureLogger.log(Level.FINE, "World was given but no coordinates where defined.");
+                            TreasureLogger.log(Level.FINE, "No Treasures to load.");
                         }
-                    } else {
-                        TreasureLogger.log(Level.WARNING, "No such world '%s' was found. Skipping.");
                     }
-                });
-            } else {
-                TreasureLogger.log(Level.FINE, "Treasure keyword was given but no worlds where found.");
+                }
             }
-        } else {
-            TreasureLogger.log(Level.FINE, "No Treasures to load.");
         }
     }
 

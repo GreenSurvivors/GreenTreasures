@@ -1,9 +1,10 @@
 package de.greensurvivors.greentreasure.config;
 
-import com.mtihc.minecraft.treasurechest.v8.core.ItemStackWrapper;
-import de.greensurvivors.greentreasure.GreenTreasure;
+import com.mtihc.minecraft.treasurechest.v8.core.ITreasureChest;
+import com.mtihc.minecraft.treasurechest.v8.plugin.TreasureChestPlugin;
 import de.greensurvivors.greentreasure.TreasureLogger;
 import de.greensurvivors.greentreasure.Utils;
+import org.apache.commons.io.FilenameUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
@@ -16,35 +17,26 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+
+import static org.bukkit.Bukkit.getServer;
 
 public class ImportLegacy {
     private final String
-            MOTHER_FOLDER = "importLegacy",
             TREASURE_FOLDER = "treasure",
             PLAYER_FOLDER = "players";
 
-    private final String
-            STANDART_LEGACY_KEY = "location",
-            UNLIMITED = "unlimited",
-            GLOBAL = "shared",
-            FORGET = "forget-time",
-            RANDOM = "random",
-            CONTAINER = "container",
-            SIZE = buildKey(CONTAINER, "size"),
-            TYPE = buildKey(CONTAINER, "type"),
-            ITEMS = (buildKey(CONTAINER, "contents"));
-
-    //random = legacyRandom/slots
-
-    private final boolean DEFAULT_IS_UNLIMITED = false;
-    private  final boolean DEFAULT_IS_GLOBAL = false;
     private final long DEFAULT_FORGETTING_PERIOD = -1;
-    private final int DEFAULT_RANDOM_SLOTS = 0;
 
     private final long DEFAULT_TIME_STAMP = 0;
 
+    private TreasureChestPlugin treasureChestPlugin;
+    private File treasurePluginFolder;
+
     private final HashMap<Location, Integer> inventorySizes = new HashMap<>();
+
+    private boolean hasAlreadyImported = false;
 
     private static ImportLegacy instance;
 
@@ -55,8 +47,32 @@ public class ImportLegacy {
     }
 
     public void importLegacyData(){
-        importTreasureData();
-        importPlayerData();
+        if (!hasAlreadyImported){
+            hasAlreadyImported = true;
+
+            TreasureLogger.log(Level.INFO, "starting import process");
+
+            treasureChestPlugin = (TreasureChestPlugin)getServer().getPluginManager().getPlugin("TreasureChest");
+            if (treasureChestPlugin == null){
+                treasureChestPlugin = (TreasureChestPlugin)getServer().getPluginManager().getPlugin("TreasureChestX");
+
+                if (treasureChestPlugin == null){
+                    TreasureLogger.log(Level.INFO, "No TreasurePlugin enabled. No importing could be done.");
+                    return;
+                }
+            }
+
+            if (!treasureChestPlugin.isEnabled()){
+                TreasureLogger.log(Level.INFO, "No TreasurePlugin enabled. No importing could be done.");
+
+                return;
+            }
+
+            treasurePluginFolder = treasureChestPlugin.getDataFolder();
+
+            importTreasureData();
+            importPlayerData();
+        }
     }
 
     /**
@@ -72,7 +88,8 @@ public class ImportLegacy {
      * import legacy treasures
      */
     private void importTreasureData(){
-        File[] legacyWorldFolders = new File(GreenTreasure.inst().getDataFolder().getAbsolutePath() + File.separator + MOTHER_FOLDER + File.separator + TREASURE_FOLDER).listFiles();
+        TreasureLogger.log(Level.INFO, "import Treasures");
+        File[] legacyWorldFolders = new File(treasurePluginFolder.getPath() + File.separator + TREASURE_FOLDER).listFiles();
 
         if (legacyWorldFolders != null){
             for (File worldFolder : legacyWorldFolders){
@@ -81,11 +98,11 @@ public class ImportLegacy {
 
                     if (legacyTresureFiles != null){
                         for (File tresureFile : legacyTresureFiles){
-                            String worldName = worldFolder.getName();
+                            String worldName = FilenameUtils.removeExtension(worldFolder.getName());
 
                             World world = Bukkit.getWorld(worldName);
                             if (world != null){
-                                String coordinatesStr = tresureFile.getName();
+                                String coordinatesStr = FilenameUtils.removeExtension(tresureFile.getName());
 
                                 String[] coordStrArray = coordinatesStr.split("_");
 
@@ -100,55 +117,30 @@ public class ImportLegacy {
 
                                 // can't get coordinates form name. skipping
                                 if (Arrays.stream(coordIntArray).anyMatch(Objects::isNull) || coordIntArray.length != 3){
-                                    TreasureLogger.log(Level.WARNING, "Can't extract coordinates from name : '" + tresureFile.getPath() + "'. Skipping.");
+                                    TreasureLogger.log(Level.WARNING, "[treasure] Can't extract coordinates from name: '" + tresureFile.getPath() + "'. Skipping.");
                                     break;
                                 }
 
                                 Location location = new Location(world, coordIntArray[0], coordIntArray[1], coordIntArray[2]);
 
-                                FileConfiguration cfg = YamlConfiguration.loadConfiguration(tresureFile);
 
-                                boolean isUnLimited = cfg.getBoolean(buildKey(STANDART_LEGACY_KEY, UNLIMITED), DEFAULT_IS_UNLIMITED);
-                                boolean isGLobal = cfg.getBoolean(buildKey(STANDART_LEGACY_KEY, GLOBAL), DEFAULT_IS_GLOBAL);
-                                long forget_time = cfg.getLong(buildKey(STANDART_LEGACY_KEY, FORGET), DEFAULT_FORGETTING_PERIOD);
+                                ITreasureChest treasureChest = treasureChestPlugin.getManager().getTreasure(location);
+
+                                boolean isUnLimited = treasureChest.isUnlimited();
+                                boolean isGLobal = treasureChest.isUnlimited();
+                                long forget_time = treasureChest.getForgetTime();
                                 if (forget_time == 0){
                                     forget_time = DEFAULT_FORGETTING_PERIOD;
                                 }
 
-                                double randomChance = cfg.getInt(buildKey(STANDART_LEGACY_KEY, RANDOM), DEFAULT_RANDOM_SLOTS);
-                                int inventorySize = cfg.getInt(buildKey(STANDART_LEGACY_KEY, SIZE));
+                                int inventorySize = treasureChest.getContainer().getSize();
+                                double randomChance = treasureChest.getAmountOfRandomlyChosenStacks();
                                 randomChance = randomChance == 0 ? 100.00 : randomChance / ((double)inventorySize);
-                                String type = cfg.getString(buildKey(STANDART_LEGACY_KEY, TYPE));
 
+                                ItemStack[] contents = treasureChest.getContainer().getContents();
 
-                                /*
-                                 *  original deserialization code by Mitch Mtihic,
-                                 *  under GNU General Public License
-                                 *  taken from https://github.com/HenrikoMagnifico/TreasureChestX/blob/main/src/main/java/com/mtihc/minecraft/treasurechest/v8/core/BlockInventory.java
-                                 */
-                                ItemStack[] contents = new ItemStack[inventorySize];
-                                Map<?, ?> contentsSection = (Map<?, ?>) cfg.get(buildKey(STANDART_LEGACY_KEY, ITEMS));
-                                Set<?> contentsEntries = contentsSection.entrySet();
-                                int substringBeginIndex = "item".length();
-                                for (Object object : contentsEntries) {
-                                    Map.Entry<?, ?> entry = (Map.Entry<?, ?>) object;
-                                    String key = (String) entry.getKey();
+                                String type = treasureChest.getContainer().getType().name().toUpperCase();
 
-                                    ItemStack item;
-                                    if(entry.getValue() instanceof ItemStack) {
-                                        item = (ItemStack) entry.getValue();
-                                    }
-                                    else if(entry.getValue() instanceof ItemStackWrapper itemStackWrapper){
-                                        item = itemStackWrapper.getItemStack();
-                                    }
-                                    else {
-                                        item = null;
-                                    }
-                                    int index = Integer.parseInt(key.substring(substringBeginIndex));
-
-                                    contents[index] = item;
-                                }
-                                // original code end
 
                                 TreasureConfig.inst().saveTreasureAsync(location, Arrays.stream(contents).toList(), type);
 
@@ -158,9 +150,10 @@ public class ImportLegacy {
                                 TreasureConfig.inst().setRandomAsync(location, (int)(randomChance * 100));
 
                                 tresureFile.delete();
-                                inventorySizes.put(location, inventorySize);
+                                inventorySizes.put(location, contents.length);
+                                TreasureLogger.log(Level.INFO, "imported treasure" + tresureFile.getPath());
                             } else {
-                                TreasureLogger.log(Level.WARNING, "Can't extract world from name : '" + tresureFile.getPath() + "'. Skipping.");
+                                TreasureLogger.log(Level.WARNING, "Can't extract world from name : " + worldName + " in '" + tresureFile.getPath() + "'. Skipping.");
                             }
                         }
                     }
@@ -169,15 +162,20 @@ public class ImportLegacy {
         }
     }
 
+
     /**
      * import player data
      */
     private void importPlayerData(){
-        File[] legacyPlayerFiles = new File(GreenTreasure.inst().getDataFolder().getAbsolutePath() + File.separator + MOTHER_FOLDER + File.separator + TREASURE_FOLDER).listFiles();
+        TreasureLogger.log(Level.INFO, "import PlayerData");
+
+        File[] legacyPlayerFiles = new File(treasurePluginFolder.getPath() + File.separator + PLAYER_FOLDER).listFiles();
 
         if (legacyPlayerFiles != null){
             for (File playerFile : legacyPlayerFiles){
-                String playerName = playerFile.getName();
+                AtomicBoolean gotNoError = new AtomicBoolean(true);
+
+                String playerName = FilenameUtils.removeExtension(playerFile.getName());
 
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
 
@@ -195,7 +193,7 @@ public class ImportLegacy {
                                 ConfigurationSection cfgSection_coords = cfg.getConfigurationSection(worldName);
 
                                 if (cfgSection_coords != null){
-                                    cfgSection_Worlds.getKeys(false).forEach(coordinatesStr -> {
+                                    cfgSection_coords.getKeys(false).forEach(coordinatesStr -> {
                                         String[] coordStrArray = coordinatesStr.split("_");
 
                                         //convert to integer
@@ -209,7 +207,8 @@ public class ImportLegacy {
 
                                         // can't get coordinates form name. skipping
                                         if (Arrays.stream(coordIntArray).anyMatch(Objects::isNull) || coordIntArray.length != 3){
-                                            TreasureLogger.log(Level.WARNING, "Can't extract coordinates from name : '" + coordinatesStr + "'. Skipping.");
+                                            TreasureLogger.log(Level.WARNING, "[playerData] Can't extract coordinates from name: '" + coordinatesStr + "'. Skipping.");
+                                            gotNoError.set(false);
                                         } else {
                                             Location location = new Location(world, coordIntArray[0], coordIntArray[1], coordIntArray[2]);
 
@@ -220,21 +219,27 @@ public class ImportLegacy {
                                                 List<ItemStack> unLootedItems = Arrays.stream((new ItemStack[inventorySize])).toList();
 
                                                 TreasureConfig.inst().savePlayerDetailAsync(uuid, location, timeStamp, unLootedItems);
-
-                                                playerFile.delete();
                                             }
                                         }
                                     });
                                 }
                             } else {
                                 TreasureLogger.log(Level.WARNING, "Unknown world: " + worldName + ". Skipping.");
+                                gotNoError.set(false);
                             }
                         });
                     } else {
                         TreasureLogger.log(Level.WARNING, "No worlds found in " + playerFile.getPath() + " Skipping.");
+                        gotNoError.set(false);
                     }
                 } else {
                     TreasureLogger.log(Level.WARNING, "Player '" + playerName + "' has never played before. Skipping.");
+                    gotNoError.set(false);
+                }
+
+                if (gotNoError.get()){
+                    playerFile.delete();
+                    TreasureLogger.log(Level.INFO, "imported player info for " + playerFile.getPath());
                 }
             }
         }
