@@ -17,6 +17,7 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
     private static final HandlerList handlers = new HandlerList();
     private Result result = Result.DEFAULT;
     private final TreasureInfo treasureInfo;
+    private final boolean hasPermission;
 
     public enum Result {
         /**
@@ -33,10 +34,11 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
         CANCELED
     }
 
-    public TreasureOpenEvent(@NotNull Player who, @NotNull TreasureInfo what) {
+    public TreasureOpenEvent(@NotNull Player who, @NotNull TreasureInfo what, boolean hasPermission) {
         super(who);
 
         this.treasureInfo = what;
+        this.hasPermission = hasPermission;
     }
 
     public @NotNull TreasureInfo getTreasureInfo() {
@@ -66,5 +68,9 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
     @Override
     public void setCancelled(boolean isCanceled) {
         this.result = Result.CANCELED;
+    }
+
+    public boolean hasPermission() {
+        return hasPermission;
     }
 }

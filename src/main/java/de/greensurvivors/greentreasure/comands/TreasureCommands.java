@@ -179,7 +179,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
             case 2 -> {
                 final ArrayList<String> arguments = new ArrayList<>();
 
-                switch (args[1]){
+                switch (args[0]){
                     case CREATE, DELETE, REMOVE, EDIT, FORGET_ALL, ABOUT, RELOAD -> {
                         return null;
                     }
@@ -279,9 +279,9 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
 
             case 3 -> { //gt set(0) forget(1) <1y 2w 3d 4h 5m 6s 7t 8ms>(2..)
                 //don't get confused with help subcommands
-                if (args[1].equalsIgnoreCase(SET)){
+                if (args[0].equalsIgnoreCase(SET)){
                     final ArrayList<String> arguments = new ArrayList<>();
-                    switch (args[2]){
+                    switch (args[1]){
                         case RANDOM -> {
                             arguments.add("100.0");
                             arguments.add("75.0");
@@ -312,7 +312,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
             }
 
             default -> {
-                if (args[1].equalsIgnoreCase(SET) && args[2].equalsIgnoreCase(FORGET)){
+                if (args[0].equalsIgnoreCase(SET) && args[1].equalsIgnoreCase(FORGET)){
                     final ArrayList<String> arguments = new ArrayList<>();
                     arguments.add(SUFFIX_YEAR);
                     arguments.add(SUFFIX_WEEK);
@@ -546,6 +546,11 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                     TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
 
                     if (treasureInfo != null){
+                        // unlimited treasure
+                        if (treasureInfo.isUnlimited()){
+                            commandSender.sendMessage(Lang.build(Lang.PEEK_UNLIMITED.get()));
+                        }
+
                         if (treasureInfo.isGlobal()){
                             //load global treasure async
                             TreasureConfig.inst().getPlayerLootDetailAsync(null, location, playerLootDetail -> {
@@ -553,10 +558,15 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                                 long timeStamp= playerLootDetail.lastLootedTimeStamp();
 
                                 if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())){
+                                    commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
+
                                     nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
 
+                                    int slotChance = treasureInfo.slotChance();
+                                    Random random = new Random();
+
                                     // clone every item stack and put it into the new inventory
-                                    nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : s.clone()).toArray(ItemStack[]::new));
+                                    nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
 
                                     player.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
                                 } else {
@@ -569,34 +579,47 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
 
                                 CommandInventoriesListener.inst().addPeekingTreasure(player.openInventory(nowPeeking), new PeekedTreasure(null, location, timeStamp));
                             });
-                        return;
-                        }
-
-                        UUID uuidToPeek;
-                        if (args.length >= 2){
-                            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                            if (offlinePlayer.hasPlayedBefore()){
-                                uuidToPeek = offlinePlayer.getUniqueId();
-                            } else {
-                                try{
-                                    uuidToPeek = UUID.fromString(args[1]);
-                                }catch (IllegalArgumentException ignored){
-                                    commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
-                                    return;
-                                }
-                            }
                         } else {
-                            uuidToPeek = player.getUniqueId();
+                            UUID uuidToPeek;
+                            if (args.length >= 2){
+                                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
+                                if (offlinePlayer.hasPlayedBefore()){
+                                    uuidToPeek = offlinePlayer.getUniqueId();
+                                } else {
+                                    try{
+                                        uuidToPeek = UUID.fromString(args[1]);
+                                    }catch (IllegalArgumentException ignored){
+                                        commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
+                                        return;
+                                    }
+                                }
+                            } else {
+                                uuidToPeek = player.getUniqueId();
+                            }
+
+                            TreasureConfig.inst().getPlayerLootDetailAsync(uuidToPeek, location, playerLootDetail -> {
+                                Inventory nowPeeking;
+
+                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())){
+                                    commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
+
+                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
+
+                                    int slotChance = treasureInfo.slotChance();
+                                    Random random = new Random();
+
+                                    // clone every item stack and put it into the new inventory
+                                    nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                                } else {
+                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
+                                    // get items left there last time
+                                    nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                }
+
+                                CommandInventoriesListener.inst().addPeekingTreasure(player.openInventory(nowPeeking), new PeekedTreasure(uuidToPeek, location, playerLootDetail.lastLootedTimeStamp()));
+                                commandSender.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
+                            });
                         }
-
-                        TreasureConfig.inst().getPlayerLootDetailAsync(uuidToPeek, location, playerLootData -> {
-                            Inventory nowEditing = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
-                            // clone every item stack and put it into the new inventory
-                            nowEditing.setContents(treasureInfo.itemLoot().stream().map(s -> s == null ? null : s.clone()).toArray(ItemStack[]::new));
-
-                            CommandInventoriesListener.inst().addPeekingTreasure(player.openInventory(nowEditing), new PeekedTreasure(uuidToPeek, location, playerLootData.lastLootedTimeStamp()));
-                            commandSender.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
-                        });
                     } else {
                         commandSender.sendMessage(Lang.build(Lang.NO_TREASURE.get()));
                     }
@@ -743,7 +766,11 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
                         if (isUnLimited != null){
                             TreasureConfig.inst().setUnlimited(container.getLocation(), isUnLimited);
 
-                            commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED.get().replace(Lang.VALUE, String.valueOf(isUnLimited))));
+                            if (isUnLimited){
+                                commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_TRUE.get()));
+                            } else {
+                                commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_FALSE.get()));
+                            }
                         } else {
                             commandSender.sendMessage(Lang.build(Lang.NO_BOOL.get().replace(Lang.VALUE, args[2])));
                         }

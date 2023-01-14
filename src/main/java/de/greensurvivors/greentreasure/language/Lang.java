@@ -50,7 +50,8 @@ public enum Lang implements Cons {
 	SET_RANDOM (String.format("&aTreasure was set with a slot chance of &e%s %%&a.", VALUE)),
 	SET_FORGET (String.format("&aTreasure forgets every %s.", VALUE)),
 	REMOVE_FORGET("&aThe treasure never forgets."),
-	SET_UNLIMITED ("&aThe treasure is now lootable a unlimited amount of times."),
+	SET_UNLIMITED_TRUE("&aThe treasure is now lootable a unlimited amount of times."),
+	SET_UNLIMITED_FALSE("&aThe treasure is now lootable only one time."),
 	SET_GLOBAL("&aThe treasure inventory is now shared by every player."),
 
 	NOT_LOOKINGAT_CONTAINER ("&cYou are not looking at a container."),
@@ -71,7 +72,9 @@ public enum Lang implements Cons {
 
 	PEEK_PLAYER (String.format("&7Treasure of %s", VALUE)),
 	PEEK_GLOBAL ("Global treasure"),
-	PEEK_WARNING ("&6Warning: This inventory is not sync. If the Player (or a player in case of global) has the treasure open at the same time, problems may occur.");
+	PEEK_WARNING ("&6Warning: This inventory is not sync. If the Player (or a player in case of global) has the treasure open at the same time, problems may occur."),
+	PEEK_GENERATE("&e%s&7 never opened this treasure. Generating new Inventory."),
+	PEEK_UNLIMITED("&cThis treasure is unlimited and personalized unlimited treasure is not an unsupported feature.");
 
 
 

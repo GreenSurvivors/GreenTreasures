@@ -36,7 +36,9 @@ public class GreenTreasure extends JavaPlugin {
 	@Override
 	public void onDisable() {
 		//clean up
-		TreasureListener.inst().clearTreasures();
+		TreasureListener.inst().closeAllInventories();
 		CommandInventoriesListener.inst().clearInventories();
+
+		TreasureListener.inst().clearTreasures();
 	}
 }

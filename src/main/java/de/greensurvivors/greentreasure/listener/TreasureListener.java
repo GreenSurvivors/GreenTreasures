@@ -76,8 +76,6 @@ public class TreasureListener implements Listener {
      * (to repopulate them with updated information)
      */
     public void clearTreasures() {
-        closeAllInventories();
-
         treasures.clear();
         openInventories.clear();
     }
@@ -123,38 +121,37 @@ public class TreasureListener implements Listener {
         if (!event.isCancelled()) {
             HumanEntity ePlayer = event.getPlayer();
 
-            //test permission
-            if (Perm.hasPermission(ePlayer, Perm.TREASURE_ADMIN, Perm.TREASURE_OPEN)) {
+            Inventory eInventory = event.getInventory();
+            final Location eLocation;
+            String type;
 
-                Inventory eInventory = event.getInventory();
-                Component eTitle = event.getView().title();
-                final Location eLocation;
-                String type;
+            // get location and type
+            // note: this makes it already compatible should ever support for entity's like mine-carts be needed,
+            // however the commands aren't
+            if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder){
+                eLocation = cleanLocation(blockInventoryHolder.getBlock().getLocation());
+                type = blockInventoryHolder.getBlock().getType().name();
+            } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity){
+                eLocation = cleanLocation(containerEntity.getLocation());
+                type = containerEntity.getEntity().getType().toString();
+            } else {
+                eLocation = null;
+                type = null;
+            }
 
-                // get location and type
-                // note: this makes it already compatible should ever support for entity's like mine-carts be needed,
-                // however the commands aren't
-                if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder){
-                    eLocation = cleanLocation(blockInventoryHolder.getBlock().getLocation());
-                    type = blockInventoryHolder.getBlock().getType().name();
-                } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity){
-                    eLocation = cleanLocation(containerEntity.getLocation());
-                    type = containerEntity.getEntity().getType().toString();
-                } else {
-                    eLocation = null;
-                    type = null;
-                }
+            TreasureInfo treasureInfo = treasures.get(eLocation);
 
-                TreasureInfo treasureInfo = treasures.get(eLocation);
-
-                if (eLocation != null && treasureInfo != null) {
+            if (eLocation != null && treasureInfo != null) {
+                //test permission
+                if (Perm.hasPermission(ePlayer, Perm.TREASURE_ADMIN, Perm.TREASURE_OPEN)) {
+                    Component eTitle = event.getView().title();
                     // test on type in case wrong entity is clicked
                     if (treasureInfo.type().equalsIgnoreCase(type)){
                         // don't open the original block inventory
                         event.setCancelled(true);
 
                         // call api event: TreasureOpenEvent
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo);
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
                         treasureOpenEvent.callEvent();
 
                         // evaluate result
@@ -256,11 +253,20 @@ public class TreasureListener implements Listener {
                             });
                         }
                     }
+                } else {
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
+                    treasureOpenEvent.callEvent();
+
+                    switch (treasureOpenEvent.getResult()){
+                        case DEFAULT -> {
+                            ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
+                            // don't open the original block inventory
+                            event.setCancelled(true);
+                        }
+                        case ORIGINAL -> {}
+                        case CANCELED -> event.setCancelled(true);
+                    }
                 }
-            } else {
-                ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
-                // don't open the original block inventory
-                event.setCancelled(true);
             }
         }
     }

@@ -232,6 +232,9 @@ public class ImportLegacy {
                                                 List<ItemStack> unLootedItems = Arrays.stream((new ItemStack[inventorySize])).toList();
 
                                                 TreasureConfig.inst().savePlayerDetail(uuid, location, timeStamp, unLootedItems);
+
+                                                //remove from cfg
+                                                cfg.set(buildKey(worldName, coordinatesStr), null);
                                             }
                                         }
                                     });
