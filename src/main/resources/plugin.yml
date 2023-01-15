@@ -1,6 +1,6 @@
 main: de.greensurvivors.greentreasure.GreenTreasure
 name: GreenTreasure
-version: 0.0.5
+version: 0.0.6
 api-version: 1.19
 author: Bergtiger, Feuerreiter
 softdepend:

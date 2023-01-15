@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "de.greensurvivors"
-version = "0.0.5-SNAPSHOT"
+version = "0.0.6-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
 //java.sourceCompatibility = JavaVersion.VERSION_17
 
