@@ -8,6 +8,7 @@ import de.greensurvivors.greentreasure.language.Lang;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
@@ -76,7 +77,7 @@ public class CommandInventoriesListener implements Listener {
     /**
      * saves the new contents of a treasure inventory if an editing inventory view was closed
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     private void onEditingDone(InventoryCloseEvent event){
         Inventory eInventory = event.getInventory();
         Location location = editingTreasures.get(event.getView());
@@ -100,7 +101,7 @@ public class CommandInventoriesListener implements Listener {
     /**
      * saves the new contents of a treasure inventory to a player file if a peeking inventory view was closed
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     private void onPeekingDone(InventoryCloseEvent event){
         PeekedTreasure peekedTreasure = peekingTreasures.get(event.getView());
 

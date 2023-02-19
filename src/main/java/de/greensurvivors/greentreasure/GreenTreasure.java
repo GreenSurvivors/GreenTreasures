@@ -9,7 +9,6 @@ import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class GreenTreasure extends JavaPlugin {
-
 	private static GreenTreasure instance;
 
 	public static GreenTreasure inst() {

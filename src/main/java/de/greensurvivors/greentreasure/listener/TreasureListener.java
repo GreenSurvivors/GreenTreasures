@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -92,7 +93,7 @@ public class TreasureListener implements Listener {
     /**
      * if a treasure was closed update the timestamp and unloosed inventory in the player file
      */
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR)
     private void onCloseTreasure(InventoryCloseEvent event){
         UUID eUUID = event.getPlayer().getUniqueId();
         Inventory eInventory = event.getInventory();

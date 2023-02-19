@@ -3,8 +3,8 @@
 plugins {
     `java-library`
     //java
-    id("io.papermc.paperweight.userdev") version "1.3.8"
-	id("xyz.jpenilla.run-paper") version "1.0.6" // Adds runServer and runMojangMappedServer tasks for testing
+    id("io.papermc.paperweight.userdev") version "1.5.3" // plugin for developing Paper plugins using server internals
+	id("xyz.jpenilla.run-paper") version "2.0.1" // Adds runServer and runMojangMappedServer tasks for testing
 }
 
 group = "de.greensurvivors"
@@ -32,11 +32,11 @@ repositories {
 }
 
 dependencies {
-    paperDevBundle("1.19.2-R0.1-SNAPSHOT")
+    paperweight.paperDevBundle("1.19.3-R0.1-SNAPSHOT")
     //get prebuilt from jitpack.io
-    //compileOnly("com.github.HenrikoMagnifico","TreasureChestX","8dbc187c09")
+    compileOnly("com.github.HenrikoMagnifico","TreasureChestX","8dbc187c09")
     //local installation in case jitpack doesn't work
-    compileOnly("com.mtihc.minecraft.treasurechest.v8.plugin","TreasureChest","8.5")
+    //compileOnly("com.mtihc.minecraft.treasurechest.v8.plugin","TreasureChest","8.5")
 }
 
 tasks {

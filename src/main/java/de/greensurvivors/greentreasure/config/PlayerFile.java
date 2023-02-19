@@ -14,7 +14,7 @@ public class PlayerFile {
     private YamlConfiguration cfg = null;
 
     private final String fileName;
-    public final String path;
+    private final String path;
     public static final String FOLDER = "playerFiles";
 
     public PlayerFile(String playerID, Location location) {
