@@ -54,7 +54,7 @@ public class CreateSubCommand {
      *     partial argument to be completed
      * @return suggestion of arguments
      */
-    public Collection<String> handleTapCompleate(@NotNull String[] args) {
+    public Collection<String> handleTabCompleate(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(CREATE);
         } else {

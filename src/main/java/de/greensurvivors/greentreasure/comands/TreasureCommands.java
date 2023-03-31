@@ -107,44 +107,44 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
 
         //check permissions and add subCommands to be suggested for the commandSender
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_CREATE)){
-            suggestions.addAll(CreateSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(CreateSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_DELETE)){
-            suggestions.addAll(DeleteSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(DeleteSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_EDIT)){
-            suggestions.addAll(EditSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(EditSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS, Perm.TREASURE_LIST_TREASURES)){
-            suggestions.addAll(ListSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(ListSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_PEEK)){
-            suggestions.addAll(PeekSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(PeekSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_FORGET)){
-            suggestions.addAll(ForgetSubCommand.inst().handleTapCompleate(args));
-            suggestions.addAll(ForgetAllSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(ForgetSubCommand.inst().handleTabCompleate(args));
+            suggestions.addAll(ForgetAllSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_FORGET)){
-            suggestions.addAll(SetForgetSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(SetForgetSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_UNLIMITED)){
-            suggestions.addAll(SetUnlimitedSubCommand.inst().handleTapComplete(args));
+            suggestions.addAll(SetUnlimitedSubCommand.inst().handleTabComplete(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_RANDOM)){
-            suggestions.addAll(SetRandomSubCommand.inst().handleTapComplete(args));
+            suggestions.addAll(SetRandomSubCommand.inst().handleTabComplete(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_GLOBAL)){
-            suggestions.addAll(SetGlobalSubCommand.inst().handleTapComplete(args));
+            suggestions.addAll(SetGlobalSubCommand.inst().handleTabComplete(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_ABOUT)){
-            suggestions.addAll(AboutSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(AboutSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_RELOAD)){
-            suggestions.addAll(ReloadSubCommand.inst().handleTapCompleate(args));
+            suggestions.addAll(ReloadSubCommand.inst().handleTabCompleate(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_HELP)){
-            suggestions.addAll(HelpSubCommand.inst().handleTapComplete(commandSender, args));
+            suggestions.addAll(HelpSubCommand.inst().handleTabComplete(commandSender, args));
         }
 
         return suggestions.stream().filter(s -> s.startsWith(args[args.length - 1].toLowerCase())).toList();

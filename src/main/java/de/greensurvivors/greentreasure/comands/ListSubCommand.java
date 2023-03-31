@@ -122,7 +122,7 @@ public class ListSubCommand {
      *     partial argument to be completed
      * @return suggestion of arguments, filtert by what's already written
      */
-    protected List<String> handleTapCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args){
         switch (args.length){
             case 1 -> {
                 return Collections.singletonList(LIST);
