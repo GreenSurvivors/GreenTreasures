@@ -107,7 +107,7 @@ public class TreasureListener implements Listener {
 
             if (eLocation != null){
                 openInventories.remove(event.getView());
-                TreasureConfig.inst().savePlayerDetail(treasureInfo.isGlobal() ? null : eUUID, eLocation, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
+                TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : eUUID, eLocation, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
             }
         }
     }
@@ -117,116 +117,80 @@ public class TreasureListener implements Listener {
      * if its global, unlimited, forgetting period and random slot chance
      * @param event
      */
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     private void onOpenTreasure (InventoryOpenEvent event){
-        if (!event.isCancelled()) {
-            HumanEntity ePlayer = event.getPlayer();
+        HumanEntity ePlayer = event.getPlayer();
 
-            Inventory eInventory = event.getInventory();
-            final Location eLocation;
-            String type;
+        Inventory eInventory = event.getInventory();
+        final Location eLocation;
+        String type;
 
-            // get location and type
-            // note: this makes it already compatible should ever support for entity's like mine-carts be needed,
-            // however the commands aren't
-            if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder){
-                eLocation = cleanLocation(blockInventoryHolder.getBlock().getLocation());
-                type = blockInventoryHolder.getBlock().getType().name();
-            } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity){
-                eLocation = cleanLocation(containerEntity.getLocation());
-                type = containerEntity.getEntity().getType().toString();
-            } else {
-                eLocation = null;
-                type = null;
-            }
+        // get location and type
+        // note: this makes it already compatible should ever support for entity's like mine-carts be needed,
+        // however the commands aren't
+        if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder){
+            eLocation = cleanLocation(blockInventoryHolder.getBlock().getLocation());
+            type = blockInventoryHolder.getBlock().getType().name();
+        } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity){
+            eLocation = cleanLocation(containerEntity.getLocation());
+            type = containerEntity.getEntity().getType().toString();
+        } else {
+            eLocation = null;
+            type = null;
+        }
 
-            TreasureInfo treasureInfo = treasures.get(eLocation);
+        TreasureInfo treasureInfo = treasures.get(eLocation);
 
-            if (eLocation != null && treasureInfo != null) {
-                //test permission
-                if (Perm.hasPermission(ePlayer, Perm.TREASURE_ADMIN, Perm.TREASURE_OPEN)) {
-                    Component eTitle = event.getView().title();
-                    // test on type in case wrong entity is clicked
-                    if (treasureInfo.type().equalsIgnoreCase(type)){
-                        // don't open the original block inventory
-                        event.setCancelled(true);
+        if (eLocation != null && treasureInfo != null) {
+            //test permission
+            if (Perm.hasPermission(ePlayer, Perm.TREASURE_ADMIN, Perm.TREASURE_OPEN)) {
+                Component eTitle = event.getView().title();
+                // test on type in case wrong entity is clicked
+                if (treasureInfo.type().equalsIgnoreCase(type)){
+                    // don't open the original block inventory
+                    event.setCancelled(true);
 
-                        // call api event: TreasureOpenEvent
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
-                        treasureOpenEvent.callEvent();
+                    // call api event: TreasureOpenEvent
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
+                    treasureOpenEvent.callEvent();
 
-                        // evaluate result
-                        switch (treasureOpenEvent.getResult()){
-                            case DEFAULT -> event.setCancelled(true);
-                            case ORIGINAL -> {
-                                return;
-                            }
-                            case CANCELED -> {
-                                event.setCancelled(true);
-                                return;
-                            }
+                    // evaluate result
+                    switch (treasureOpenEvent.getResult()){
+                        case DEFAULT -> event.setCancelled(true);
+                        case ORIGINAL -> {
+                            return;
                         }
+                        case CANCELED -> {
+                            event.setCancelled(true);
+                            return;
+                        }
+                    }
 
-                        if (treasureInfo.isGlobal()){
-                            InventoryView inventoryView = openInventories.keySet().stream().filter(s -> openInventories.get(s) == eLocation).findAny().orElse(null);
+                    if (treasureInfo.isGlobal()){
+                        InventoryView inventoryView = openInventories.keySet().stream().filter(s -> openInventories.get(s) == eLocation).findAny().orElse(null);
 
-                            if (inventoryView != null && !treasureInfo.isUnlimited()) {
-                                ePlayer.openInventory(inventoryView.getTopInventory());
+                        if (inventoryView != null && !treasureInfo.isUnlimited()) {
+                            ePlayer.openInventory(inventoryView.getTopInventory());
 
-                            } else if (treasureInfo.isUnlimited()){
-                                Inventory nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                // clone every item stack and put it into the new inventory
+                        } else if (treasureInfo.isUnlimited()){
+                            Inventory nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+                            // clone every item stack and put it into the new inventory
 
-                                int slotChance = treasureInfo.slotChance();
-                                Random random = new Random();
+                            int slotChance = treasureInfo.slotChance();
+                            Random random = new Random();
 
-                                nowLooting.setContents(treasures.get(eLocation).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                            nowLooting.setContents(treasures.get(eLocation).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
 
-                                ePlayer.openInventory(nowLooting);
-                                ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_UNLIMITED.get()));
-                            } else {
-                                //load global treasure async
-                                TreasureConfig.inst().getPlayerLootDetailAsync(null, eLocation, playerLootDetail -> {
-                                    Inventory nowLooting;
-
-                                    // automatically forget after a given time
-                                    if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
-                                            !(treasureInfo.timeUntilForget() > 0 && System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp() > treasureInfo.timeUntilForget())){
-
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-
-                                        int slotChance = treasureInfo.slotChance();
-                                        Random random = new Random();
-
-                                        // clone every item stack and put it into the new inventory
-                                        nowLooting.setContents(treasures.get(eLocation).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
-
-                                        ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_LIMITED.get()));
-                                    } else if (playerLootDetail.unLootedStuff() != null) {
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                        // get items left there last time
-                                        nowLooting.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
-
-                                        ePlayer.sendMessage(Lang.build(Lang.TREASURE_ALREADYLOOTED.get()));
-                                    } else {
-                                        //not saved inventory but timer is still running. Should never occur but better be safe than sorry
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-
-                                        ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_LIMITED.get()));
-                                    }
-
-                                    openInventories.put(ePlayer.openInventory(nowLooting), eLocation);
-                                });
-                            }
-                        } else { // not globally shared
-                            TreasureConfig.inst().getPlayerLootDetailAsync(ePlayer.getUniqueId(), eLocation, playerLootDetail -> {
+                            ePlayer.openInventory(nowLooting);
+                            ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_UNLIMITED.get()));
+                        } else {
+                            //load global treasure async
+                            TreasureConfig.inst().getPlayerLootDetailAsync(null, eLocation, playerLootDetail -> {
                                 Inventory nowLooting;
 
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
-                                        // unlimited treasure
-                                        treasureInfo.isUnlimited()) &&
-                                        // automatically forget after a given time
-                                        !((treasureInfo.timeUntilForget() > 0) && (System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp()) > treasureInfo.timeUntilForget())){
+                                // automatically forget after a given time
+                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
+                                        !(treasureInfo.timeUntilForget() > 0 && System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp() > treasureInfo.timeUntilForget())){
 
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
 
@@ -253,20 +217,54 @@ public class TreasureListener implements Listener {
                                 openInventories.put(ePlayer.openInventory(nowLooting), eLocation);
                             });
                         }
-                    }
-                } else {
-                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
-                    treasureOpenEvent.callEvent();
+                    } else { // not globally shared
+                        TreasureConfig.inst().getPlayerLootDetailAsync(ePlayer.getUniqueId(), eLocation, playerLootDetail -> {
+                            Inventory nowLooting;
 
-                    switch (treasureOpenEvent.getResult()){
-                        case DEFAULT -> {
-                            ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
-                            // don't open the original block inventory
-                            event.setCancelled(true);
-                        }
-                        case ORIGINAL -> {}
-                        case CANCELED -> event.setCancelled(true);
+                            if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
+                                    // unlimited treasure
+                                    treasureInfo.isUnlimited()) &&
+                                    // automatically forget after a given time
+                                    !((treasureInfo.timeUntilForget() > 0) && (System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp()) > treasureInfo.timeUntilForget())){
+
+                                nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+
+                                int slotChance = treasureInfo.slotChance();
+                                Random random = new Random();
+
+                                // clone every item stack and put it into the new inventory
+                                nowLooting.setContents(treasures.get(eLocation).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+
+                                ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_LIMITED.get()));
+                            } else if (playerLootDetail.unLootedStuff() != null) {
+                                nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+                                // get items left there last time
+                                nowLooting.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+
+                                ePlayer.sendMessage(Lang.build(Lang.TREASURE_ALREADYLOOTED.get()));
+                            } else {
+                                //not saved inventory but timer is still running. Should never occur but better be safe than sorry
+                                nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+
+                                ePlayer.sendMessage(Lang.build(Lang.TREASURE_FOUND_LIMITED.get()));
+                            }
+
+                            openInventories.put(ePlayer.openInventory(nowLooting), eLocation);
+                        });
                     }
+                }
+            } else {
+                TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
+                treasureOpenEvent.callEvent();
+
+                switch (treasureOpenEvent.getResult()){
+                    case DEFAULT -> {
+                        ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
+                        // don't open the original block inventory
+                        event.setCancelled(true);
+                    }
+                    case ORIGINAL -> {}
+                    case CANCELED -> event.setCancelled(true);
                 }
             }
         }

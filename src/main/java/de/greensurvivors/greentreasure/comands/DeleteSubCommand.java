@@ -34,7 +34,7 @@ public class DeleteSubCommand {
             Container container = TreasureCommands.getContainer(commandSender);
 
             if (container != null){
-                TreasureConfig.inst().saveTreasure(container.getBlock().getLocation(), null, null);
+                TreasureConfig.inst().saveTreasureAsync(container.getBlock().getLocation(), null, null);
                 TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation());
 
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE.get().replace(Lang.TYPE,

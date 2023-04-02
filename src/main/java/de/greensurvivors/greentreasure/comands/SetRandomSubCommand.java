@@ -43,7 +43,7 @@ public class SetRandomSubCommand {
 
                             slotPercentage = Math.max(Math.min(slotPercentage, 10000), 0);
 
-                            TreasureConfig.inst().setRandom(container.getLocation(), slotPercentage);
+                            TreasureConfig.inst().setRandomAsync(container.getLocation(), slotPercentage);
 
                             commandSender.sendMessage(Lang.build(Lang.SET_RANDOM.get().replace(Lang.VALUE, String.valueOf(((float)slotPercentage) / 100.0f))));
                         } else {

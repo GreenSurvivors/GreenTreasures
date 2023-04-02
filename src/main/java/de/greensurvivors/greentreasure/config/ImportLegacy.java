@@ -144,12 +144,12 @@ public class ImportLegacy {
                                 String type = treasureChest.getContainer().getType().name().toUpperCase();
 
 
-                                TreasureConfig.inst().saveTreasure(location, Arrays.stream(contents).toList(), type);
+                                TreasureConfig.inst().saveTreasureAsync(location, Arrays.stream(contents).toList(), type);
 
-                                TreasureConfig.inst().setForget(location, forget_time);
-                                TreasureConfig.inst().setGlobal(location, isGLobal);
-                                TreasureConfig.inst().setUnlimited(location, isUnLimited);
-                                TreasureConfig.inst().setRandom(location, (int)(randomChance * 100));
+                                TreasureConfig.inst().setForgetAsync(location, forget_time);
+                                TreasureConfig.inst().setGlobalAsync(location, isGLobal);
+                                TreasureConfig.inst().setUnlimitedAsync(location, isUnLimited);
+                                TreasureConfig.inst().setRandomAsync(location, (int)(randomChance * 100));
 
                                 //remove the treasure form the plugin and then v it
                                 treasureChestPlugin.getManager().removeTreasure(location);
@@ -231,7 +231,7 @@ public class ImportLegacy {
                                             if (inventorySize != null) {
                                                 List<ItemStack> unLootedItems = Arrays.stream((new ItemStack[inventorySize])).toList();
 
-                                                TreasureConfig.inst().savePlayerDetail(uuid, location, timeStamp, unLootedItems);
+                                                TreasureConfig.inst().savePlayerDetailAsync(uuid, location, timeStamp, unLootedItems);
 
                                                 //remove from cfg
                                                 cfg.set(buildKey(worldName, coordinatesStr), null);

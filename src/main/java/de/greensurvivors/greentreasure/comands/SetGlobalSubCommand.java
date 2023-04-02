@@ -41,7 +41,7 @@ public class SetGlobalSubCommand {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null){
-                            TreasureConfig.inst().setGlobal(container.getLocation(), isUnLimited);
+                            TreasureConfig.inst().setGlobalAsync(container.getLocation(), isUnLimited);
 
                             commandSender.sendMessage(Lang.build(Lang.SET_GLOBAL.get().replace(Lang.VALUE, String.valueOf(isUnLimited))));
                         } else {

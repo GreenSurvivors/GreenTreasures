@@ -42,7 +42,7 @@ public class SetUnlimitedSubCommand {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null){
-                            TreasureConfig.inst().setUnlimited(container.getLocation(), isUnLimited);
+                            TreasureConfig.inst().setUnlimitedAsync(container.getLocation(), isUnLimited);
 
                             if (isUnLimited){
                                 commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_TRUE.get()));

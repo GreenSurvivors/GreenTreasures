@@ -89,7 +89,7 @@ public class CommandInventoriesListener implements Listener {
             if (treasureInfo != null){
                 editingTreasures.remove(event.getView());
 
-                TreasureConfig.inst().saveTreasure(location, Arrays.asList(eInventory.getContents()), treasureInfo.type());
+                TreasureConfig.inst().saveTreasureAsync(location, Arrays.asList(eInventory.getContents()), treasureInfo.type());
 
                 event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED.get()));
             } else {
@@ -116,7 +116,7 @@ public class CommandInventoriesListener implements Listener {
                 new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
 
                 peekingTreasures.remove(event.getView());
-                TreasureConfig.inst().savePlayerDetail(treasureInfo.isGlobal() ? null : peekedTreasure.playerPeeked(), location, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : peekedTreasure.playerPeeked(), location, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
             }
         }
     }

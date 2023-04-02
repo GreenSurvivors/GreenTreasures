@@ -36,7 +36,7 @@ public class CreateSubCommand {
                 Location location = container.getBlock().getLocation();
                 List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 
-                TreasureConfig.inst().saveTreasure(location, itemStacks, container.getBlock().getType().name());
+                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name());
 
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE.get().replace(Lang.TYPE,
                         container.customName() == null ? container.getBlock().getType().name() :

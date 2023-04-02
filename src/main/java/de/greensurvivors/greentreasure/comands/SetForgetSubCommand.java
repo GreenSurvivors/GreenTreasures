@@ -130,7 +130,7 @@ public class SetForgetSubCommand {
                             }
                         }
 
-                        TreasureConfig.inst().setForget(container.getLocation(), forgetPeriod);
+                        TreasureConfig.inst().setForgetAsync(container.getLocation(), forgetPeriod);
 
                         //negative values turn forget off
                         if (forgetPeriod < 0){
