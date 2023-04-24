@@ -47,7 +47,8 @@ public enum Lang implements Cons {
 
     NO_TREASURE(String.format("&cYou are not looking at a treasure. Use &6'&e%s&6' first.", TREASURE_COMMAND_CREATE.get())),
 
-    FORGET_PLAYER(String.format("&aThe treasure forgot &6'&e%s&6'&a has ever found it.", UUID)),
+    FORGET_PLAYER_START("&7startet forgetting player. Please do not interact with the treasure, until the process is complete."),
+    FORGET_PLAYER_END(String.format("&aThe treasure forgot &6'&e%s&6'&a has ever found it.", UUID)),
     FORGET_ALL_START("&7startet forgetting all. Please do not interact with the treasure, until the process is complete."),
     FORGET_ALL_END("&aThe Treasure forgot anybody has ever found it."),
 
@@ -67,14 +68,18 @@ public enum Lang implements Cons {
     DONT_BREAK_CONTAINER_USER("&cYou are not allowed to break this Treasure."),
     DONT_BREAK_CONTAINER_ADMIN(String.format("&cThis is a Treasure. If you want to remove it, use &6'&e%s&6'&c first", TREASURE_COMMAND_DELETE.get())),
 
-    LIST_PLAYER_HEADER(String.format("&2-------<(&6Treasures of &e- &6%s&a &6%s&e/&6%s &2)>-------", NAME, VALUE, VALUE2)),
-    LIST_PLAYER_BODY(String.format("%s&7 was looted last: %s.", LOCATION, VALUE)),
-    LIST_PLAYER_EMPTY("&cNo Treasure was created, yet. Try to create a new one with &e/" + TreasureCommands.CMD + " " + TreasureCommands.CREATE),
-    LIST_PLAYER_NEVER("never"),
     LIST_TREASURES_HEADER(String.format("&2-------<(&6Treasures &e- &6%s&e/&6%s &2)>-------", VALUE, VALUE2)),
     LIST_TREASURE_BODY(String.format("%s&7 with slot chance of &e%s%%&7 is global&6: &e%s&7 is unlimited&6: &e%s&7", LOCATION, VALUE, GLOBAL, UNLIMITED)),
     LIST_TREASURES_EMPTY("&cNo Treasure was created, yet. Try to create a new one with &e/" + TreasureCommands.CMD + " " + TreasureCommands.CREATE),
     LIST_TREASURE_FORGETPERIOD(String.format(" resetting every &e%s&7", VALUE)),
+    LIST_PLAYER_HEADER(String.format("&2-------<(&6Treasures of &e- &6%s&a &6%s&e/&6%s &2)>-------", NAME, VALUE, VALUE2)),
+    LIST_PLAYER_BODY(String.format("%s&7 was looted last: &e%s&7.", LOCATION, VALUE)),
+    LIST_PLAYER_EMPTY("&cNo Treasure was created, yet. Try to create a new one with &e/" + TreasureCommands.CMD + " " + TreasureCommands.CREATE),
+    LIST_PLAYER_NEVER("never"),
+    LIST_WHO_HEADER(String.format("&2-------<(&6Players of &e- &6%s &6%s&e/&6%s &2)>-------", LOCATION, VALUE, VALUE2)),
+    LIST_WHO_BODY(String.format("%s&7 has looted last: &e%s&7.", NAME, VALUE)),
+    LIST_WHO_GLOBAL("global"),
+    LIST_WHO_EMPTY("&7This Treasure was never looted by anybody."),
     TRUE("true"),
     FALSE("false"),
 
@@ -103,11 +108,11 @@ public enum Lang implements Cons {
     /**
      * Builds a Component from given text.
      *
-     * @param args to build from
+     * @param arg to build from
      * @return Component
      */
-    public static Component build(String args) {
-        return build(args, null, null, null, null);
+    public static Component build(String arg) {
+        return build(arg, null, null, null, null);
     }
 
     /**

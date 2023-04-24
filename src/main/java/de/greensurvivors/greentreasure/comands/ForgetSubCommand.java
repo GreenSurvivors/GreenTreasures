@@ -43,9 +43,10 @@ public class ForgetSubCommand {
                 TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(container.getLocation());
 
                 if (treasureInfo != null && treasureInfo.isGlobal()) {
-                    TreasureConfig.inst().forgetPlayerAsync(null, container.getBlock().getLocation());
+                    commandSender.sendMessage(Lang.build(Lang.FORGET_PLAYER_START.get()));
+                    TreasureConfig.inst().forgetPlayerAsync(null, container.getBlock().getLocation(), () ->
+                            commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get())));
 
-                    commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get()));
                     return;
                 }
 
@@ -71,8 +72,9 @@ public class ForgetSubCommand {
                     }
                 }
 
-                TreasureConfig.inst().forgetPlayerAsync(uuidToForget, container.getBlock().getLocation());
-                commandSender.sendMessage(Lang.build(Lang.FORGET_PLAYER.get().replace(Lang.UUID, uuidToForget.toString())));
+                commandSender.sendMessage(Lang.build(Lang.FORGET_PLAYER_START.get()));
+                TreasureConfig.inst().forgetPlayerAsync(uuidToForget, container.getBlock().getLocation(), () ->
+                        commandSender.sendMessage(Lang.build(Lang.FORGET_PLAYER_END.get().replace(Lang.UUID, uuidToForget.toString()))));
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
             }

@@ -76,15 +76,15 @@ public class SetRandomSubCommand {
     protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
-                return Collections.singletonList(SET);
+                return List.of(SET);
             }
             case 2 -> {
                 if (args[0].equalsIgnoreCase(SET)) {
-                    return Collections.singletonList(RANDOM);
+                    return List.of(RANDOM);
                 }
             }
             case 3 -> {
-                if (args[1].equalsIgnoreCase(SET) && args[2].equalsIgnoreCase(RANDOM)) {
+                if (args[0].equalsIgnoreCase(SET) && args[1].equalsIgnoreCase(RANDOM)) {
                     return List.of("100.0", "75.0", "50.0", "25.0", "10.0", "5.0", "2.0");
                 }
             }

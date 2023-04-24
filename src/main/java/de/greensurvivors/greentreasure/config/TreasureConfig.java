@@ -7,6 +7,7 @@ import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.dataobjects.callback.EmptyCallback;
 import de.greensurvivors.greentreasure.dataobjects.callback.PlayerLootDetailCallback;
+import de.greensurvivors.greentreasure.dataobjects.callback.PlayerLootDetailMapCallback;
 import de.greensurvivors.greentreasure.language.Lang;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
@@ -42,8 +43,8 @@ public class TreasureConfig {
             IS_GLOBAL = "is_global",
             TREASURE_TYPE = "type";
     private final UUID
-            // in case a treasure was shared (herobrine)
-            GLOBAL_UUID = UUID.fromString("f84c6a79-0a4e-45e0-879b-cd49ebd4c4e2");
+            // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
+            GLOBAL_UUID = Bukkit.getOfflinePlayer("@Global").getUniqueId();
     private final long DEFAULT_TIME_STAMP = 0;
     private final long DEFAULT_FORGETTING_PERIOD = -1;
     private final int DEFAULT_SLOT_CHANCE = 10000;
@@ -63,10 +64,19 @@ public class TreasureConfig {
     }
 
     /**
+     *
+     * @param location
+     * @return
+     */
+    private static String getIdFromLoc (Location location){
+        return location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+    }
+
+    /**
      * Combining all arguments to a single FileConfiguration key.
      *
-     * @param args key arguments in order
-     * @return String
+     * @param args  key arguments in order
+     * @return      String
      */
     private static @NotNull String buildKey(String... args) {
         return String.join(".", args);
@@ -75,8 +85,8 @@ public class TreasureConfig {
     /**
      * takes a list of itemStack and trys to serialize all of them into a List of Maps (or null)
      *
-     * @param itemList a list of ItemStack
-     * @return serialized list of Map<String, Object>
+     * @param itemList  a list of ItemStack
+     * @return          serialized list of Map<String, Object>
      */
     public static List<Map<String, Object>> serializeItemList(@Nullable List<ItemStack> itemList) {
         if (itemList == null) {
@@ -99,8 +109,8 @@ public class TreasureConfig {
     /**
      * takes a list of Objects and trys to convert it into a List of ItemStack (or null)
      *
-     * @param itemObjs a list of Map<String, Object>, as ItemStack.serialize() outputs
-     * @return deserialized List of ItemStack or null, if the input is null
+     * @param itemObjs  a list of Map<String, Object>, as ItemStack.serialize() outputs
+     * @return          deserialized List of ItemStack or null, if the input is null
      */
     public static List<ItemStack> deserializeItemList(@Nullable List<?> itemObjs) {
         if (itemObjs != null) {
@@ -142,12 +152,10 @@ public class TreasureConfig {
      */
     public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            //get offline player of uuid
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid == null ? GLOBAL_UUID : uuid);
-            String id = location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+            String id = getIdFromLoc(location);
 
             synchronized (mutexDatabase) {
-                databaseManager.setPlayerData(player, id, new PlayerLootDetail(timeStamp, unlootedTreasure));
+                databaseManager.setPlayerData(uuid == null ? GLOBAL_UUID : uuid, id, new PlayerLootDetail(timeStamp, unlootedTreasure));
             }
         });
     }
@@ -158,21 +166,15 @@ public class TreasureConfig {
      * @param uuid     the UUID of a looting player null means global
      * @param location the location of a treasure, the information for identify a treasure
      */
-    public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location) {
+    public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            /*path = "playerFile_" + (uuid == null ? GLOBAL_FILE_NAME : uuid.toString());
-            fileName = location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+            String id = getIdFromLoc(location);
 
             synchronized (mutexDatabase) {
+                databaseManager.forgetPlayer(uuid == null ? GLOBAL_UUID : uuid, id);
 
-                String keyFirstPart = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
-
-                cfg.set(buildKey(keyFirstPart, ITEM_LIST), null);
-                cfg.set(buildKey(keyFirstPart, TIME_STAMP), null);
-
-                playerFile.saveCfg();
-            }*/
+                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
+            }
         });
     }
 
@@ -183,14 +185,16 @@ public class TreasureConfig {
      */
     public void forgetAllAsync(@NotNull Location location, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
+            String id = getIdFromLoc (location);
+
             synchronized (mutexDatabase) {
-                String id = location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
                 databaseManager.forgetAll(id);
 
-                emptyCallback.onQueryDone();
+                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
             }
         });
     }
+
 
     /**
      * load the status of a player about a treasure and calls a function with the information back in the main thread.
@@ -201,17 +205,35 @@ public class TreasureConfig {
      */
     public void getPlayerLootDetailAsync(@Nullable UUID uuid, @NotNull Location location, @NotNull PlayerLootDetailCallback playerLootDetailCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            //get offline player of uuid
-            OfflinePlayer player = Bukkit.getOfflinePlayer(uuid == null ? GLOBAL_UUID : uuid);
-            String id = location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
+            String id = getIdFromLoc(location);
 
             synchronized (mutexDatabase) {
                 // load player loot detail information async
-                PlayerLootDetail playerLootDetail = databaseManager.getPlayerData(player, id);
+                PlayerLootDetail playerLootDetail = databaseManager.getPlayerData(uuid == null ? GLOBAL_UUID : uuid, id);
 
                 // give the data back to the main thread
                 Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), () ->
                         playerLootDetailCallback.onQueryDone(playerLootDetail));
+            }
+        });
+    }
+
+    /**
+     *
+     * @param location
+     * @param callback
+     */
+    public void getAllPlayerDetailAsync(@NotNull Location location, @NotNull PlayerLootDetailMapCallback callback){
+        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
+            String id = getIdFromLoc(location);
+
+            synchronized (mutexDatabase) {
+                // load player loot detail of all players async
+                Map<UUID, PlayerLootDetail> result = databaseManager.getAllPlayerData(id);
+
+                // give the data back to the main thread
+                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), () ->
+                        callback.onQueryDone(result));
             }
         });
     }
@@ -529,9 +551,12 @@ public class TreasureConfig {
             }
         }
 
-        emptyCallback.onQueryDone();
+        Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
     }
 
+    /**
+     *
+     */
     private void loadDatabase() {
         HashMap<String, Object> serializedDatabaseData = new HashMap<>();
 
@@ -552,7 +577,9 @@ public class TreasureConfig {
                 synchronized (mutexDatabase) {
                     databaseManager = new DatabaseManager(GreenTreasure.inst(), serializedDatabaseData);
 
-                    mainCfg.set("SQL", databaseManager.getDatabaseData());
+                    for (Map.Entry<String, Object> entry : databaseManager.getDatabaseData().entrySet()) {
+                        mainCfg.set("SQL." + entry.getKey(), entry.getValue());
+                    }
                 }
 
                 GreenTreasure.inst().saveConfig();

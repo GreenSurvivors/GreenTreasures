@@ -8,52 +8,22 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.TreasureLogger;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
-import java.io.Serial;
-import java.io.Serializable;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
-
-/**
- * Exception if sql connection is currently not available.
- */
-class NoSQLConnectionException extends Exception implements Serializable {
-    /**
-     * default serialVersionUID
-     */
-    @Serial
-    private static final long serialVersionUID = 1L;
-
-    public NoSQLConnectionException() {
-        super("No SQL Connection");
-    }
-}
-
 
 public class DatabaseManager {
     private final String
-            PLAYER_KEY = "players",
-            /**
-             * player identifier
-             */
-            PID_KEY = "pid",
             /**
              * uuid of player
              */
             UUID_KEY = "uuid",
-            /**
-             * name of player
-             */
-            NAME_KEY = "name",
             /**
              * last time a player had looted the treasure
              */
@@ -81,6 +51,11 @@ public class DatabaseManager {
     private int reconnected_Tries = 0;
     private boolean shouldConnect = true;
 
+    /**
+     *
+     * @param plugin
+     * @param databaseData
+     */
     public DatabaseManager(GreenTreasure plugin, HashMap<String, Object> databaseData) {
         this.plugin = plugin;
 
@@ -91,6 +66,10 @@ public class DatabaseManager {
         }
     }
 
+    /**
+     *
+     * @return
+     */
     public HashMap<String, Object> getDatabaseData() {
         HashMap<String, Object> databaseData = new HashMap<>();
 
@@ -106,37 +85,38 @@ public class DatabaseManager {
     /**
      * Returns the known information about a treasure looted by a player
      *
-     * @param player         player who we want data of
+     * @param uuid           uuid of player who we want data of
      * @param lootIdentifier identifier of the treasure
-     * @return PlayerLootDetail or null, if getting the data wasn't successfully
-     * (like in cases if the player never opened this treasure)
+     * @return               PlayerLootDetail or null, if getting the data wasn't successfully
+     *                       (like in cases if the player never opened this treasure)
      */
-    public @Nullable PlayerLootDetail getPlayerData(@NotNull OfflinePlayer player, @NotNull String lootIdentifier) {
+    public @Nullable PlayerLootDetail getPlayerData(@NotNull UUID uuid, @NotNull String lootIdentifier) {
         if (hasConnection()) {
             PreparedStatement st = null;
             ResultSet rs = null;
 
             try {
-                st = conn.prepareStatement(String.format("SELECT EXISTS ( SELECT TABLE_NAME FROM " +
+                st = conn.prepareStatement(String.format("SELECT EXISTS ( " +
+                                "SELECT TABLE_NAME FROM " +
                                 "information_schema.TABLES " +
-                                "WHERE TABLE_NAME = '%s' )", lootIdentifier),
+                                "WHERE TABLE_NAME = '%s' )",
+                                lootIdentifier),
                         ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY);
                 rs = st.executeQuery();
 
                 if (rs.next() && rs.getInt(1) > 0) {
-                    addPlayer(player);
 
                     st = conn.prepareStatement(String.format(
                                     "SELECT `%s`, `%s` " +
                                             "FROM `%s` " +
-                                            "AS c JOIN %s AS p ON c.%s = p.%s WHERE %s LIKE ?",
+                                            "WHERE %s LIKE ?",
                                     TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
                                     lootIdentifier,
-                                    PLAYER_KEY, PID_KEY, PID_KEY, UUID_KEY),
+                                    UUID_KEY),
                             ResultSet.TYPE_FORWARD_ONLY,
                             ResultSet.CONCUR_READ_ONLY);
-                    st.setString(1, player.getUniqueId().toString());
+                    st.setString(1, uuid.toString());
                     rs = st.executeQuery();
 
                     if (rs.next()) {
@@ -152,10 +132,10 @@ public class DatabaseManager {
                         return null;
                     }
                 } else {
-                    TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for '%s'", lootIdentifier, player.getName()));
+                    TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for '%s'", lootIdentifier, uuid));
                 }
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for '%s'", lootIdentifier, player.getName()));
+                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for '%s'", lootIdentifier, uuid));
                 e.printStackTrace();
             } finally {
                 closeResources(st, rs);
@@ -169,33 +149,33 @@ public class DatabaseManager {
     /**
      * Saves the loot detail of a player
      *
-     * @param player         player whose data is about to be saved.
+     * @param uuid           uuid of player whose data is about to be saved.
      * @param lootIdentifier the treasure id
      * @param lootDetail     the new data
      */
-    public void setPlayerData(@NotNull OfflinePlayer player, @NotNull String lootIdentifier, @NotNull PlayerLootDetail lootDetail) {
+    public void setPlayerData(@NotNull UUID uuid, @NotNull String lootIdentifier, @NotNull PlayerLootDetail lootDetail) {
         if (hasConnection()) {
             PreparedStatement st = null;
             try {
                 createTreasureTable(lootIdentifier);
-                addPlayer(player);
 
                 st = conn.prepareStatement(String.format(
                         "INSERT INTO `%s` " +
                                 "(%s, %s, %s) " +
-                                "VALUES ((SELECT %s FROM %s WHERE %s LIKE ?), ?, ?) " +
-                                "ON DUPLICATE KEY UPDATE %s = VALUES(%s)",
+                                "VALUES (?, ?, ?) " +
+                                "ON DUPLICATE KEY UPDATE %s = VALUES(%s), " +
+                                " %s = VALUES(%s)",
                         lootIdentifier,
-                        PID_KEY,  TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
-                        PID_KEY, PLAYER_KEY, UUID_KEY,
+                        UUID_KEY, TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
+                        TREASURE_TIMESTAMP_KEY, TREASURE_TIMESTAMP_KEY,
                         TREASURE_LOOT_KEY, TREASURE_LOOT_KEY));
 
-                st.setString(1, player.getUniqueId().toString());
+                st.setString(1, uuid.toString());
                 st.setLong(2, lootDetail.lastLootedTimeStamp());
                 st.setString(3, GSON.toJson(TreasureConfig.serializeItemList(lootDetail.unLootedStuff()), LIST_TYPE));
                 st.executeUpdate();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not set player loot detail '%s' for '%s' to '%s'", lootIdentifier, player.getName(), GSON.toJson(lootDetail.serialize(), MAP_TYPE)));
+                TreasureLogger.log(Level.WARNING, String.format("Could not set player loot detail '%s' for '%s' to '%s'", lootIdentifier, uuid, GSON.toJson(lootDetail.serialize(), MAP_TYPE)));
                 e.printStackTrace();
             } finally {
                 closeResources(st, null);
@@ -212,6 +192,91 @@ public class DatabaseManager {
         deleteTreasureTable(lootIdentifier);
     }
 
+    public void forgetPlayer(@NotNull UUID uuid, @NotNull String lootIdentifier){
+        if (hasConnection()) {
+            PreparedStatement st = null;
+            try {
+                createTreasureTable(lootIdentifier);
+
+                st = conn.prepareStatement(String.format(
+                        "DELETE FROM %s " +
+                                "WHERE %s LIKE ?",
+                        lootIdentifier,
+                        UUID_KEY));
+                st.setString(1, uuid.toString());
+
+                st.executeUpdate();
+            } catch (SQLException e) {
+                TreasureLogger.log(Level.WARNING, String.format("Could not forget player loot detail '%s' for '%s'", lootIdentifier, uuid));
+                e.printStackTrace();
+            } finally {
+                closeResources(st, null);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param lootIdentifier
+     * @return
+     */
+    public @NotNull Map<UUID, PlayerLootDetail> getAllPlayerData(@NotNull String lootIdentifier) {
+        if (hasConnection()) {
+            PreparedStatement st = null;
+            ResultSet rs = null;
+
+            try {
+                st = conn.prepareStatement(String.format("SELECT EXISTS ( SELECT TABLE_NAME FROM " +
+                                "information_schema.TABLES " +
+                                "WHERE TABLE_NAME = '%s' )", lootIdentifier),
+                        ResultSet.TYPE_FORWARD_ONLY,
+                        ResultSet.CONCUR_READ_ONLY);
+                rs = st.executeQuery();
+
+                if (rs.next() && rs.getInt(1) > 0) {
+
+                    st = conn.prepareStatement(String.format(
+                                    "SELECT `%s`, `%s`, `%s` " +
+                                            "FROM `%s` ",
+                                    UUID_KEY, TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
+                                    lootIdentifier),
+                            ResultSet.TYPE_FORWARD_ONLY,
+                            ResultSet.CONCUR_READ_ONLY);
+                    rs = st.executeQuery();
+
+                    HashMap<UUID, PlayerLootDetail> result = new HashMap<>();
+
+                    while (rs.next()) {
+                        String uuidStr = rs.getString(1); //todo check if this is a valid uuid
+
+                        long timeStamp = rs.getLong(2);
+
+                        //get list from string
+                        List<?> itemList = GSON.fromJson(rs.getString(3), LIST_TYPE);
+                        List<ItemStack> items = TreasureConfig.deserializeItemList(itemList);
+
+                        result.put(UUID.fromString(uuidStr), new PlayerLootDetail(timeStamp, items));
+                    }
+
+                    return result;
+
+                } else {
+                    TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for all-query", lootIdentifier));
+                }
+            } catch (SQLException e) {
+                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for all-query", lootIdentifier));
+                e.printStackTrace();
+            } finally {
+                closeResources(st, rs);
+            }
+        } else {
+            noConnection();
+        }
+
+        //empty map
+        return new HashMap<>();
+    }
+
     /**
      * creates a new table for a treasure
      *
@@ -224,15 +289,13 @@ public class DatabaseManager {
             try {
                 st = conn.prepareStatement(String.format(
                         "CREATE TABLE IF NOT EXISTS `%s` (" +
-                                "%s INT UNSIGNED PRIMARY KEY, " +
+                                "%s VARCHAR(36) PRIMARY KEY, " +
                                 "%s BIGINT, " +
-                                "%s MEDIUMTEXT, " +
-                                "FOREIGN KEY (%s) REFERENCES %s(%s))",
+                                "%s MEDIUMTEXT)",
                         identifier,
-                        PID_KEY,
+                        UUID_KEY,
                         TREASURE_TIMESTAMP_KEY,
-                        TREASURE_LOOT_KEY,
-                        PID_KEY, PLAYER_KEY, PID_KEY));
+                        TREASURE_LOOT_KEY));
                 st.executeUpdate();
             } catch (SQLException e) {
                 TreasureLogger.log(Level.WARNING, "Could not create loot detail table for " + identifier);
@@ -348,11 +411,6 @@ public class DatabaseManager {
             // verbinde
             conn = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + database, user, password);
 
-            // creates a player table to look up uuids
-            createTablePlayer();
-        } catch (NoSQLConnectionException e) {
-            TreasureLogger.log(Level.SEVERE, "Could not create tables.");
-            e.printStackTrace();
         } catch (Exception e) {
             TreasureLogger.log(Level.WARNING, e.getMessage());
             TreasureLogger.log(Level.WARNING, "No Connection");
@@ -402,7 +460,7 @@ public class DatabaseManager {
     /**
      * save closing of resources
      *
-     * @param st PreparedStatment
+     * @param st PreparedStatement
      * @param rs ResultSet
      */
     private void closeResources(PreparedStatement st, ResultSet rs) {
@@ -439,66 +497,6 @@ public class DatabaseManager {
             e.printStackTrace();
         } finally {
             conn = null;
-        }
-
-    }
-
-    /**
-     * Creates a player table to look uuids up
-     *
-     * @throws NoSQLConnectionException if no connection was possible
-     */
-    private void createTablePlayer() throws NoSQLConnectionException {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                st = conn.prepareStatement(String.format(
-                        "CREATE TABLE IF NOT EXISTS %s (" +
-                                "%s INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, " +
-                                "%s VARCHAR(16) NOT NULL UNIQUE, " +
-                                "%s CHAR(36) NOT NULL UNIQUE)",
-                        PLAYER_KEY,
-                        PID_KEY,
-                        NAME_KEY,
-                        UUID_KEY));
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not create players.");
-                e.printStackTrace();
-            } finally {
-                closeResources(st, null);
-            }
-        } else {
-            throw new NoSQLConnectionException();
-        }
-    }
-
-    /**
-     * Tries to write players to the player table
-     *
-     * @param player Offline player
-     */
-    public void addPlayer(OfflinePlayer player) {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                createTablePlayer();
-
-                st = conn.prepareStatement(String.format(
-                        "INSERT INTO `%s` (%s, %s)  VALUES (?, ?) " +
-                                "ON DUPLICATE KEY UPDATE %s = VALUES(%s)", PLAYER_KEY, NAME_KEY, UUID_KEY, NAME_KEY, NAME_KEY));
-                st.setString(1, player.getName());
-                st.setString(2, player.getUniqueId().toString());
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.SEVERE, String.format("&cCould not add player &6'%s'&c.", player.getName()));
-                e.printStackTrace();
-            } catch (NoSQLConnectionException e) {
-                TreasureLogger.log(Level.SEVERE, "&cCould not create player tables.");
-                e.printStackTrace();
-            } finally {
-                closeResources(st, null);
-            }
         }
     }
 }

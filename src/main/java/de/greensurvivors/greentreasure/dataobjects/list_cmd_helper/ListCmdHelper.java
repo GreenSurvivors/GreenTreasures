@@ -11,14 +11,14 @@ public abstract class ListCmdHelper {
     protected final ArrayList<Component> componentResult = new ArrayList<>();
     private final int PAGE_NOW, LAST_PAGE;
     private final CommandSender COMMAND_SENDER;
-    protected int NumOfPagesStillToDo;
+    protected int NumOfEntriesStillToDo;
     protected String command;
 
     public ListCmdHelper(CommandSender commandSender, int pageNow, int lastPage, int numEntries) {
         this.COMMAND_SENDER = commandSender;
         this.LAST_PAGE = lastPage;
         this.PAGE_NOW = pageNow;
-        this.NumOfPagesStillToDo = numEntries;
+        this.NumOfEntriesStillToDo = numEntries;
     }
 
     protected void sendMessage() {
