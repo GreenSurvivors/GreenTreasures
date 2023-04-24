@@ -17,7 +17,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.BlockInventoryHolder;
 import org.bukkit.inventory.Inventory;
@@ -37,7 +39,8 @@ public class TreasureListener implements Listener {
     //list of open inventories, needed to have global treasures and saving the contents of a treasure after the inventory view was closed
     private final HashMap<InventoryView, Location> openInventories = new HashMap<>();
 
-    private TreasureListener() {}
+    private TreasureListener() {
+    }
 
     public static TreasureListener inst() {
         if (instance == null) {
@@ -48,7 +51,8 @@ public class TreasureListener implements Listener {
 
     /**
      * adds a treasure
-     * @param location location to identify a treasure
+     *
+     * @param location     location to identify a treasure
      * @param treasureInfo all important information a treasure has
      */
     public void addTreasure(Location location, TreasureInfo treasureInfo) {
@@ -57,18 +61,20 @@ public class TreasureListener implements Listener {
 
     /**
      * get a treasure given its location
+     *
      * @param location location to identify a treasure
      * @return all known information about the treasure itself
      */
-    public TreasureInfo getTreasure (Location location){
-       return treasures.get(location);
+    public TreasureInfo getTreasure(Location location) {
+        return treasures.get(location);
     }
 
     /**
      * get all locations of all treasueres known. might be used with getTreasure() to get all treasures
+     *
      * @return set of locations or an empty list if no treasure was loaded
      */
-    public Set<Location> getTreasureLocations(){
+    public Set<Location> getTreasureLocations() {
         return treasures.keySet();
     }
 
@@ -84,8 +90,8 @@ public class TreasureListener implements Listener {
     /**
      * closes all open inventories to update them
      */
-    public void closeAllInventories(){
-        for (InventoryView inventoryView : openInventories.keySet()){
+    public void closeAllInventories() {
+        for (InventoryView inventoryView : openInventories.keySet()) {
             inventoryView.close();
         }
     }
@@ -94,7 +100,7 @@ public class TreasureListener implements Listener {
      * if a treasure was closed update the timestamp and unloosed inventory in the player file
      */
     @EventHandler(priority = EventPriority.MONITOR)
-    private void onCloseTreasure(InventoryCloseEvent event){
+    private void onCloseTreasure(InventoryCloseEvent event) {
         UUID eUUID = event.getPlayer().getUniqueId();
         Inventory eInventory = event.getInventory();
         Location eLocation = openInventories.get(event.getView());
@@ -102,10 +108,10 @@ public class TreasureListener implements Listener {
         TreasureInfo treasureInfo = treasures.get(eLocation);
 
         //if the treasure wasn't deleted while the inventory was open call the close event
-        if (treasureInfo != null){
+        if (treasureInfo != null) {
             new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
 
-            if (eLocation != null){
+            if (eLocation != null) {
                 openInventories.remove(event.getView());
                 TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : eUUID, eLocation, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
             }
@@ -113,12 +119,49 @@ public class TreasureListener implements Listener {
     }
 
     /**
+     * don't let players put items into the treasure
+     */
+    @EventHandler(ignoreCancelled = true)
+    private void onInventoryDrag(InventoryDragEvent event) {
+        if (openInventories.get(event.getView()) != null) {
+            for (int slot : event.getInventorySlots()) {
+                if (slot >= 0 && slot < event.getView().getTopInventory().getSize()) {
+                    event.setCancelled(true);
+                }
+            }
+        }
+    }
+
+    /**
+     * don't let players put items into the treasure
+     */
+    @EventHandler(ignoreCancelled = true)
+    private void onInventoryClick(InventoryClickEvent event) {
+        if (openInventories.get(event.getView()) != null) {
+
+            switch (event.getAction()) {
+                case PLACE_ALL, PLACE_SOME, PLACE_ONE, SWAP_WITH_CURSOR, HOTBAR_SWAP, COLLECT_TO_CURSOR -> {
+                    if (event.getRawSlot() >= 0 && event.getRawSlot() < event.getView().getTopInventory().getSize()) {
+                        event.setCancelled(true);
+                    }
+                }
+                case MOVE_TO_OTHER_INVENTORY -> {
+                    if (event.getRawSlot() < 0 || event.getRawSlot() >= event.getView().getTopInventory().getSize()) {
+                        event.setCancelled(true);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
      * opens a treasure inventory depending on if it was ever looted by the player,
      * if its global, unlimited, forgetting period and random slot chance
+     *
      * @param event
      */
     @EventHandler(ignoreCancelled = true)
-    private void onOpenTreasure (InventoryOpenEvent event){
+    private void onOpenTreasure(InventoryOpenEvent event) {
         HumanEntity ePlayer = event.getPlayer();
 
         Inventory eInventory = event.getInventory();
@@ -127,11 +170,11 @@ public class TreasureListener implements Listener {
 
         // get location and type
         // note: this makes it already compatible should ever support for entity's like mine-carts be needed,
-        // however the commands aren't
-        if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder){
+        // however the commands and the location based data system (breaks if the entity moves) aren't
+        if (eInventory.getHolder() instanceof BlockInventoryHolder blockInventoryHolder) {
             eLocation = cleanLocation(blockInventoryHolder.getBlock().getLocation());
             type = blockInventoryHolder.getBlock().getType().name();
-        } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity){
+        } else if (eInventory.getHolder() instanceof ContainerEntity containerEntity) {
             eLocation = cleanLocation(containerEntity.getLocation());
             type = containerEntity.getEntity().getType().toString();
         } else {
@@ -146,7 +189,7 @@ public class TreasureListener implements Listener {
             if (Perm.hasPermission(ePlayer, Perm.TREASURE_ADMIN, Perm.TREASURE_OPEN)) {
                 Component eTitle = event.getView().title();
                 // test on type in case wrong entity is clicked
-                if (treasureInfo.type().equalsIgnoreCase(type)){
+                if (treasureInfo.type().equalsIgnoreCase(type)) {
                     // don't open the original block inventory
                     event.setCancelled(true);
 
@@ -155,7 +198,7 @@ public class TreasureListener implements Listener {
                     treasureOpenEvent.callEvent();
 
                     // evaluate result
-                    switch (treasureOpenEvent.getResult()){
+                    switch (treasureOpenEvent.getResult()) {
                         case DEFAULT -> event.setCancelled(true);
                         case ORIGINAL -> {
                             return;
@@ -166,13 +209,13 @@ public class TreasureListener implements Listener {
                         }
                     }
 
-                    if (treasureInfo.isGlobal()){
+                    if (treasureInfo.isGlobal()) {
                         InventoryView inventoryView = openInventories.keySet().stream().filter(s -> openInventories.get(s) == eLocation).findAny().orElse(null);
 
                         if (inventoryView != null && !treasureInfo.isUnlimited()) {
                             ePlayer.openInventory(inventoryView.getTopInventory());
 
-                        } else if (treasureInfo.isUnlimited()){
+                        } else if (treasureInfo.isUnlimited()) {
                             Inventory nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                             // clone every item stack and put it into the new inventory
 
@@ -189,8 +232,8 @@ public class TreasureListener implements Listener {
                                 Inventory nowLooting;
 
                                 // automatically forget after a given time
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
-                                        !(treasureInfo.timeUntilForget() > 0 && System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp() > treasureInfo.timeUntilForget())){
+                                if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
+                                        !(treasureInfo.timeUntilForget() > 0 && System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp() > treasureInfo.timeUntilForget()))) {
 
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
 
@@ -221,11 +264,11 @@ public class TreasureListener implements Listener {
                         TreasureConfig.inst().getPlayerLootDetailAsync(ePlayer.getUniqueId(), eLocation, playerLootDetail -> {
                             Inventory nowLooting;
 
-                            if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
+                            if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
                                     // unlimited treasure
                                     treasureInfo.isUnlimited()) &&
                                     // automatically forget after a given time
-                                    !((treasureInfo.timeUntilForget() > 0) && (System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp()) > treasureInfo.timeUntilForget())){
+                                    !((treasureInfo.timeUntilForget() > 0) && (System.currentTimeMillis() - playerLootDetail.lastLootedTimeStamp()) > treasureInfo.timeUntilForget()))) {
 
                                 nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
 
@@ -257,13 +300,14 @@ public class TreasureListener implements Listener {
                 TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent((Player) ePlayer, treasureInfo, true);
                 treasureOpenEvent.callEvent();
 
-                switch (treasureOpenEvent.getResult()){
+                switch (treasureOpenEvent.getResult()) {
                     case DEFAULT -> {
                         ePlayer.sendMessage(Lang.build(Lang.NO_PERMISSION_SOMETHING.get()));
                         // don't open the original block inventory
                         event.setCancelled(true);
                     }
-                    case ORIGINAL -> {}
+                    case ORIGINAL -> {
+                    }
                     case CANCELED -> event.setCancelled(true);
                 }
             }
@@ -275,12 +319,12 @@ public class TreasureListener implements Listener {
      * to get rid of a treasure use /gt delete
      */
     @EventHandler
-    private void onTreasureBreak(BlockBreakEvent event){
+    private void onTreasureBreak(BlockBreakEvent event) {
         Location eLocation = cleanLocation(event.getBlock().getLocation());
         TreasureInfo treasureInfo = treasures.get(eLocation);
 
-        if (treasureInfo != null && treasureInfo.type().equalsIgnoreCase(event.getBlock().getType().name())){
-            if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()){
+        if (treasureInfo != null && treasureInfo.type().equalsIgnoreCase(event.getBlock().getType().name())) {
+            if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {
                 event.setCancelled(true);
 
                 Player ePlayer = event.getPlayer();

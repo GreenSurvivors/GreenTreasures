@@ -29,23 +29,24 @@ public class SetUnlimitedSubCommand {
     /**
      * set's if the treasure is lootable an unlimited amount of times
      * /gt set(0) unlimited(1) <true/false>(2)
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
     protected void handleSetUnlimited(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_UNLIMITED)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
-                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null){
-                    if (args.length > 2){
+            if (container != null) {
+                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null) {
+                    if (args.length > 2) {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_START.get()));
 
-                        if (isUnLimited != null){
+                        if (isUnLimited != null) {
                             TreasureConfig.inst().setUnlimitedAsync(container.getLocation(), isUnLimited, () -> {
-                                if (isUnLimited){
+                                if (isUnLimited) {
                                     commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_TRUE.get()));
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_FALSE.get()));
@@ -71,10 +72,10 @@ public class SetUnlimitedSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabComplete(@NotNull String[] args){
+    protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(SET);

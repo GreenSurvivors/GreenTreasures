@@ -28,21 +28,22 @@ public class SetGlobalSubCommand {
     /**
      * set's if all player share the same loot inventory or not
      * /gt set(0) global(1) <true/false>(2)
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
     protected void handleSetGlobal(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_GLOBAL)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
-                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null){
-                    if (args.length > 2){
+            if (container != null) {
+                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null) {
+                    if (args.length > 2) {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         commandSender.sendMessage(Lang.build(Lang.SET_GLOBAL_START.get()));
 
-                        if (isUnLimited != null){
+                        if (isUnLimited != null) {
                             TreasureConfig.inst().setGlobalAsync(container.getLocation(), isUnLimited, () ->
                                     commandSender.sendMessage(Lang.build(Lang.SET_GLOBAL_END.get().replace(Lang.VALUE, String.valueOf(isUnLimited)))));
                         } else {
@@ -64,16 +65,16 @@ public class SetGlobalSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabComplete(@NotNull String[] args){
+    protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(SET);
             }
             case 2 -> {
-                if (args[1].equalsIgnoreCase(SET) ) {
+                if (args[1].equalsIgnoreCase(SET)) {
                     return List.of(GLOBAL, SHARED);
                 }
             }

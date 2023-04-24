@@ -31,17 +31,18 @@ public class ForgetSubCommand {
      * /gt forget (takes the commandSender self)
      * /gt forget uuid
      * /gt forget playerName
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
-    protected void handleForget(CommandSender commandSender, String[] args){
+    protected void handleForget(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_FORGET)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
+            if (container != null) {
                 TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(container.getLocation());
 
-                if (treasureInfo != null && treasureInfo.isGlobal()){
+                if (treasureInfo != null && treasureInfo.isGlobal()) {
                     TreasureConfig.inst().forgetPlayerAsync(null, container.getBlock().getLocation());
 
                     commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get()));
@@ -49,20 +50,20 @@ public class ForgetSubCommand {
                 }
 
                 UUID uuidToForget;
-                if (args.length >= 2){
+                if (args.length >= 2) {
                     OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                    if (offlinePlayer.hasPlayedBefore()){
+                    if (offlinePlayer.hasPlayedBefore()) {
                         uuidToForget = offlinePlayer.getUniqueId();
                     } else {
-                        try{
+                        try {
                             uuidToForget = UUID.fromString(args[1]);
-                        }catch (IllegalArgumentException ignored){
+                        } catch (IllegalArgumentException ignored) {
                             commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
                             return;
                         }
                     }
                 } else {
-                    if (commandSender instanceof LivingEntity livingEntity){
+                    if (commandSender instanceof LivingEntity livingEntity) {
                         uuidToForget = livingEntity.getUniqueId();
                     } else {
                         commandSender.sendMessage(Lang.build(Lang.NO_PLAYER.get()));
@@ -82,18 +83,18 @@ public class ForgetSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(FORGET);
             }
             case 2 -> {
                 if (args[0].equalsIgnoreCase(FORGET)) {
-                    Collection<? extends Player> onlinePlayers =  Bukkit.getOnlinePlayers();
-                    if (!onlinePlayers.isEmpty()){
+                    Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
+                    if (!onlinePlayers.isEmpty()) {
                         return onlinePlayers.stream().map(Player::getName).toList();
                     }
                 }

@@ -27,21 +27,22 @@ public class DeleteSubCommand {
     /**
      * deletes a treasure AND all the UNLOOTED stuff for every player
      * /gt delete
+     *
      * @param commandSender sender of this command
      */
     protected void handleDelete(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_DELETE)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
+            if (container != null) {
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_START.get()));
 
-                TreasureConfig.inst().saveTreasureAsync(container.getBlock().getLocation(), null, null, () -> {});
-                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(), () -> {
-                    commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_END.get().replace(Lang.TYPE,
-                            container.customName() == null ? container.getBlock().getType().name() :
-                                    PlainTextComponentSerializer.plainText().serialize(container.customName()))));
+                TreasureConfig.inst().deleteTreasureAsync(container.getBlock().getLocation(), () -> {
                 });
+                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(), () ->
+                        commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_END.get().replace(Lang.TYPE,
+                                container.customName() == null ? container.getBlock().getType().name() :
+                                        PlainTextComponentSerializer.plainText().serialize(container.customName())))));
 
 
             } else {
@@ -54,11 +55,11 @@ public class DeleteSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
     public Collection<String> handleTabCompleate(@NotNull String[] args) {
-        if (args.length == 1){
+        if (args.length == 1) {
             return List.of(DELETE, REMOVE);
         } else {
             return new ArrayList<>();

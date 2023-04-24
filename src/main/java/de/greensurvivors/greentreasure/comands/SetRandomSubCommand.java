@@ -28,18 +28,19 @@ public class SetRandomSubCommand {
     /**
      * sets how probable it is for an inventory slot to be lootable
      * /gt set(0) random(1) <slotChance>(2)
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
     protected void handleSetRandom(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_RANDOM)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
-                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null){
-                    if (args.length > 2){
-                        if (Utils.isDouble(args[2])){
-                            int slotPercentage = (int)(Double.parseDouble(args[2]) * 100);
+            if (container != null) {
+                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null) {
+                    if (args.length > 2) {
+                        if (Utils.isDouble(args[2])) {
+                            int slotPercentage = (int) (Double.parseDouble(args[2]) * 100);
 
                             slotPercentage = Math.max(Math.min(slotPercentage, 10000), 0);
 
@@ -66,12 +67,13 @@ public class SetRandomSubCommand {
     }
 
     //gt set(0) forget(1) <1y 2w 3d 4h 5m 6s 7t 8ms>(2..)
+
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabComplete(@NotNull String[] args){
+    protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(SET);

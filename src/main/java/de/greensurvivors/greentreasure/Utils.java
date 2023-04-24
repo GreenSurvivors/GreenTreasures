@@ -6,13 +6,22 @@ import org.jetbrains.annotations.Nullable;
 import java.util.regex.Pattern;
 
 public class Utils {
-    final static String Digits     = "(\\p{Digit}+)";
-    final static String HexDigits  = "(\\p{XDigit}+)";
+    // conversion constants for a period of time into milliseconds
+    public static final long
+            YEAR_IN_MILLISECONDS = 31557600000L,
+            WEAK_IN_MILLISECONDS = 604800000L,
+            DAY_IN_MILLISECONDS = 86400000L,
+            HOUR_IN_MILLISECONDS = 3600000L,
+            MINUTE_IN_MILLISECONDS = 60000L,
+            SECONDS_IN_MILLISECONDS = 1000L,
+            TICKS_IN_MILLISECONDS = 50L;
+    final static String Digits = "(\\p{Digit}+)";
+    final static String HexDigits = "(\\p{XDigit}+)";
     // an exponent is 'e' or 'E' followed by an optionally
     // signed decimal integer.
-    final static String Exp        = "[eE][+-]?"+Digits;
-    final static String fpRegex    =
-            ("[\\x00-\\x20]*"+ // Optional leading "whitespace"
+    final static String Exp = "[eE][+-]?" + Digits;
+    final static String fpRegex =
+            ("[\\x00-\\x20]*" + // Optional leading "whitespace"
                     "[+-]?(" +         // Optional sign character
                     //"NaN|" +           // "NaN" string
                     //"Infinity|" +      // "Infinity" string
@@ -28,10 +37,10 @@ public class Utils {
                     // edition, section 3.10.2.
 
                     // Digits ._opt Digits_opt ExponentPart_opt FloatTypeSuffix_opt
-                    "((("+Digits+"(\\.)?("+Digits+"?)("+Exp+")?)|"+
+                    "(((" + Digits + "(\\.)?(" + Digits + "?)(" + Exp + ")?)|" +
 
                     // . Digits ExponentPart_opt FloatTypeSuffix_opt
-                    "(\\.("+Digits+")("+Exp+")?)|"+
+                    "(\\.(" + Digits + ")(" + Exp + ")?)|" +
 
                     // Hexadecimal strings
                     "((" +
@@ -47,23 +56,14 @@ public class Utils {
     private static final Pattern FLOAT_PATTERN = Pattern.compile(fpRegex);
     private static final Pattern INT_PATTERN = Pattern.compile("^[+-]?\\d+$");
 
-    // conversion constants for a period of time into milliseconds
-    public static final long
-            YEAR_IN_MILLISECONDS = 31557600000L,
-            WEAK_IN_MILLISECONDS = 604800000L,
-            DAY_IN_MILLISECONDS = 86400000L,
-            HOUR_IN_MILLISECONDS = 3600000L,
-            MINUTE_IN_MILLISECONDS = 60000L,
-            SECONDS_IN_MILLISECONDS = 1000L,
-            TICKS_IN_MILLISECONDS = 50L;
-
     /**
      * Test if a String can safely convert into an int
+     *
      * @param toTest String input
      * @return true if the pattern matches and is neither null nor empty
      */
-    public static boolean isInt(@Nullable String toTest){
-        if (toTest == null){
+    public static boolean isInt(@Nullable String toTest) {
+        if (toTest == null) {
             return false;
         }
 
@@ -76,10 +76,11 @@ public class Utils {
 
     /**
      * Test if a String can safely convert into a double
+     *
      * @param toTest String input
      * @return true if the pattern matches and is neither null nor empty
      */
-    public static boolean isDouble (String toTest) {
+    public static boolean isDouble(String toTest) {
         if (toTest == null) {
             return false;
         }
@@ -93,11 +94,12 @@ public class Utils {
 
     /**
      * clears a location of its pitch, yaw and turns it to bock locations
+     *
      * @param locationIn location to be cleaned
      * @return simplified location or null if the input location was also null
      */
-    public static @Nullable Location cleanLocation(@Nullable Location locationIn){
-        if (locationIn == null){
+    public static @Nullable Location cleanLocation(@Nullable Location locationIn) {
+        if (locationIn == null) {
             return null;
         }
 

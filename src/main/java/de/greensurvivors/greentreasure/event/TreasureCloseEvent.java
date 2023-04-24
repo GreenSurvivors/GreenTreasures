@@ -14,7 +14,7 @@ public class TreasureCloseEvent extends PlayerEvent {
     private final TreasureInfo treasureInfo;
 
     /**
-     * @param who the player who closes a treasure
+     * @param who          the player who closes a treasure
      * @param treasureInfo the information about a treasure
      */
     public TreasureCloseEvent(@NotNull Player who, @NotNull TreasureInfo treasureInfo) {

@@ -11,7 +11,7 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.UUID;
 
-public class ListCmdPlayerDetailHelper extends ListCmdHelper{
+public class ListCmdPlayerDetailHelper extends ListCmdHelper {
     private final UUID UUID_TO_GET_LIST_OF;
 
     public ListCmdPlayerDetailHelper(final CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries, final UUID uuidToGetListOf) {
@@ -22,7 +22,7 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper{
         super.command = "/" + TreasureCommands.CMD + " " + TreasureCommands.LIST + " " + UUID_TO_GET_LIST_OF.toString() + " ";
 
         String name = Bukkit.getOfflinePlayer(uuidToGetListOf).getName();
-        if (name == null){
+        if (name == null) {
             name = "?";
         }
 
@@ -30,7 +30,7 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper{
         super.componentResult.add(Lang.build(Lang.LIST_PLAYER_HEADER.get().replace(Lang.NAME, name).replace(Lang.VALUE, String.valueOf(pageNow)).replace(Lang.VALUE2, String.valueOf(lastPage))));
     }
 
-    public void addEntry(final Location treasureLocation){
+    public void addEntry(final Location treasureLocation) {
         TreasureConfig.inst().getPlayerLootDetailAsync(UUID_TO_GET_LIST_OF, treasureLocation, playerLootDetail_result -> {
             synchronized (super.MUTEX) {
                 super.NumOfPagesStillToDo--;
@@ -40,7 +40,7 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper{
                         replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
                         replace(Lang.VALUE, playerLootDetail_result.unLootedStuff() == null ? Lang.LIST_PLAYER_NEVER.get() : DateFormat.getDateTimeInstance().format(new Date(playerLootDetail_result.lastLootedTimeStamp())))));
 
-                if (super.NumOfPagesStillToDo <= 0){
+                if (super.NumOfPagesStillToDo <= 0) {
                     sendMessage();
                 }
             }

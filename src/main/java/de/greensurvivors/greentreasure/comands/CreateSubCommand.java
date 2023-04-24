@@ -26,23 +26,23 @@ public class CreateSubCommand {
     /**
      * creates a new treasure
      * /gt create
+     *
      * @param commandSender sender of this command
      */
     protected void handleCreate(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_CREATE)) {
             final Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
+            if (container != null) {
                 Location location = container.getBlock().getLocation();
                 List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 
                 commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_START.get()));
 
-                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name(), () -> {
-                    commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_END.get().replace(Lang.TYPE,
-                            container.customName() == null ? container.getBlock().getType().name() :
-                                    PlainTextComponentSerializer.plainText().serialize(container.customName()))));
-                });
+                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name(), () ->
+                        commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_END.get().replace(Lang.TYPE,
+                                container.customName() == null ? container.getBlock().getType().name() :
+                                        PlainTextComponentSerializer.plainText().serialize(container.customName())))));
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
             }
@@ -53,7 +53,7 @@ public class CreateSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
     public Collection<String> handleTabCompleate(@NotNull String[] args) {

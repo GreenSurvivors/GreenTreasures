@@ -36,31 +36,32 @@ public class PeekSubCommand {
      * /gt peek (takes the commandSender self)
      * /gt peek playerName
      * /gt peek uuid
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
-    protected void handlePeek(CommandSender commandSender, String[] args){
+    protected void handlePeek(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_PEEK)) {
-            if (commandSender instanceof Player player){
+            if (commandSender instanceof Player player) {
                 Container container = TreasureCommands.getContainer(commandSender);
 
-                if (container != null){
+                if (container != null) {
                     Location location = Utils.cleanLocation(container.getBlock().getLocation());
                     TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
 
-                    if (treasureInfo != null){
+                    if (treasureInfo != null) {
                         // unlimited treasure
-                        if (treasureInfo.isUnlimited()){
+                        if (treasureInfo.isUnlimited()) {
                             commandSender.sendMessage(Lang.build(Lang.PEEK_UNLIMITED.get()));
                         }
 
-                        if (treasureInfo.isGlobal()){
+                        if (treasureInfo.isGlobal()) {
                             //load global treasure async
                             TreasureConfig.inst().getPlayerLootDetailAsync(null, location, playerLootDetail -> {
                                 Inventory nowPeeking;
-                                long timeStamp= playerLootDetail.lastLootedTimeStamp();
+                                long timeStamp = playerLootDetail.lastLootedTimeStamp();
 
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())){
+                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
                                     commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
 
                                     nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
@@ -84,14 +85,14 @@ public class PeekSubCommand {
                             });
                         } else {
                             UUID uuidToPeek;
-                            if (args.length >= 2){
+                            if (args.length >= 2) {
                                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                                if (offlinePlayer.hasPlayedBefore()){
+                                if (offlinePlayer.hasPlayedBefore()) {
                                     uuidToPeek = offlinePlayer.getUniqueId();
                                 } else {
-                                    try{
+                                    try {
                                         uuidToPeek = UUID.fromString(args[1]);
-                                    }catch (IllegalArgumentException ignored){
+                                    } catch (IllegalArgumentException ignored) {
                                         commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
                                         return;
                                     }
@@ -103,7 +104,7 @@ public class PeekSubCommand {
                             TreasureConfig.inst().getPlayerLootDetailAsync(uuidToPeek, location, playerLootDetail -> {
                                 Inventory nowPeeking;
 
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())){
+                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
                                     commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
 
                                     nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
@@ -139,10 +140,10 @@ public class PeekSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(PEEK);
@@ -151,7 +152,7 @@ public class PeekSubCommand {
                 if (args[0].equalsIgnoreCase(PEEK)) {
                     Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
 
-                    if (!onlinePlayers.isEmpty()){
+                    if (!onlinePlayers.isEmpty()) {
                         return onlinePlayers.stream().map(Player::getName).toList();
                     }
                 }

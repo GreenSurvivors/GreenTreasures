@@ -39,23 +39,24 @@ public class SetForgetSubCommand {
     /**
      * set's the time period a treasure forgets it was ever opened
      * /gt set(0) forget(1) <1y 2w 3d 4h 5m 6s 7t 8ms>(2..)
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
     protected void handleSetForget(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_SET_FORGET)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
-                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null){
-                    if (args.length > 2){
+            if (container != null) {
+                if (TreasureListener.inst().getTreasure(Utils.cleanLocation(container.getLocation())) != null) {
+                    if (args.length > 2) {
                         long forgetPeriod = -1L;
 
-                        for (int i = 2; i < args.length; i++){
-                            if (args[i].endsWith(SUFFIX_YEAR)){
+                        for (int i = 2; i < args.length; i++) {
+                            if (args[i].endsWith(SUFFIX_YEAR)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_YEAR, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.YEAR_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -64,7 +65,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_WEEK)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_WEEK, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.WEAK_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -73,7 +74,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_DAY)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_DAY, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.DAY_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -82,7 +83,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_HOUR)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_HOUR, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.HOUR_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -91,7 +92,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_MINUTE)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_MINUTE, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.MINUTE_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -100,7 +101,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_SECOND)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_SECOND, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.SECONDS_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -109,7 +110,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_TICK)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_TICK, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix) * Utils.TICKS_IN_MILLISECONDS;
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -118,7 +119,7 @@ public class SetForgetSubCommand {
                             } else if (args[i].endsWith(SUFFIX_MILLISECOND)) {
                                 String periodWithoutSuffix = args[i].replace(SUFFIX_MILLISECOND, "");
 
-                                if (Utils.isInt(periodWithoutSuffix)){
+                                if (Utils.isInt(periodWithoutSuffix)) {
                                     forgetPeriod += Long.parseLong(periodWithoutSuffix);
                                 } else {
                                     commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[i])));
@@ -135,7 +136,7 @@ public class SetForgetSubCommand {
                         long finalForgetPeriod = forgetPeriod;
                         TreasureConfig.inst().setForgetAsync(container.getLocation(), forgetPeriod, () -> {
                             //negative values turn forget off
-                            if (finalForgetPeriod < 0){
+                            if (finalForgetPeriod < 0) {
                                 commandSender.sendMessage(Lang.build(Lang.REMOVE_FORGET_END.get()));
                             } else {
                                 commandSender.sendMessage(Lang.build(Lang.SET_FORGET_END.get().replace(Lang.VALUE, Lang.formatTimePeriod(finalForgetPeriod))));
@@ -157,10 +158,10 @@ public class SetForgetSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(SET);

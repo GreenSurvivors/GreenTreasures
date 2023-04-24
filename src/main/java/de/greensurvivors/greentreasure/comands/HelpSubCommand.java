@@ -22,8 +22,9 @@ public class HelpSubCommand {
 
     /**
      * get a help-text about this plugin and it's commands
+     *
      * @param commandSender sender of this command
-     * @param args given arguments
+     * @param args          given arguments
      */
     protected void handleHelp(CommandSender commandSender, String[] args) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_HELP)) {
@@ -41,7 +42,7 @@ public class HelpSubCommand {
         }
     }
 
-    protected List<String> handleTabComplete(@NotNull CommandSender commandSender, @NotNull String[] args){
+    protected List<String> handleTabComplete(@NotNull CommandSender commandSender, @NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return List.of(HELP_LONG, HELP_SHORT);

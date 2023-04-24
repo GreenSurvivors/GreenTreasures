@@ -23,8 +23,9 @@ public class AboutSubCommand {
     }
 
     /**
-     * get basic informations about this plugin like its version
+     * get basic information about this plugin like its version
      * /gt about
+     *
      * @param commandSender sender of this command
      */
     protected void handleAbout(CommandSender commandSender) {
@@ -48,10 +49,10 @@ public class AboutSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(ABOUT);
         } else {

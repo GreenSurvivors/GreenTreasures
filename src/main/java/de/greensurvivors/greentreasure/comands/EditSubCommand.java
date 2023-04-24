@@ -35,14 +35,15 @@ public class EditSubCommand {
      * lets the commandSender edit a treasure inventory
      * note: two 2 players editing the same inventory at the same time is NOT supported right now
      * /gt edit
+     *
      * @param commandSender sender of this command
      */
-    protected void handleEdit(CommandSender commandSender){
+    protected void handleEdit(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_EDIT)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
-                if (commandSender instanceof Player player){
+            if (container != null) {
+                if (commandSender instanceof Player player) {
                     Component eTitle = Lang.build("EDIT TREASURE");
                     final Location location = Utils.cleanLocation(container.getLocation());
                     TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
@@ -69,10 +70,10 @@ public class EditSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(EDIT);
         } else {

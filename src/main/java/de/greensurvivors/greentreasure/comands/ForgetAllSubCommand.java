@@ -25,13 +25,14 @@ public class ForgetAllSubCommand {
     /**
      * the treasure forgets anybody has ever looted it.
      * /gt forget-all
+     *
      * @param commandSender sender of this command
      */
-    protected void handleForgetAll(CommandSender commandSender){
+    protected void handleForgetAll(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_FORGET)) {
             Container container = TreasureCommands.getContainer(commandSender);
 
-            if (container != null){
+            if (container != null) {
                 commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_START.get()));
                 TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(),
                         () -> commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get())));
@@ -45,10 +46,10 @@ public class ForgetAllSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(FORGET_ALL);
         } else {

@@ -24,6 +24,7 @@ public class ReloadSubCommand {
     /**
      * reloads the plugin
      * /gt reload
+     *
      * @param commandSender sender of this command
      */
     protected void handleReload(CommandSender commandSender) {
@@ -38,10 +39,10 @@ public class ReloadSubCommand {
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    protected List<String> handleTabCompleate(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(RELOAD);
         } else {
