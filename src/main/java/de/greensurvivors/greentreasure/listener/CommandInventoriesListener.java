@@ -89,9 +89,10 @@ public class CommandInventoriesListener implements Listener {
             if (treasureInfo != null){
                 editingTreasures.remove(event.getView());
 
-                TreasureConfig.inst().saveTreasureAsync(location, Arrays.asList(eInventory.getContents()), treasureInfo.type());
+                event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED_START.get()));
 
-                event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED.get()));
+                TreasureConfig.inst().saveTreasureAsync(location, Arrays.asList(eInventory.getContents()), treasureInfo.type(), () ->
+                    event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED_END.get())));
             } else {
                 event.getPlayer().sendMessage(Lang.build(Lang.UNKNOWN_ERROR.get()));
             }

@@ -147,7 +147,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
             suggestions.addAll(HelpSubCommand.inst().handleTabComplete(commandSender, args));
         }
 
-        return suggestions.stream().filter(s -> s.startsWith(args[args.length - 1].toLowerCase())).toList();
+        return suggestions.stream().filter(s -> s.toLowerCase().startsWith(args[args.length - 1].toLowerCase())).toList();
     }
 
     /**

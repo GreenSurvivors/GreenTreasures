@@ -37,7 +37,7 @@ public class AboutSubCommand {
             components.add(Lang.build(Lang.PLUGIN_VERSION.get().replace(Lang.VALUE, GreenTreasure.inst().getDescription().getVersion())));
 
             //description
-            components.add(Lang.build(Lang.PLUGIN_VERSION.get().replace(Lang.VALUE, GreenTreasure.inst().getDescription().getDescription())));
+            components.add(Lang.build(Lang.PLUGIN_DESCRIPTION.get().replace(Lang.VALUE, GreenTreasure.inst().getDescription().getDescription())));
 
             // send components
             commandSender.sendMessage(Lang.join(components));

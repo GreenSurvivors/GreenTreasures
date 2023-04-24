@@ -144,12 +144,12 @@ public class ImportLegacy {
                                 String type = treasureChest.getContainer().getType().name().toUpperCase();
 
 
-                                TreasureConfig.inst().saveTreasureAsync(location, Arrays.stream(contents).toList(), type);
+                                TreasureConfig.inst().saveTreasureAsync(location, Arrays.stream(contents).toList(), type, () -> {});
 
-                                TreasureConfig.inst().setForgetAsync(location, forget_time);
-                                TreasureConfig.inst().setGlobalAsync(location, isGLobal);
-                                TreasureConfig.inst().setUnlimitedAsync(location, isUnLimited);
-                                TreasureConfig.inst().setRandomAsync(location, (int)(randomChance * 100));
+                                TreasureConfig.inst().setForgetAsync(location, forget_time, () -> {});
+                                TreasureConfig.inst().setGlobalAsync(location, isGLobal, () -> {});
+                                TreasureConfig.inst().setUnlimitedAsync(location, isUnLimited, () -> {});
+                                TreasureConfig.inst().setRandomAsync(location, (int)(randomChance * 100), () -> {});
 
                                 //remove the treasure form the plugin and then v it
                                 treasureChestPlugin.getManager().removeTreasure(location);

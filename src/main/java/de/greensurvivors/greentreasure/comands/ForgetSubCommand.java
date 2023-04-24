@@ -44,7 +44,7 @@ public class ForgetSubCommand {
                 if (treasureInfo != null && treasureInfo.isGlobal()){
                     TreasureConfig.inst().forgetPlayerAsync(null, container.getBlock().getLocation());
 
-                    commandSender.sendMessage(Lang.build(Lang.FORGET_ALL.get()));
+                    commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get()));
                     return;
                 }
 

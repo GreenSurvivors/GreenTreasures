@@ -130,14 +130,17 @@ public class SetForgetSubCommand {
                             }
                         }
 
-                        TreasureConfig.inst().setForgetAsync(container.getLocation(), forgetPeriod);
+                        commandSender.sendMessage(Lang.build(Lang.SET_FORGET_START.get()));
 
-                        //negative values turn forget off
-                        if (forgetPeriod < 0){
-                            commandSender.sendMessage(Lang.build(Lang.REMOVE_FORGET.get()));
-                        } else {
-                            commandSender.sendMessage(Lang.build(Lang.SET_FORGET.get().replace(Lang.VALUE, Lang.formatTimePeriod(forgetPeriod))));
-                        }
+                        long finalForgetPeriod = forgetPeriod;
+                        TreasureConfig.inst().setForgetAsync(container.getLocation(), forgetPeriod, () -> {
+                            //negative values turn forget off
+                            if (finalForgetPeriod < 0){
+                                commandSender.sendMessage(Lang.build(Lang.REMOVE_FORGET_END.get()));
+                            } else {
+                                commandSender.sendMessage(Lang.build(Lang.SET_FORGET_END.get().replace(Lang.VALUE, Lang.formatTimePeriod(finalForgetPeriod))));
+                            }
+                        });
                     } else {
                         commandSender.sendMessage(Lang.build(Lang.NOT_ENOUGH_ARGS.get()));
                     }

@@ -28,6 +28,7 @@ public enum Lang implements Cons {
 	HELP_WIKI ("&7See more detailed information on the wiki page."),
 
 	PLUGIN_HEADER ("&a-<(&6GreenTreasure&a)>-"),
+	PLUGIN_DESCRIPTION(String.format("&aDescription&6: &e%s", VALUE)),
 	PLUGIN_VERSION (String.format("&aVersion&6: &e%s", VALUE)),
 
 	RELOAD ("&aReloaded."),
@@ -36,8 +37,10 @@ public enum Lang implements Cons {
 	TREASURE_FOUND_LIMITED("&aYou found treasure!"),
 	TREASURE_FOUND_UNLIMITED("&aYou found treasure! Take as much as you want!"),
 
-	TREASURE_CREATE(String.format("&a%s was created as treasure.", TYPE)),
-	TREASURE_DELETE(String.format("&a%s was removed as treasure.", TYPE)),
+	TREASURE_CREATE_START("&7Starting create process. Please do not interact with the treasure, until the process is complete."),
+	TREASURE_CREATE_END(String.format("&a%s was created as treasure.", TYPE)),
+	TREASURE_DELETE_START("&7Starting delete process. Please do not interact with the treasure, until the process is complete."),
+	TREASURE_DELETE_END(String.format("&a%s was removed as treasure.", TYPE)),
 
 	TREASURE_COMMAND_CREATE (String.format("/%s %s", TreasureCommands.CMD, TreasureCommands.CREATE)),
 	TREASURE_COMMAND_DELETE (String.format("/%s %s", TreasureCommands.CMD, TreasureCommands.DELETE)),
@@ -45,30 +48,44 @@ public enum Lang implements Cons {
 	NO_TREASURE (String.format("&cYou are not looking at a treasure. Use &6'&e%s&6' first.", TREASURE_COMMAND_CREATE.get())),
 
 	FORGET_PLAYER (String.format("&aThe treasure forgot &6'&e%s&6'&a has ever found it.", UUID)),
-	FORGET_ALL ("&aThe Treasure forgot anybody has ever found it."),
+	FORGET_ALL_START("&7startet forgetting all. Please do not interact with the treasure, until the process is complete."),
+	FORGET_ALL_END("&aThe Treasure forgot anybody has ever found it."),
 
-	SET_RANDOM (String.format("&aTreasure was set with a slot chance of &e%s %%&a.", VALUE)),
-	SET_FORGET (String.format("&aTreasure forgets every %s.", VALUE)),
-	REMOVE_FORGET("&aThe treasure never forgets."),
+	SET_RANDOM_START("&7Starting set process. Please do not interact with the treasure, until the process is complete."),
+	SET_RANDOM_END(String.format("&aTreasure was set with a slot chance of &e%s %%&a.", VALUE)),
+	SET_FORGET_START("&7Starting set process. Please do not interact with the treasure, until the process is complete."),
+	SET_FORGET_END(String.format("&aTreasure forgets every %s.", VALUE)),
+	REMOVE_FORGET_END("&aThe treasure never forgets."),
+	SET_UNLIMITED_START("&7Starting set process. Please do not interact with the treasure, until the process is complete."),
 	SET_UNLIMITED_TRUE("&aThe treasure is now lootable a unlimited amount of times."),
 	SET_UNLIMITED_FALSE("&aThe treasure is now lootable only one time."),
-	SET_GLOBAL("&aThe treasure inventory is now shared by every player."),
+	SET_GLOBAL_START("&7Starting set process. Please do not interact with the treasure, until the process is complete."),
+	SET_GLOBAL_END("&aThe treasure inventory is now shared by every player."),
 
 	NOT_LOOKINGAT_CONTAINER ("&cYou are not looking at a container."),
 
 	DONT_BREAK_CONTAINER_USER ("&cYou are not allowed to break this Treasure."),
 	DONT_BREAK_CONTAINER_ADMIN (String.format("&cThis is a Treasure. If you want to remove it, use &6'&e%s&6'&c first", TREASURE_COMMAND_DELETE.get())),
 
-	LIST_HEADER_PLAYER(String.format("&a-<(List: &6%s&a)>-", VALUE)),
-	LIST_HEADER_TREASURES("&a-<(&6treasures&a)>-"),
-	LIST_PLAYER (String.format("&7%s was looted last: %s.", LOCATION, VALUE)),
-	LIST_NEVER ("never"),
-	LIST_TREASURE_BODY(String.format("&7%s with slot chance of &e%s%%&7 is global&6: &e%s&7 is unlimited&6: &e%s&7", LOCATION, VALUE, GLOBAL, UNLIMITED)),
+	LIST_PLAYER_HEADER(String.format("&2-------<(&6Treasures of &e- &6%s&a &6%s&e/&6%s &2)>-------", NAME, VALUE, VALUE2)),
+	LIST_PLAYER_BODY(String.format("%s&7 was looted last: %s.", LOCATION, VALUE)),
+	LIST_PLAYER_EMPTY("&cNo Treasure was created, yet. Try to create a new one with &e/" + TreasureCommands.CMD + " " + TreasureCommands.CREATE),
+	LIST_PLAYER_NEVER("never"),
+	LIST_TREASURES_HEADER(String.format("&2-------<(&6Treasures &e- &6%s&e/&6%s &2)>-------", VALUE, VALUE2)),
+	LIST_TREASURE_BODY(String.format("%s&7 with slot chance of &e%s%%&7 is global&6: &e%s&7 is unlimited&6: &e%s&7", LOCATION, VALUE, GLOBAL, UNLIMITED)),
+	LIST_TREASURES_EMPTY("&cNo Treasure was created, yet. Try to create a new one with &e/" + TreasureCommands.CMD + " " + TreasureCommands.CREATE),
 	LIST_TREASURE_FORGETPERIOD(String.format(" resetting every &e%s&7", VALUE)),
 	TRUE("true"),
 	FALSE("false"),
 
-	TREASURE_EDITED ("&aTreasure saved with new content."),
+	LIST_FOOTER_OUTER("&2----"),
+	LIST_FOOTER_INNER("&2-----<*>-----"),
+	LIST_FOOTER_BACK(String.format("&6<<( &e%s&6 ) ", VALUE)),
+	LIST_FOOTER_NEXT(String.format("&6 ( &e%s&6 )>>", VALUE)),
+	LIST_FOOTER_NONE("-------"),
+
+	TREASURE_EDITED_START("&7Starting editing process. Please do not interact with the treasure, until the process is complete."),
+	TREASURE_EDITED_END("&aTreasure saved with new content."),
 
 	PEEK_PLAYER (String.format("&7Treasure of %s", VALUE)),
 	PEEK_GLOBAL ("Global treasure"),

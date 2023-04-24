@@ -3,7 +3,8 @@ package de.greensurvivors.greentreasure.config;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.TreasureLogger;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetailCallback;
+import de.greensurvivors.greentreasure.dataobjects.callback.EmptyCallback;
+import de.greensurvivors.greentreasure.dataobjects.callback.PlayerLootDetailCallback;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.Lang;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
@@ -134,9 +135,9 @@ public class TreasureConfig {
      * @param unlootedTreasure the inventory with all the remaining items. null means the player will be reset
      */
     public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
-        PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
-
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
+            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
+
             synchronized (mutexPlayerFile){
                 FileConfiguration cfg = playerFile.getCfg();
 
@@ -162,9 +163,9 @@ public class TreasureConfig {
      * @param location the location of a treasure, the information for identify a treasure
      */
     public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location) {
-        PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
-
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
+            PlayerFile playerFile = new PlayerFile(uuid == null ? GLOBAL_FILE_NAME : uuid.toString(), location);
+
             synchronized (mutexPlayerFile){
                 FileConfiguration cfg = playerFile.getCfg();
 
@@ -183,7 +184,7 @@ public class TreasureConfig {
      * forget anybody has ever opened the treasure at the given location.
      * @param location the location of a treasure, the information for identify a treasure
      */
-    public void forgetAllAsync(@NotNull Location location) {
+    public void forgetAllAsync(@NotNull Location location, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexPlayerFile){
                 File[] playerFiles = new File(GreenTreasure.inst().getDataFolder().getAbsolutePath() + File.separator + PlayerFile.FOLDER).listFiles();
@@ -200,6 +201,8 @@ public class TreasureConfig {
                         cfg.set(buildKey(keyFirstPart, TIME_STAMP), null);
 
                         playerFile.saveCfg();
+
+                        emptyCallback.onQueryDone();
                     }
                 }
             }
@@ -297,7 +300,7 @@ public class TreasureConfig {
      * @param lootItems list of items a player should receive upon opening the treasure. Size must match the inventory size of the given type.
      * @param type type of treasure. it's imported to identify the opened Inventory
      */
-    public void saveTreasureAsync(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type){
+    public void saveTreasureAsync(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type, @NotNull EmptyCallback emptyCallback){
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexTreasureFile){
                 File treasureFile = getTreasureFile(location);
@@ -312,6 +315,8 @@ public class TreasureConfig {
 
                 try {
                     cfg.save(treasureFile);
+
+                    emptyCallback.onQueryDone();
                 } catch (IOException e) {
                     TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
                 }
@@ -327,7 +332,7 @@ public class TreasureConfig {
      * @param location the location of a treasure, the information for identify a treasure
      * @param slotChance how probable it is for a slot to be in the freshly opened treasure
      */
-    public void setRandomAsync(@NotNull Location location, int slotChance) {
+    public void setRandomAsync(@NotNull Location location, int slotChance, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexTreasureFile){
                 File treasureFile = getTreasureFile(location);
@@ -341,6 +346,8 @@ public class TreasureConfig {
 
                 try {
                     cfg.save(treasureFile);
+
+                    emptyCallback.onQueryDone();
                 } catch (IOException e) {
                     TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
                 }
@@ -356,7 +363,7 @@ public class TreasureConfig {
      * @param location the location of a treasure, the information for identify a treasure
      * @param isGlobal if the Inventory is globally shared across all players
      */
-    public void setGlobalAsync(@NotNull Location location, boolean isGlobal) {
+    public void setGlobalAsync(@NotNull Location location, boolean isGlobal, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexTreasureFile){
                 File treasureFile = getTreasureFile(location);
@@ -370,6 +377,8 @@ public class TreasureConfig {
 
                 try {
                     cfg.save(treasureFile);
+
+                    emptyCallback.onQueryDone();
                 } catch (IOException e) {
                     TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
                 }
@@ -385,7 +394,7 @@ public class TreasureConfig {
      * @param location the location of a treasure, the information for identify a treasure
      * @param isUnLimited if one can loot the treasure as often as one wants
      */
-    public void setUnlimitedAsync(@NotNull Location location, boolean isUnLimited) {
+    public void setUnlimitedAsync(@NotNull Location location, boolean isUnLimited, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexTreasureFile){
                 File treasureFile = getTreasureFile(location);
@@ -399,6 +408,8 @@ public class TreasureConfig {
 
                 try {
                     cfg.save(treasureFile);
+
+                    emptyCallback.onQueryDone();
                 } catch (IOException e) {
                     TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
                 }
@@ -415,7 +426,7 @@ public class TreasureConfig {
      * @param forgettingPeriod the period in milliseconds how long a Treasure has to be not looted until it is filled again.
      *                         negative values mean the Treasure will never restock.
      */
-    public void setForgetAsync(Location location, long forgettingPeriod) {
+    public void setForgetAsync(Location location, long forgettingPeriod, EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             synchronized (mutexTreasureFile){
                 File treasureFile = getTreasureFile(location);
@@ -429,6 +440,8 @@ public class TreasureConfig {
 
                 try {
                     cfg.save(treasureFile);
+
+                    emptyCallback.onQueryDone();
                 } catch (IOException e) {
                     TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
                 }

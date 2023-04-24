@@ -30,17 +30,19 @@ public class CreateSubCommand {
      */
     protected void handleCreate(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_CREATE)) {
-            Container container = TreasureCommands.getContainer(commandSender);
+            final Container container = TreasureCommands.getContainer(commandSender);
 
             if (container != null){
                 Location location = container.getBlock().getLocation();
                 List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 
-                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name());
+                commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_START.get()));
 
-                commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE.get().replace(Lang.TYPE,
-                        container.customName() == null ? container.getBlock().getType().name() :
-                                PlainTextComponentSerializer.plainText().serialize(container.customName()))));
+                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name(), () -> {
+                    commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_END.get().replace(Lang.TYPE,
+                            container.customName() == null ? container.getBlock().getType().name() :
+                                    PlainTextComponentSerializer.plainText().serialize(container.customName()))));
+                });
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
             }

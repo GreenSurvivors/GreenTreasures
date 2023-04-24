@@ -1,7 +1,8 @@
 package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
-import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
+import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.dataobjects.list_cmd_helper.ListCmdPlayerDetailHelper;
+import de.greensurvivors.greentreasure.dataobjects.list_cmd_helper.ListCmdTreasureHelper;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.Lang;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
@@ -14,12 +15,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.text.DateFormat;
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static de.greensurvivors.greentreasure.comands.TreasureCommands.LIST;
 
 public class ListSubCommand {
+    private static final byte ENTRIES_PER_PAGE = 5;
+
     private static ListSubCommand instance;
 
     public static ListSubCommand inst() {
@@ -31,14 +34,14 @@ public class ListSubCommand {
     /**
      * list all treasures on this server,
      * or if a player was given lists all looted treasures
-     * /gt list (list all treasures)
-     * /gt list playerName
-     * /gt list uuid
+     * /gt list <num> (list all treasures)
+     * /gt list playerName <num>
+     * /gt list uuid <num>
      * @param commandSender sender of this command
      */
     protected void handleList(CommandSender commandSender, String[] args){
         UUID uuidToGetListOf;
-        if (args.length >= 2){
+        if (args.length >= 2 && !Utils.isInt(args[1])){
             if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS)) {
 
                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
@@ -53,33 +56,38 @@ public class ListSubCommand {
                     }
                 }
 
-                Set<Location> treasureLocations = TreasureListener.inst().getTreasureLocations();
-                final ArrayList<PlayerLootDetail> playerLootDetails = new ArrayList<>();
+                final ArrayList<Location> treasureLocations = new ArrayList<>(TreasureListener.inst().getTreasureLocations());
+                final int numOfTreasures = treasureLocations.size();
 
-                for(Iterator<Location> locationIterator = treasureLocations.iterator(); locationIterator.hasNext();) {
-                    final Location treasureLocation = locationIterator.next();
-                    final boolean lastEntry = !locationIterator.hasNext();
+                if (numOfTreasures > 0){
+                    final int numPages = (int) Math.ceil((double)numOfTreasures / (double)ENTRIES_PER_PAGE);
 
-                    TreasureConfig.inst().getPlayerLootDetailAsync(uuidToGetListOf, treasureLocation, playerLootDetail_result -> {
-                        playerLootDetails.add(playerLootDetail_result);
-
-                        if (lastEntry){
-                            // collect all messages to send at once
-                            List<Component> components = new ArrayList<>();
-                            // header
-                            components.add(Lang.build(Lang.LIST_HEADER_PLAYER.get().replace(Lang.VALUE, uuidToGetListOf.toString())));
-
-                            //build treasureInfo
-                            for (PlayerLootDetail playerLootDetail: playerLootDetails){
-                                components.add(Lang.build(Lang.LIST_PLAYER.get().
-                                        replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
-                                        replace(Lang.VALUE, playerLootDetail.unLootedStuff() == null ? Lang.LIST_NEVER.get() : DateFormat.getDateTimeInstance().format(new Date(playerLootDetail.lastLootedTimeStamp())))));
-                            }
-
-                            // send components
-                            commandSender.sendMessage(Lang.join(components));
+                    final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                    if (args.length >= 3){
+                        if (Utils.isInt(args[2])){
+                            //limit page to how many exits
+                            pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                        } else {
+                            commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[2])));
+                            return;
                         }
-                    });
+                    } else {
+                        pageNow = 1;
+                    }
+
+                    //maximum of treasures out of all this page can display
+                    final int MAX_TREASURES_THIS_PAGE = Math.min(numOfTreasures, pageNow * ENTRIES_PER_PAGE);
+                    //maximum of entries this page can display
+                    final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow -1) * ENTRIES_PER_PAGE;
+
+                    final ListCmdPlayerDetailHelper helper = new ListCmdPlayerDetailHelper(commandSender, pageNow, numPages, NUM_ENTRIES, uuidToGetListOf);
+
+                    //add the players detail for the page
+                    for (int num = (pageNow -1) * ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++){
+                        helper.addEntry(treasureLocations.get(num));
+                    }
+                } else {
+                    commandSender.sendMessage(Lang.build(Lang.LIST_PLAYER_EMPTY.get()));
                 }
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
@@ -87,30 +95,45 @@ public class ListSubCommand {
 
         } else {
             if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_TREASURES)) {
-                // collect all messages to send at once
-                List<Component> components = new ArrayList<>();
-                // header
-                components.add(Lang.build(Lang.LIST_HEADER_TREASURES.get()));
+                ArrayList<Location> locations = new ArrayList<>(TreasureListener.inst().getTreasureLocations());
+                final int numOfTreasures = locations.size();
 
-                //build list
-                for (Location treasureLocation : TreasureListener.inst().getTreasureLocations()){
-                    TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(treasureLocation);
+                if (numOfTreasures > 0){
+                    // collect all messages to send at once
+                    final ArrayList<Component> listResult = new ArrayList<>();
+                    final int numPages = (int) Math.ceil((double)numOfTreasures / (double)ENTRIES_PER_PAGE);
 
-                    String treasureInfoStr = Lang.LIST_TREASURE_BODY.get().
-                            replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
-                            replace(Lang.VALUE, String.valueOf(((double)treasureInfo.slotChance()) / 100.0d)).
-                            replace(Lang.GLOBAL, treasureInfo.isGlobal() ? Lang.TRUE.get() : Lang.FALSE.get()).
-                            replace(Lang.UNLIMITED, treasureInfo.isUnlimited() ? Lang.TRUE.get() : Lang.FALSE.get());
-
-                    if (treasureInfo.timeUntilForget() > 0){
-                        treasureInfoStr = treasureInfoStr + Lang.LIST_TREASURE_FORGETPERIOD.get().replace(Lang.VALUE, Lang.formatTimePeriod(treasureInfo.timeUntilForget()));
+                    final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                    if (args.length >= 2){
+                        if (Utils.isInt(args[1])){
+                            //limit page to how many exits
+                            pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[1])));
+                        } else {
+                            commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[1])));
+                            return;
+                        }
+                    } else {
+                        pageNow = 1;
                     }
 
-                    components.add(Lang.build(treasureInfoStr));
+                    //maximum of treasures out of all this page can display
+                    final int MAX_TREASURES_THIS_PAGE = Math.min(numOfTreasures, pageNow * ENTRIES_PER_PAGE);
+                    //maximum of entries this page can display
+                    final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow -1) * ENTRIES_PER_PAGE;
+
+                    final ListCmdTreasureHelper helper = new ListCmdTreasureHelper(commandSender, pageNow, numPages, NUM_ENTRIES);
+
+                    //add the treasure info for the page
+                    for (int num = (pageNow -1) * ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++){
+                        TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(locations.get(num));
+
+                        helper.addEntry(treasureInfo, locations.get(num));
+                    }
+
+                } else {
+                    commandSender.sendMessage(Lang.build(Lang.LIST_TREASURES_EMPTY.get()));
                 }
 
-                // send components
-                commandSender.sendMessage(Lang.join(components));
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
             }
@@ -125,14 +148,35 @@ public class ListSubCommand {
     protected List<String> handleTabCompleate(@NotNull String[] args){
         switch (args.length){
             case 1 -> {
-                return Collections.singletonList(LIST);
+                return List.of(LIST);
             }
             case 2 -> {
                 if (args[0].equalsIgnoreCase(LIST)) {
-                    Collection<? extends Player> onlinePlayers =  Bukkit.getOnlinePlayers();
+                    List<String> result = new ArrayList<>();
+
+                    Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
                     if (!onlinePlayers.isEmpty()){
-                        return onlinePlayers.stream().map(Player::getName).toList();
+                        result.addAll(onlinePlayers.stream().map(Player::getName).toList());
                     }
+
+                    final int numOfTreasures = TreasureListener.inst().getTreasureLocations().size();
+                    if (numOfTreasures > 0) {
+                        result.addAll(IntStream.rangeClosed(1, (int) Math.ceil((double)numOfTreasures / (double)ENTRIES_PER_PAGE))
+                                .boxed()
+                                .map(String::valueOf)
+                                .toList());
+                    }
+
+                    return result;
+                }
+            }
+            case 3 -> {
+                final int numOfTreasures = TreasureListener.inst().getTreasureLocations().size();
+                if (numOfTreasures > 0) {
+                    return IntStream.rangeClosed(1, (int) Math.ceil((double)numOfTreasures / (double)ENTRIES_PER_PAGE))
+                            .boxed()
+                            .map(String::valueOf)
+                            .toList();
                 }
             }
         }

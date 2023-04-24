@@ -34,12 +34,16 @@ public class DeleteSubCommand {
             Container container = TreasureCommands.getContainer(commandSender);
 
             if (container != null){
-                TreasureConfig.inst().saveTreasureAsync(container.getBlock().getLocation(), null, null);
-                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation());
+                commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_START.get()));
 
-                commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE.get().replace(Lang.TYPE,
-                        container.customName() == null ? container.getBlock().getType().name() :
-                                PlainTextComponentSerializer.plainText().serialize(container.customName()))));
+                TreasureConfig.inst().saveTreasureAsync(container.getBlock().getLocation(), null, null, () -> {});
+                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(), () -> {
+                    commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_END.get().replace(Lang.TYPE,
+                            container.customName() == null ? container.getBlock().getType().name() :
+                                    PlainTextComponentSerializer.plainText().serialize(container.customName()))));
+                });
+
+
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
             }

@@ -149,7 +149,7 @@ public class PeekSubCommand {
             }
             case 2 -> {
                 if (args[0].equalsIgnoreCase(PEEK)) {
-                    Collection<? extends Player> onlinePlayers =  Bukkit.getOnlinePlayers();
+                    Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
 
                     if (!onlinePlayers.isEmpty()){
                         return onlinePlayers.stream().map(Player::getName).toList();

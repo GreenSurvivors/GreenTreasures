@@ -41,14 +41,17 @@ public class SetUnlimitedSubCommand {
                     if (args.length > 2){
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
-                        if (isUnLimited != null){
-                            TreasureConfig.inst().setUnlimitedAsync(container.getLocation(), isUnLimited);
+                        commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_START.get()));
 
-                            if (isUnLimited){
-                                commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_TRUE.get()));
-                            } else {
-                                commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_FALSE.get()));
-                            }
+                        if (isUnLimited != null){
+                            TreasureConfig.inst().setUnlimitedAsync(container.getLocation(), isUnLimited, () -> {
+                                if (isUnLimited){
+                                    commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_TRUE.get()));
+                                } else {
+                                    commandSender.sendMessage(Lang.build(Lang.SET_UNLIMITED_FALSE.get()));
+                                }
+                            });
+
                         } else {
                             commandSender.sendMessage(Lang.build(Lang.NO_BOOL.get().replace(Lang.VALUE, args[2])));
                         }

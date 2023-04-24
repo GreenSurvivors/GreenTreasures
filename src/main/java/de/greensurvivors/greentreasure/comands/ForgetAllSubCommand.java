@@ -32,9 +32,9 @@ public class ForgetAllSubCommand {
             Container container = TreasureCommands.getContainer(commandSender);
 
             if (container != null){
-                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation());
-
-                commandSender.sendMessage(Lang.build(Lang.FORGET_ALL.get()));
+                commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_START.get()));
+                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(),
+                        () -> commandSender.sendMessage(Lang.build(Lang.FORGET_ALL_END.get())));
             } else {
                 commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
             }
