@@ -124,7 +124,7 @@ public class TreasureListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     private void onInventoryDrag(InventoryDragEvent event) {
         if (openInventories.get(event.getView()) != null) {
-            for (int slot : event.getInventorySlots()) {
+            for (int slot : event.getRawSlots()) {
                 if (slot >= 0 && slot < event.getView().getTopInventory().getSize()) {
                     event.setCancelled(true);
                 }

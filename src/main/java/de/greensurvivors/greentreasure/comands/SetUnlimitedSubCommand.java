@@ -86,7 +86,7 @@ public class SetUnlimitedSubCommand {
                 }
             }
             case 3 -> {
-                if (args[1].equalsIgnoreCase(SET) && args[2].equalsIgnoreCase(UNLIMITED)) {
+                if (args[0].equalsIgnoreCase(SET) && args[1].equalsIgnoreCase(UNLIMITED)) {
                     return List.of(Boolean.TRUE.toString(), Boolean.FALSE.toString());
                 }
             }

@@ -172,7 +172,7 @@ public class SetForgetSubCommand {
                 }
             }
             default -> {
-                if (args[1].equalsIgnoreCase(SET) && args[2].equalsIgnoreCase(FORGET)) {
+                if (args[0].equalsIgnoreCase(SET) && args[1].equalsIgnoreCase(FORGET)) {
                     return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK, SUFFIX_MILLISECOND);
                 }
             }

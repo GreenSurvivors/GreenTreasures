@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.dataobjects.list_cmd_helper;
 
+import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.TreasureCommands;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.language.Lang;
@@ -19,7 +20,7 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper {
 
         this.UUID_TO_GET_LIST_OF = uuidToGetListOf;
         //page will be added by super
-        super.command = "/" + TreasureCommands.CMD + " " + TreasureCommands.LIST + " " + UUID_TO_GET_LIST_OF.toString() + " ";
+        super.command = "/" + TreasureCommands.CMD + " " + TreasureCommands.LIST +" " + ListSubCommand.LIST_TYPE.PLAYER_DETAIL.getSubCommand() + " " + UUID_TO_GET_LIST_OF.toString() + " ";
 
         String name = Bukkit.getOfflinePlayer(uuidToGetListOf).getName();
         if (name == null) {
@@ -33,14 +34,14 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper {
     public void addEntry(final Location treasureLocation) {
         TreasureConfig.inst().getPlayerLootDetailAsync(UUID_TO_GET_LIST_OF, treasureLocation, playerLootDetail_result -> {
             synchronized (super.MUTEX) {
-                super.NumOfPagesStillToDo--;
+                super.NumOfEntriesStillToDo--;
 
                 //build treasureInfo
                 super.componentResult.add(Lang.build(Lang.LIST_PLAYER_BODY.get().
                         replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
-                        replace(Lang.VALUE, playerLootDetail_result.unLootedStuff() == null ? Lang.LIST_PLAYER_NEVER.get() : DateFormat.getDateTimeInstance().format(new Date(playerLootDetail_result.lastLootedTimeStamp())))));
+                        replace(Lang.VALUE, (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ? Lang.LIST_PLAYER_NEVER.get() : DateFormat.getDateTimeInstance().format(new Date(playerLootDetail_result.lastLootedTimeStamp())))));
 
-                if (super.NumOfPagesStillToDo <= 0) {
+                if (super.NumOfEntriesStillToDo <= 0) {
                     sendMessage();
                 }
             }

@@ -71,15 +71,15 @@ public class SetGlobalSubCommand {
     protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
-                return Collections.singletonList(SET);
+                return List.of(SET);
             }
             case 2 -> {
-                if (args[1].equalsIgnoreCase(SET)) {
+                if (args[0].equalsIgnoreCase(SET)) {
                     return List.of(GLOBAL, SHARED);
                 }
             }
             case 3 -> {
-                if (args[1].equalsIgnoreCase(SET) && (args[2].equalsIgnoreCase(GLOBAL) || args[2].equalsIgnoreCase(SHARED))) {
+                if (args[0].equalsIgnoreCase(SET) && (args[1].equalsIgnoreCase(GLOBAL) || args[1].equalsIgnoreCase(SHARED))) {
                     return List.of(Boolean.TRUE.toString(), Boolean.FALSE.toString());
                 }
             }
