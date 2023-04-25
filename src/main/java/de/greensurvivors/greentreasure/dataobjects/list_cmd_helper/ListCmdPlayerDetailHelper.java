@@ -20,7 +20,7 @@ public class ListCmdPlayerDetailHelper extends ListCmdHelper {
 
         this.UUID_TO_GET_LIST_OF = uuidToGetListOf;
         //page will be added by super
-        super.command = "/" + TreasureCommands.CMD + " " + TreasureCommands.LIST +" " + ListSubCommand.LIST_TYPE.PLAYER_DETAIL.getSubCommand() + " " + UUID_TO_GET_LIST_OF.toString() + " ";
+        super.command = "/" + TreasureCommands.CMD + " " + TreasureCommands.LIST + " " + ListSubCommand.LIST_TYPE.PLAYER_DETAIL.getSubCommand() + " " + UUID_TO_GET_LIST_OF.toString() + " ";
 
         String name = Bukkit.getOfflinePlayer(uuidToGetListOf).getName();
         if (name == null) {

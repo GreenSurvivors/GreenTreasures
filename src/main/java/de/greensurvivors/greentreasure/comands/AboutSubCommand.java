@@ -28,6 +28,7 @@ public class AboutSubCommand {
      *
      * @param commandSender sender of this command
      */
+
     protected void handleAbout(CommandSender commandSender) {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_ABOUT)) {
             // collect all messages to send at once

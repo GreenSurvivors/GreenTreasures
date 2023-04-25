@@ -15,7 +15,10 @@ import org.jetbrains.annotations.NotNull;
 import javax.annotation.Nullable;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class DatabaseManager {
@@ -24,26 +27,28 @@ public class DatabaseManager {
              * uuid of player
              */
             UUID_KEY = "uuid",
-            /**
-             * last time a player had looted the treasure
-             */
-            TREASURE_TIMESTAMP_KEY = "tstamp",
-            /**
-             * the items remaining in this treasure
-             */
-            TREASURE_LOOT_KEY = "loot";
+    /**
+     * last time a player had looted the treasure
+     */
+    TREASURE_TIMESTAMP_KEY = "tstamp",
+    /**
+     * the items remaining in this treasure
+     */
+    TREASURE_LOOT_KEY = "loot";
 
     private final String
-            HOST = "host",
-            PORT = "port",
-            USER = "user",
+            HOST = "localhost",
+            PORT = "3306",
+            USER = "greentreasure",
             PASSWORD = "password",
-            DATABASE = "database";
+            DATABASE = "greentreasure_database";
     private final GreenTreasure plugin;
     //don't lose precision on longs
     private final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
-    private final Type MAP_TYPE = new TypeToken<Map>() {}.getType();
-    private final Type LIST_TYPE = new TypeToken<List>() {}.getType();
+    private final Type MAP_TYPE = new TypeToken<Map>() {
+    }.getType();
+    private final Type LIST_TYPE = new TypeToken<List>() {
+    }.getType();
     private Connection conn;
     private String host, user, password, database;
     private Integer port;
@@ -52,7 +57,6 @@ public class DatabaseManager {
     private boolean shouldConnect = true;
 
     /**
-     *
      * @param plugin
      * @param databaseData
      */
@@ -67,7 +71,6 @@ public class DatabaseManager {
     }
 
     /**
-     *
      * @return
      */
     public HashMap<String, Object> getDatabaseData() {
@@ -87,8 +90,8 @@ public class DatabaseManager {
      *
      * @param uuid           uuid of player who we want data of
      * @param lootIdentifier identifier of the treasure
-     * @return               PlayerLootDetail or null, if getting the data wasn't successfully
-     *                       (like in cases if the player never opened this treasure)
+     * @return PlayerLootDetail or null, if getting the data wasn't successfully
+     * (like in cases if the player never opened this treasure)
      */
     public @Nullable PlayerLootDetail getPlayerData(@NotNull UUID uuid, @NotNull String lootIdentifier) {
         if (hasConnection()) {
@@ -97,9 +100,9 @@ public class DatabaseManager {
 
             try {
                 st = conn.prepareStatement(String.format("SELECT EXISTS ( " +
-                                "SELECT TABLE_NAME FROM " +
-                                "information_schema.TABLES " +
-                                "WHERE TABLE_NAME = '%s' )",
+                                        "SELECT TABLE_NAME FROM " +
+                                        "information_schema.TABLES " +
+                                        "WHERE TABLE_NAME = '%s' )",
                                 lootIdentifier),
                         ResultSet.TYPE_FORWARD_ONLY,
                         ResultSet.CONCUR_READ_ONLY);
@@ -192,7 +195,7 @@ public class DatabaseManager {
         deleteTreasureTable(lootIdentifier);
     }
 
-    public void forgetPlayer(@NotNull UUID uuid, @NotNull String lootIdentifier){
+    public void forgetPlayer(@NotNull UUID uuid, @NotNull String lootIdentifier) {
         if (hasConnection()) {
             PreparedStatement st = null;
             try {
@@ -216,7 +219,6 @@ public class DatabaseManager {
     }
 
     /**
-     *
      * @param lootIdentifier
      * @return
      */
@@ -310,6 +312,7 @@ public class DatabaseManager {
 
     /**
      * deletes the table of a treasure and therefore effectively forgets any player ever looted it
+     *
      * @param identifier
      */
     private void deleteTreasureTable(String identifier) {

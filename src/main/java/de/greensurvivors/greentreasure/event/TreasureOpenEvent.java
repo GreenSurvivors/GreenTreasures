@@ -33,7 +33,6 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
     private final TreasureInfo treasureInfo;
     private final boolean hasPermission;
     private Result result = Result.DEFAULT;
-
     public TreasureOpenEvent(@NotNull Player who, @NotNull TreasureInfo what, boolean hasPermission) {
         super(who);
 

@@ -47,7 +47,6 @@ public class ListSubCommand {
 
 
     private static final byte ENTRIES_PER_PAGE = 5;
-
     private static ListSubCommand instance;
 
     public static ListSubCommand inst() {
@@ -67,11 +66,11 @@ public class ListSubCommand {
      * @param commandSender sender of this command
      */
     protected void handleList(CommandSender commandSender, String[] args) {
-        if (args.length >= 2){
+        if (args.length >= 2) {
             LIST_TYPE type = LIST_TYPE.fromDSub(args[1]);
 
-            if (type != null){
-                switch (type){
+            if (type != null) {
+                switch (type) {
                     case TREASURES -> {
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_TREASURES)) {
                             ArrayList<Location> locations = new ArrayList<>(TreasureListener.inst().getTreasureLocations());
@@ -117,7 +116,7 @@ public class ListSubCommand {
                     }
                     case PLAYER_DETAIL -> {
                         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS)) {
-                            if (args.length >= 3){
+                            if (args.length >= 3) {
                                 UUID uuidToGetListOf;
 
                                 OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[2]);
@@ -173,48 +172,52 @@ public class ListSubCommand {
                         }
                     }
                     case WHO -> {
-                        Container container = TreasureCommands.getContainer(commandSender);
+                        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_WHO)) {
+                            Container container = TreasureCommands.getContainer(commandSender);
 
-                        if (container != null) {
-                            TreasureConfig.inst().getAllPlayerDetailAsync(container.getBlock().getLocation(), playerLootDetailMap -> {
-                                final int numOfPlayers = playerLootDetailMap.size();
+                            if (container != null) {
+                                TreasureConfig.inst().getAllPlayerDetailAsync(container.getBlock().getLocation(), playerLootDetailMap -> {
+                                    final int numOfPlayers = playerLootDetailMap.size();
 
-                                if (numOfPlayers > 0) {
-                                    final int numPages = (int) Math.ceil((double) numOfPlayers / (double) ENTRIES_PER_PAGE);
+                                    if (numOfPlayers > 0) {
+                                        final int numPages = (int) Math.ceil((double) numOfPlayers / (double) ENTRIES_PER_PAGE);
 
-                                    final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
-                                    if (args.length >= 3) {
-                                        if (Utils.isInt(args[2])) {
-                                            //limit page to how many exits
-                                            pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                                        final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                                        if (args.length >= 3) {
+                                            if (Utils.isInt(args[2])) {
+                                                //limit page to how many exits
+                                                pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                                            } else {
+                                                commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[2])));
+                                                return;
+                                            }
                                         } else {
-                                            commandSender.sendMessage(Lang.build(Lang.NO_NUMBER.get().replace(Lang.VALUE, args[2])));
-                                            return;
+                                            pageNow = 1;
                                         }
+
+                                        //maximum of players out of all this page can display
+                                        final int MAX_PLAYERS_THIS_PAGE = Math.min(numOfPlayers, pageNow * ENTRIES_PER_PAGE);
+                                        //maximum of entries this page can display
+                                        final int NUM_ENTRIES = MAX_PLAYERS_THIS_PAGE - (pageNow - 1) * ENTRIES_PER_PAGE;
+
+                                        final ListCmdWholHelper helper = new ListCmdWholHelper(commandSender, pageNow, numPages, NUM_ENTRIES, container.getBlock().getLocation());
+
+                                        final List<UUID> uuids = new ArrayList<>(playerLootDetailMap.keySet());
+                                        //add the player info for the page
+                                        for (int num = (pageNow - 1) * ENTRIES_PER_PAGE; num < MAX_PLAYERS_THIS_PAGE; num++) {
+                                            helper.addEntry(uuids.get(num), playerLootDetailMap.get(uuids.get(num)));
+                                        }
+
                                     } else {
-                                        pageNow = 1;
+                                        commandSender.sendMessage(Lang.build(Lang.LIST_WHO_EMPTY.get()));
                                     }
+                                });
 
-                                    //maximum of players out of all this page can display
-                                    final int MAX_PLAYERS_THIS_PAGE = Math.min(numOfPlayers, pageNow * ENTRIES_PER_PAGE);
-                                    //maximum of entries this page can display
-                                    final int NUM_ENTRIES = MAX_PLAYERS_THIS_PAGE - (pageNow - 1) * ENTRIES_PER_PAGE;
-
-                                    final ListCmdWholHelper helper = new ListCmdWholHelper(commandSender, pageNow, numPages, NUM_ENTRIES, container.getBlock().getLocation());
-
-                                    final List<UUID> uuids = new ArrayList<>(playerLootDetailMap.keySet());
-                                    //add the player info for the page
-                                    for (int num = (pageNow - 1) * ENTRIES_PER_PAGE; num < MAX_PLAYERS_THIS_PAGE; num++) {
-                                        helper.addEntry(uuids.get(num), playerLootDetailMap.get(uuids.get(num)));
-                                    }
-
-                                } else {
-                                    commandSender.sendMessage(Lang.build(Lang.LIST_WHO_EMPTY.get()));
-                                }
-                            });
-
+                            } else {
+                                commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                            }
                         } else {
-                            commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
                         }
                     }
                 }
@@ -228,10 +231,10 @@ public class ListSubCommand {
     /**
      * @param args The arguments passed to the command, including final
      *             partial argument to be completed
-     * /gt list(0) treasures(1) [num - optional](2) - list all treasures
-     * /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
-     * /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
-     * /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
+     *             /gt list(0) treasures(1) [num - optional](2) - list all treasures
+     *             /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
+     *             /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
+     *             /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
      * @return suggestion of arguments, filtert by what's already written
      */
     protected List<String> handleTabComplete(@NotNull String[] args) {
@@ -248,12 +251,12 @@ public class ListSubCommand {
                 if (args[0].equalsIgnoreCase(LIST)) {
                     List<String> result = new ArrayList<>();
 
-                    if (args[1].equalsIgnoreCase(LIST_TYPE.PLAYER_DETAIL.getSubCommand())){
+                    if (args[1].equalsIgnoreCase(LIST_TYPE.PLAYER_DETAIL.getSubCommand())) {
                         Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
                         if (!onlinePlayers.isEmpty()) {
                             result.addAll(onlinePlayers.stream().map(Player::getName).toList());
                         }
-                    } else if (args[1].equalsIgnoreCase(LIST_TYPE.TREASURES.getSubCommand())){
+                    } else if (args[1].equalsIgnoreCase(LIST_TYPE.TREASURES.getSubCommand())) {
                         final int numOfTreasures = TreasureListener.inst().getTreasureLocations().size();
                         if (numOfTreasures > 0) {
                             result.addAll(IntStream.rangeClosed(1, (int) Math.ceil((double) numOfTreasures / (double) ENTRIES_PER_PAGE))
@@ -270,7 +273,7 @@ public class ListSubCommand {
             }
             case 4 -> {
                 if (args[0].equalsIgnoreCase(LIST)) {
-                    if (args[1].equalsIgnoreCase(LIST_TYPE.PLAYER_DETAIL.getSubCommand())){
+                    if (args[1].equalsIgnoreCase(LIST_TYPE.PLAYER_DETAIL.getSubCommand())) {
                         final int numOfTreasures = TreasureListener.inst().getTreasureLocations().size();
                         if (numOfTreasures > 0) {
                             return IntStream.rangeClosed(1, (int) Math.ceil((double) numOfTreasures / (double) ENTRIES_PER_PAGE))

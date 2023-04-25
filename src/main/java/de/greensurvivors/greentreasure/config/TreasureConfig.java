@@ -12,7 +12,6 @@ import de.greensurvivors.greentreasure.language.Lang;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -64,19 +63,18 @@ public class TreasureConfig {
     }
 
     /**
-     *
      * @param location
      * @return
      */
-    private static String getIdFromLoc (Location location){
+    private static String getIdFromLoc(Location location) {
         return location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
     }
 
     /**
      * Combining all arguments to a single FileConfiguration key.
      *
-     * @param args  key arguments in order
-     * @return      String
+     * @param args key arguments in order
+     * @return String
      */
     private static @NotNull String buildKey(String... args) {
         return String.join(".", args);
@@ -85,8 +83,8 @@ public class TreasureConfig {
     /**
      * takes a list of itemStack and trys to serialize all of them into a List of Maps (or null)
      *
-     * @param itemList  a list of ItemStack
-     * @return          serialized list of Map<String, Object>
+     * @param itemList a list of ItemStack
+     * @return serialized list of Map<String, Object>
      */
     public static List<Map<String, Object>> serializeItemList(@Nullable List<ItemStack> itemList) {
         if (itemList == null) {
@@ -109,8 +107,8 @@ public class TreasureConfig {
     /**
      * takes a list of Objects and trys to convert it into a List of ItemStack (or null)
      *
-     * @param itemObjs  a list of Map<String, Object>, as ItemStack.serialize() outputs
-     * @return          deserialized List of ItemStack or null, if the input is null
+     * @param itemObjs a list of Map<String, Object>, as ItemStack.serialize() outputs
+     * @return deserialized List of ItemStack or null, if the input is null
      */
     public static List<ItemStack> deserializeItemList(@Nullable List<?> itemObjs) {
         if (itemObjs != null) {
@@ -185,7 +183,7 @@ public class TreasureConfig {
      */
     public void forgetAllAsync(@NotNull Location location, @NotNull EmptyCallback emptyCallback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc (location);
+            String id = getIdFromLoc(location);
 
             synchronized (mutexDatabase) {
                 databaseManager.forgetAll(id);
@@ -219,11 +217,10 @@ public class TreasureConfig {
     }
 
     /**
-     *
      * @param location
      * @param callback
      */
-    public void getAllPlayerDetailAsync(@NotNull Location location, @NotNull PlayerLootDetailMapCallback callback){
+    public void getAllPlayerDetailAsync(@NotNull Location location, @NotNull PlayerLootDetailMapCallback callback) {
         Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
             String id = getIdFromLoc(location);
 

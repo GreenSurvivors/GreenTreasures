@@ -10,7 +10,6 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static de.greensurvivors.greentreasure.comands.TreasureCommands.RANDOM;
@@ -65,8 +64,6 @@ public class SetRandomSubCommand {
             commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
         }
     }
-
-    //gt set(0) forget(1) <1y 2w 3d 4h 5m 6s 7t 8ms>(2..)
 
     /**
      * @param args The arguments passed to the command, including final

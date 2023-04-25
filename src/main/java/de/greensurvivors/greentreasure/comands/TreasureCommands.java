@@ -136,7 +136,7 @@ public class TreasureCommands implements CommandExecutor, TabCompleter {
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_EDIT)) {
             suggestions.addAll(EditSubCommand.inst().handleTabCompleate(args));
         }
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS, Perm.TREASURE_LIST_TREASURES)) {
+        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS, Perm.TREASURE_LIST_TREASURES, Perm.TREASURE_LIST_WHO)) {
             suggestions.addAll(ListSubCommand.inst().handleTabComplete(args));
         }
         if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_PEEK)) {

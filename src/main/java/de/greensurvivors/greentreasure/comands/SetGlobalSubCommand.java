@@ -11,7 +11,6 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static de.greensurvivors.greentreasure.comands.TreasureCommands.*;
