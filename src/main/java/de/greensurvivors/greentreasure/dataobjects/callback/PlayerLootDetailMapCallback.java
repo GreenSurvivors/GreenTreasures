@@ -10,5 +10,5 @@ import java.util.UUID;
  * technical interface to give information form async back to the main thread via the function "onQueryDone"
  */
 public interface PlayerLootDetailMapCallback {
-    public void onQueryDone(@NotNull Map<UUID, PlayerLootDetail> result);
+    void onQueryDone(@NotNull Map<UUID, PlayerLootDetail> result);
 }

@@ -138,8 +138,7 @@ public class DatabaseManager {
                     TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for '%s'", lootIdentifier, uuid));
                 }
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for '%s'", lootIdentifier, uuid));
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for '%s'", lootIdentifier, uuid), e);
             } finally {
                 closeResources(st, rs);
             }
@@ -178,8 +177,7 @@ public class DatabaseManager {
                 st.setString(3, GSON.toJson(TreasureConfig.serializeItemList(lootDetail.unLootedStuff()), LIST_TYPE));
                 st.executeUpdate();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not set player loot detail '%s' for '%s' to '%s'", lootIdentifier, uuid, GSON.toJson(lootDetail.serialize(), MAP_TYPE)));
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, String.format("Could not set player loot detail '%s' for '%s' to '%s'", lootIdentifier, uuid, GSON.toJson(lootDetail.serialize(), MAP_TYPE)), e);
             } finally {
                 closeResources(st, null);
             }
@@ -210,8 +208,7 @@ public class DatabaseManager {
 
                 st.executeUpdate();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not forget player loot detail '%s' for '%s'", lootIdentifier, uuid));
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, String.format("Could not forget player loot detail '%s' for '%s'", lootIdentifier, uuid), e);
             } finally {
                 closeResources(st, null);
             }
@@ -266,8 +263,7 @@ public class DatabaseManager {
                     TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for all-query", lootIdentifier));
                 }
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for all-query", lootIdentifier));
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for all-query", lootIdentifier), e);
             } finally {
                 closeResources(st, rs);
             }
@@ -300,8 +296,7 @@ public class DatabaseManager {
                         TREASURE_LOOT_KEY));
                 st.executeUpdate();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, "Could not create loot detail table for " + identifier);
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, "Could not create loot detail table for " + identifier, e);
             } finally {
                 closeResources(st, null);
             }
@@ -324,8 +319,7 @@ public class DatabaseManager {
                         "DROP TABLE IF EXISTS `%s`", identifier));
                 st.executeUpdate();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, "Could not delete loot detail Table for " + identifier);
-                e.printStackTrace();
+                TreasureLogger.log(Level.WARNING, "Could not delete loot detail Table for " + identifier, e);
             } finally {
                 closeResources(st, null);
             }
@@ -479,8 +473,7 @@ public class DatabaseManager {
             try {
                 st.close();
             } catch (SQLException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not close Statement");
-                e.printStackTrace();
+                TreasureLogger.log(Level.SEVERE, "Could not close Statement", e);
             }
         }
     }
@@ -496,8 +489,7 @@ public class DatabaseManager {
                 TreasureLogger.log(Level.FINE, "Logout");
             }
         } catch (SQLException e) {
-            TreasureLogger.log(Level.SEVERE, "Could not close connection");
-            e.printStackTrace();
+            TreasureLogger.log(Level.SEVERE, "Could not close connection", e);
         } finally {
             conn = null;
         }

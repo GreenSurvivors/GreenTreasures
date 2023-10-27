@@ -53,7 +53,7 @@ public class AboutSubCommand {
      *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args) {
+    protected List<String> handleTabComplete(@NotNull String[] args) {
         if (args.length == 1) {
             return Collections.singletonList(ABOUT);
         } else {

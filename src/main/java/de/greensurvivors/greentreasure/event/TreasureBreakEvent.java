@@ -17,7 +17,7 @@ public class TreasureBreakEvent extends BlockEvent implements Cancellable {
     private boolean cancel;
 
     /**
-     * @param theBlock the treasure block a player trys to break
+     * @param theBlock the treasure block a player tries to break
      * @param player   the player in action
      */
     public TreasureBreakEvent(@NotNull Block theBlock, @NotNull Player player) {

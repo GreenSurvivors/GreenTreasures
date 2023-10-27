@@ -88,7 +88,7 @@ public class ForgetSubCommand {
      *             partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args) {
+    protected List<String> handleTabComplete(@NotNull String[] args) {
         switch (args.length) {
             case 1 -> {
                 return Collections.singletonList(FORGET);

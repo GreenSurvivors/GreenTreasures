@@ -7,5 +7,5 @@ import org.jetbrains.annotations.Nullable;
  * technical interface to give information form async back to the main thread via the function "onQueryDone"
  */
 public interface PlayerLootDetailCallback {
-    public void onQueryDone(@Nullable PlayerLootDetail result);
+    void onQueryDone(@Nullable PlayerLootDetail result);
 }

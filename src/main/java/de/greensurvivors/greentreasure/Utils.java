@@ -67,7 +67,7 @@ public class Utils {
             return false;
         }
 
-        if (toTest.length() == 0 || toTest.isBlank()) { //empty
+        if (toTest.isEmpty() || toTest.isBlank()) { //empty
             return false;
         }
 
@@ -85,7 +85,7 @@ public class Utils {
             return false;
         }
 
-        if (toTest.length() == 0 || toTest.isBlank()) { //empty
+        if (toTest.isEmpty() || toTest.isBlank()) { //empty
             return false;
         }
 
