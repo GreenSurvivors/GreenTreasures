@@ -16,5 +16,6 @@ import java.util.List;
  * @param isUnlimited     if the treasure is lootable an unlimited amount of times
  * @param isShared        if the inventory a treasure has is globally shared
  */
-public record TreasureInfo(@NotNull String treasureId, @NotNull List<@Nullable ItemStack> itemLoot, @NotNull Duration timeUntilForget, int slotChance, boolean isUnlimited, boolean isShared) {
+public record TreasureInfo(@NotNull String treasureId, @NotNull List<@Nullable ItemStack> itemLoot,
+                           @NotNull Duration timeUntilForget, int slotChance, boolean isUnlimited, boolean isShared) {
 }

@@ -27,7 +27,7 @@ public class ListSubCommand extends ASubCommand {
         registerSubCommand(new ListWhoSubCommand(plugin));
     }
 
-    private void registerSubCommand (final @NotNull ASubCommand subCommand) {
+    private void registerSubCommand(final @NotNull ASubCommand subCommand) {
         for (@NotNull String alias : subCommand.getAliases()) {
             subCommands.put(alias, subCommand);
         }

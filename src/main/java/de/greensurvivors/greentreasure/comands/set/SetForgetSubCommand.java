@@ -63,7 +63,7 @@ public class SetForgetSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                @Nullable String treasureId =  plugin.getTreasureListener().getTreasureId(container);
+                @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
 
                 if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
                     if (args.length > 2) {

@@ -96,7 +96,7 @@ public class PeekSubCommand extends ASubCommand {
 
                                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
                                     } else {
-                                        nowPeeking =  Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_SHARED.get()));
+                                        nowPeeking = Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_SHARED.get()));
 
                                         if (nowPeeking == null) {
                                             plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
@@ -136,7 +136,7 @@ public class PeekSubCommand extends ASubCommand {
                                     playerToPeek = player;
                                 }
 
-                                plugin.getConfigHandler().getPlayerLootDetail(playerToPeek, treasureId).thenAccept( playerLootDetail -> {
+                                plugin.getConfigHandler().getPlayerLootDetail(playerToPeek, treasureId).thenAccept(playerLootDetail -> {
                                     final InventoryView nowPeeking;
 
                                     if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
@@ -152,7 +152,7 @@ public class PeekSubCommand extends ASubCommand {
                                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
                                             Placeholder.component(PlaceHolderKey.NAME.getKey(), name));
 
-                                        nowPeeking =  Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, playerToPeek.toString())));
+                                        nowPeeking = Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, playerToPeek.toString())));
 
                                         if (nowPeeking == null) {
                                             plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
@@ -202,8 +202,8 @@ public class PeekSubCommand extends ASubCommand {
     }
 
     /**
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
+     * @param args The arguments passed to the command, including final
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {

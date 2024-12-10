@@ -71,8 +71,6 @@ public class DeleteSubCommand extends ASubCommand {
         return true;
     }
 
-
-
     /**
      * @param sender
      * @param args   The arguments passed to the command, including final

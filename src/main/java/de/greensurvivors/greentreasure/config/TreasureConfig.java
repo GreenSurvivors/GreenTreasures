@@ -23,11 +23,11 @@ import java.util.concurrent.CompletableFuture;
 
 public class TreasureConfig {
     private static final @NotNull String
-            ITEM_LIST = "items",
-            FORGETTING_DURATION = "forgettingDurationInMillis",
-            SLOT_CHANCE = "slotChance",
-            IS_UNLIMITED = "isUnlimited",
-            IS_SHARED = "isShared";
+        ITEM_LIST = "items",
+        FORGETTING_DURATION = "forgettingDurationInMillis",
+        SLOT_CHANCE = "slotChance",
+        IS_UNLIMITED = "isUnlimited",
+        IS_SHARED = "isShared";
     private static final @NotNull OfflinePlayer
         // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
         SHARED_PROFILE = Bukkit.getOfflinePlayer("@SHARED");
@@ -45,7 +45,7 @@ public class TreasureConfig {
     private final @NotNull GreenTreasure plugin;
     private final @NotNull Path treasureFolder;
 
-    public TreasureConfig (final @NotNull GreenTreasure plugin) {
+    public TreasureConfig(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.databaseManager = new DatabaseManager(plugin);
         this.treasureFolder = Path.of(plugin.getDataFolder().getPath()).resolve("treasures");
@@ -54,8 +54,8 @@ public class TreasureConfig {
     /**
      * saves the params to a player file
      *
-     * @param player             the UUID of a looting player null means shared
-     * @param treasureId         the treasureId of a treasure, the information for identify a treasure
+     * @param player           the UUID of a looting player null means shared
+     * @param treasureId       the treasureId of a treasure, the information for identify a treasure
      * @param timeStamp        when has the player last opened the treasure?
      * @param unlootedTreasure the inventory with all the remaining items. null means the player will be reset
      */
@@ -66,7 +66,7 @@ public class TreasureConfig {
     /**
      * forget a player has ever looted a treasure
      *
-     * @param player     the UUID of a looting player null means shared
+     * @param player the UUID of a looting player null means shared
      */
     public @NotNull CompletableFuture<Void> forgetPlayer(final @Nullable OfflinePlayer player, final @NotNull String treasureID) {
         return databaseManager.forgetPlayer(player == null ? SHARED_PROFILE : player, treasureID);
@@ -85,8 +85,8 @@ public class TreasureConfig {
     /**
      * load the status of a player about a treasure and calls a function with the information back in the main thread.
      *
-     * @param player                     the UUID of a looting player null means shared
-     * @param treasureId                 the treasureId of a treasure, the information for identify a treasure
+     * @param player     the UUID of a looting player null means shared
+     * @param treasureId the treasureId of a treasure, the information for identify a treasure
      */
     public @NotNull CompletableFuture<@Nullable PlayerLootDetail> getPlayerLootDetail(final @Nullable OfflinePlayer player, final @NotNull String treasureId) {
         return databaseManager.getPlayerData(player == null ? SHARED_PROFILE : player, treasureId);
@@ -155,8 +155,8 @@ public class TreasureConfig {
     }
 
     /**
-     * @param treasureId  information to identify a treasure
-     * @param lootItems list of items a player should receive upon opening the treasure.
+     * @param treasureId information to identify a treasure
+     * @param lootItems  list of items a player should receive upon opening the treasure.
      */
     public @NotNull CompletableFuture<Void> saveTreasureLoot(final @NotNull String treasureId, final @NotNull List<@NotNull ItemStack> lootItems) {
         CompletableFuture<Void> result = new CompletableFuture<>();
@@ -199,7 +199,7 @@ public class TreasureConfig {
     /**
      * set the random slot chance
      *
-     * @param treasureId  information to identify a treasure
+     * @param treasureId information to identify a treasure
      * @param slotChance how probable it is for a slot to be in the freshly opened treasure
      */
     public @NotNull CompletableFuture<Void> setRandom(final @NotNull String treasureId, final int slotChance) {
@@ -244,7 +244,7 @@ public class TreasureConfig {
      * set the shared status
      *
      * @param treasureId information to identify a treasure
-     * @param isShared if the Inventory is globally shared across all players
+     * @param isShared   if the Inventory is globally shared across all players
      */
     public @NotNull CompletableFuture<Void> setShared(@NotNull String treasureId, final boolean isShared) {
         CompletableFuture<Void> result = new CompletableFuture<>();
@@ -331,8 +331,8 @@ public class TreasureConfig {
     /**
      * set the forget-period
      *
-     * @param treasureId        information to identify a treasure
-     * @param forgettingPeriod  how long a Treasure has to be not looted until it is filled again.
+     * @param treasureId       information to identify a treasure
+     * @param forgettingPeriod how long a Treasure has to be not looted until it is filled again.
      *                         negative values mean the Treasure will never restock.
      */
     public @NotNull CompletableFuture<Void> setForget(final @NotNull String treasureId, final @Nullable Duration forgettingPeriod) {
@@ -355,7 +355,7 @@ public class TreasureConfig {
                         final File treasureFile = treasurePath.toFile();
                         FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
                         setDefaults(cfg);
-                        cfg.set(FORGETTING_DURATION,  forgettingPeriod == null ? null : forgettingPeriod.toMillis());
+                        cfg.set(FORGETTING_DURATION, forgettingPeriod == null ? null : forgettingPeriod.toMillis());
 
                         cfg.save(treasureFile);
 
@@ -386,8 +386,8 @@ public class TreasureConfig {
                 final boolean isUnlimited = cfg.getBoolean(IS_UNLIMITED, DEFAULT_IS_UNLIMITED);
                 final boolean isShared = cfg.getBoolean(IS_SHARED, DEFAULT_IS_SHARED);
 
-                if (rawItemStr != null && ! rawItemStr.isBlank()) {
-                    final @NotNull List<ItemStack> items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                if (rawItemStr != null && !rawItemStr.isBlank()) {
+                    final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
                     return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetting_time), slotChance, isUnlimited, isShared);
                 } else {
                     plugin.getComponentLogger().warn("No or malformed item list found. Skipping.");
@@ -415,7 +415,7 @@ public class TreasureConfig {
         });
     }
 
-    private void loadLegacy () {
+    private void loadLegacy() {
         final @NotNull FileConfiguration config = plugin.getConfig();
         if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
             new ImportLegacy(plugin).importLegacyData();

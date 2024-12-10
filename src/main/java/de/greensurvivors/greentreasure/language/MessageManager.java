@@ -44,7 +44,7 @@ public class MessageManager {
      * caches every component without placeholder for faster access in future and loads missing values automatically
      */
     private final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
-            path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
+        path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
 
     public MessageManager(Plugin plugin) {
         this.plugin = plugin;
@@ -110,6 +110,7 @@ public class MessageManager {
         }
         return Component.text("-");
     }
+
     /**
      * Try to get a time period of a string.
      * First try ISO-8601 duration, and afterward our own implementation
@@ -139,7 +140,7 @@ public class MessageManager {
                     case "m" -> duration.plusMinutes(num);
                     case "h", "H" -> duration.plusHours(num);
                     case "d", "D" -> duration.plusDays(num);
-                    case "w", "W" -> duration.plusDays( Math.multiplyExact(num, 7));
+                    case "w", "W" -> duration.plusDays(Math.multiplyExact(num, 7));
                     case "M" -> duration.plus(ChronoUnit.MONTHS.getDuration().multipliedBy(num));
                     case "y", "Y" -> duration.plus(ChronoUnit.YEARS.getDuration().multipliedBy(num));
                     default -> duration;
@@ -214,8 +215,8 @@ public class MessageManager {
                     if (i + 1 < theString.length()) {
                         final char bChar = theString.charAt(i + 1);
                         if (bChar == ' ' || bChar == 't' || bChar == 'n' || bChar == 'r' ||
-                                bChar == 'f' || bChar == '\\' || bChar == 'u' || bChar == '=' ||
-                                bChar == ':' || bChar == '#' || bChar == '!') {
+                            bChar == 'f' || bChar == '\\' || bChar == 'u' || bChar == '=' ||
+                            bChar == ':' || bChar == '#' || bChar == '!') {
                             // don't double escape already escaped chars
                             convertedStrBuilder.append(aChar);
                             convertedStrBuilder.append(bChar);

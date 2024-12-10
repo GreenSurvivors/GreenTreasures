@@ -14,21 +14,6 @@ import org.jetbrains.annotations.NotNull;
  * If you need the info, you have to call TreasureConfig.inst().getPlayerLootDetail() yourself.
  */
 public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
-    public enum Result {
-        /**
-         * default means the original open-inventory-event gets canceled
-         */
-        DEFAULT,
-        /**
-         * original means the event gets canceled and the original open-inventory-event not
-         */
-        ORIGINAL,
-        /**
-         * canceled means the event as well as the original open-inventory-event is canceled
-         */
-        CANCELED
-    }
-
     private static final @NotNull HandlerList handlers = new HandlerList();
     private final @NotNull TreasureInfo treasureInfo;
     private final boolean hasPermission;
@@ -71,5 +56,14 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
 
     public boolean hasPermission() {
         return hasPermission;
+    }
+
+    public enum Result {
+        /// default means the original open-inventory-event gets canceled
+        DEFAULT,
+        /// original means the event gets canceled and the original open-inventory-event not
+        ORIGINAL,
+        /// canceled means the event as well as the original open-inventory-event is canceled
+        CANCELED
     }
 }

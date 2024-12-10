@@ -23,12 +23,12 @@ import java.util.Map;
  * this is a technical class to handle the inventories opened by commands
  */
 public class CommandInventoriesListener implements Listener {
-    private final@NotNull GreenTreasure plugin;
+    private final @NotNull GreenTreasure plugin;
 
     private final Map<@NotNull InventoryView, @NotNull String> editingTreasures = new HashMap<>();
     private final Map<@NotNull InventoryView, @NotNull PeekedTreasure> peekingTreasures = new HashMap<>();
 
-    public CommandInventoriesListener (final @NotNull GreenTreasure plugin) {
+    public CommandInventoriesListener(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
 
         Bukkit.getPluginManager().registerEvents(this, plugin);

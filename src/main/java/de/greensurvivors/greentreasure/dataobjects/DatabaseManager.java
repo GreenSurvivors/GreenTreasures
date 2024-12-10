@@ -44,7 +44,7 @@ public class DatabaseManager {
         LOGIN_USER_NAME = "user",
         PASSWORD = "password",
         DATABASE = "database";
-    public static final String NULL = "NULL";
+    private static final String NULL = "NULL";
     private final @NotNull GreenTreasure plugin;
     /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
     private final @NotNull Executor asyncExecutor;
@@ -129,7 +129,7 @@ public class DatabaseManager {
             plugin.getComponentLogger().warn("Missing value for {}", PORT);
         }
 
-        if (dataSource != null){
+        if (dataSource != null) {
             closeConnection();
         }
 
@@ -150,7 +150,7 @@ public class DatabaseManager {
     /**
      * Returns the known information about a treasure looted by a player
      *
-     * @param player         player who we want data of
+     * @param player     player who we want data of
      * @param treasureId identifier of the treasure
      * @return PlayerLootDetail or null, if getting the data wasn't successfully
      * (like in cases if the player never opened this treasure)
@@ -172,37 +172,37 @@ public class DatabaseManager {
                     " AS q JOIN " + USER_TABLE + " AS p ON q." + PID_KEY + " = p." + PID_KEY +
                     " WHERE q." + TREASURE_ID_KEY + " LIKE ? AND p." + UUID_KEY + " = ?";
 
-                try (final @NotNull Connection connection = dataSource.getConnection();
-                     final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-                    preparedStatement.setString(1, treasureId);
-                    preparedStatement.setString(2, player.getUniqueId().toString());
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                preparedStatement.setString(1, treasureId);
+                preparedStatement.setString(2, player.getUniqueId().toString());
 
-                    try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                        if (resultSet.next()) {
-                            long timeStamp = resultSet.getLong(1);
+                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        long timeStamp = resultSet.getLong(1);
 
-                            //get list from string
-                            final @Nullable String rawItemStr = resultSet.getString(2);
-                            final @Nullable List<ItemStack> items;
-                            if (rawItemStr == null || rawItemStr.equalsIgnoreCase(NULL)) {
-                                items = null;
-                            } else {
-                                items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
-                            }
-
-                            //plugin.getComponentLogger().debug("successfully got amount for get request for player {} to {} amount of times, on thread {}", player.getName(), result, Thread.currentThread().getName());
-                            Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
-                        } else { //player had never done this quest
-
-                            plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}", player.getName(), Thread.currentThread().getName());
-                            Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+                        //get list from string
+                        final @Nullable String rawItemStr = resultSet.getString(2);
+                        final @Nullable List<ItemStack> items;
+                        if (rawItemStr == null || rawItemStr.equalsIgnoreCase(NULL)) {
+                            items = null;
+                        } else {
+                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
                         }
-                    }
-                } catch (SQLException e) {
-                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
-                    plugin.getComponentLogger().warn("Could not get treasure identifier '{}' player loot detail for '{}'", treasureId, player.getName(), e);
+                        //plugin.getComponentLogger().debug("successfully got amount for get request for player {} to {} amount of times, on thread {}", player.getName(), result, Thread.currentThread().getName());
+                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
+                    } else { //player had never done this quest
+
+                        plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}", player.getName(), Thread.currentThread().getName());
+                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+                    }
                 }
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().warn("Could not get treasure identifier '{}' player loot detail for '{}'", treasureId, player.getName(), e);
+            }
         });
 
         return resultFuture;
@@ -211,9 +211,9 @@ public class DatabaseManager {
     /**
      * Saves the loot detail of a player
      *
-     * @param player         player whose data is about to be saved.
+     * @param player     player whose data is about to be saved.
      * @param treasureId the treasure id
-     * @param lootDetail     the new data
+     * @param lootDetail the new data
      */
     public @NotNull CompletableFuture<Void> setPlayerData(final @NotNull OfflinePlayer player, final @NotNull String treasureId, final @NotNull PlayerLootDetail lootDetail) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
@@ -358,7 +358,7 @@ public class DatabaseManager {
                         if (rawItemStr == null || rawItemStr.equalsIgnoreCase(NULL)) {
                             items = null;
                         } else {
-                            items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
                         }
 
                         result.put(playerUUID, new PlayerLootDetail(timeStamp, items));

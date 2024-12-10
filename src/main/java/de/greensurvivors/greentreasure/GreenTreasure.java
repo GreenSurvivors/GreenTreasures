@@ -9,23 +9,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 
 public class GreenTreasure extends JavaPlugin {
+    private static GreenTreasure instance;
     private TreasureConfig configHandler;
     private TreasureListener treasureListener;
     private CommandInventoriesListener commandInventoriesListener;
     private MessageManager messageManager;
     private TreasureCommands treasureCommands;
 
-    private static GreenTreasure instance;
-
-    @Deprecated // only use if you really have to!
-    public static GreenTreasure inst() {
-        return instance;
-    }
-
     public GreenTreasure() {
         super();
 
         instance = this;
+    }
+
+    @Deprecated // only use if you really have to!
+    public static GreenTreasure inst() {
+        return instance;
     }
 
     @Override

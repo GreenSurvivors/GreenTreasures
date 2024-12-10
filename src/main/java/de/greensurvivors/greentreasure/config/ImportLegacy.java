@@ -40,7 +40,7 @@ public class ImportLegacy {
     private final @NotNull Duration DEFAULT_FORGETTING_PERIOD = Duration.ofSeconds(-1);
     private final @NotNull GreenTreasure plugin;
 
-    public ImportLegacy (final @NotNull GreenTreasure plugin) {
+    public ImportLegacy(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
     }
 
@@ -63,7 +63,7 @@ public class ImportLegacy {
         final @NotNull Path pluginPath = plugin.getDataPath().getParent();
         final @NotNull Path treasureChestPath = pluginPath.resolve(TREASURE_CHEST);
 
-        if (Files.isDirectory(treasureChestPath)){
+        if (Files.isDirectory(treasureChestPath)) {
             plugin.getComponentLogger().info("starting import legacy process from " + TREASURE_CHEST);
 
             importTreasureData(treasureChestPath).thenAccept(inventorySizes -> importPlayerData(inventorySizes, treasureChestPath));
@@ -77,18 +77,18 @@ public class ImportLegacy {
 
                 importTreasureData(treasureChestXPath).thenAccept(inventorySizes -> importPlayerData(inventorySizes, treasureChestXPath));
 
-                plugin.getComponentLogger().info("importing legacy process from " +  TREASURE_CHEST_X + " is done");
+                plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST_X + " is done");
             } else {
                 plugin.getComponentLogger().warn("Could not find any legacy treasures.");
             }
         }
     }
 
-    private @NotNull Map<@NotNull String, @NotNull Object> validateMap (final @NotNull Map <?, ?> mapToValidate) {
+    private @NotNull Map<@NotNull String, @NotNull Object> validateMap(final @NotNull Map<?, ?> mapToValidate) {
         LinkedHashMap<@NotNull String, @NotNull Object> result = new LinkedHashMap<>(mapToValidate.size());
 
         for (Map.Entry<?, ?> entry : mapToValidate.entrySet()) {
-            if (entry.getKey() instanceof String key && entry.getValue() != null){
+            if (entry.getKey() instanceof String key && entry.getValue() != null) {
                 result.put(key, entry.getValue());
             }
         }
@@ -104,7 +104,7 @@ public class ImportLegacy {
             return CompletableFuture.failedFuture(new NullPointerException("treasurePluginFolder was null"));
         }
 
-        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()){
+        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
             final @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull String>> result = new CompletableFuture<>();
             forkJoinPool.execute(() -> {
                 synchronized (this) {
@@ -113,7 +113,7 @@ public class ImportLegacy {
                     final @NotNull Path treasuresPath = treasurePluginFolder.resolve("treasure");
 
                     if (Files.isDirectory(treasuresPath)) {
-                        try (Stream<Path> treasuresPathStream = Files.walk(treasuresPath)){
+                        try (Stream<Path> treasuresPathStream = Files.walk(treasuresPath)) {
                             final @NotNull Map<@NotNull Location, @NotNull String> resultMap = new ConcurrentHashMap<>();
 
                             treasuresPathStream.
@@ -121,7 +121,7 @@ public class ImportLegacy {
                                 filter(path -> PATH_MATCHER.matches(path.getFileName())).
                                 forEach(path -> {
                                     try (final @NotNull BufferedReader reader = Files.newBufferedReader(path)) {
-                                       final @NotNull Map<@NotNull String, ? extends @NotNull Object> configMap = new Yaml().load(reader);
+                                        final @NotNull Map<@NotNull String, ? extends @NotNull Object> configMap = new Yaml().load(reader);
 
                                         if (!(configMap.get("location") instanceof Map<?, ?> rootMap)) { // no I don't know why root is called location either
                                             plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file was empty.", path);
@@ -137,7 +137,7 @@ public class ImportLegacy {
 
                                         final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap = validateMap(containerMap);
 
-                                        if (checkedContainerMap.get("right-side") instanceof Map<?,?> rightMap && checkedContainerMap.get("left-side") instanceof Map<?,?> leftMap) {
+                                        if (checkedContainerMap.get("right-side") instanceof Map<?, ?> rightMap && checkedContainerMap.get("left-side") instanceof Map<?, ?> leftMap) {
                                             final @NotNull Map<@NotNull String, @NotNull Object> checkedRightMap = validateMap(rightMap);
                                             final @NotNull Map<@NotNull String, @NotNull Object> checkedLeftMap = validateMap(leftMap);
 
@@ -243,7 +243,7 @@ public class ImportLegacy {
         });
     }
 
-    private @Nullable Location getLocation (final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap, final @NotNull String path) {
+    private @Nullable Location getLocation(final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap, final @NotNull String path) {
         if (!(checkedContainerMap.get("world") instanceof String worldName)) {
             plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file does not contain a world.", path);
             return null;
@@ -277,7 +277,7 @@ public class ImportLegacy {
     }
 
     private @Nullable List<@NotNull ItemStack> getTreasureContents(final @NotNull String path,
-                                     final @NotNull Map<@NotNull String, @NotNull Object> objectMap) {
+                                                                   final @NotNull Map<@NotNull String, @NotNull Object> objectMap) {
 
         final @Nullable Location treasureLocation = getLocation(objectMap, path);
 
@@ -295,10 +295,10 @@ public class ImportLegacy {
             return null;
         }
 
-        if (objectMap.get("contents") instanceof Map<?,?> contentsMap) {
+        if (objectMap.get("contents") instanceof Map<?, ?> contentsMap) {
             final @NotNull Map<@NotNull String, @NotNull Object> checkedContentsMap = validateMap(contentsMap);
 
-            final @Nullable ItemStack @NotNull[] contents = new ItemStack[inventorySize];
+            final @Nullable ItemStack @NotNull [] contents = new ItemStack[inventorySize];
 
             for (Map.Entry<@NotNull String, @NotNull Object> contentsEntry : checkedContentsMap.entrySet()) {
                 final @NotNull Matcher matcher = ITEM_NUMBER_PATTERN.matcher(contentsEntry.getKey());
@@ -311,13 +311,13 @@ public class ImportLegacy {
                         continue;
                     }
 
-                    if (contentsEntry.getValue() instanceof Map<?,?> itemStackHolderMap) {
+                    if (contentsEntry.getValue() instanceof Map<?, ?> itemStackHolderMap) {
                         final @NotNull Map<@NotNull String, @NotNull Object> checkedItemStackHolderMap = validateMap(itemStackHolderMap);
 
                         if (checkedItemStackHolderMap.get(ConfigurationSerialization.SERIALIZED_TYPE_KEY) instanceof String itemStackHolderType) {
                             if (itemStackHolderType.equalsIgnoreCase("org.bukkit.inventory.ItemStack")) {
                                 contents[num] = ItemStack.deserialize(checkedItemStackHolderMap);
-                            } else if (checkedItemStackHolderMap.get("stack") instanceof Map<?,?> itemStackMap) {
+                            } else if (checkedItemStackHolderMap.get("stack") instanceof Map<?, ?> itemStackMap) {
                                 final @NotNull Map<@NotNull String, @NotNull Object> checkedItemStackMap = validateMap(itemStackMap);
 
                                 contents[num] = ItemStack.deserialize(checkedItemStackMap);
@@ -353,7 +353,7 @@ public class ImportLegacy {
      * import player data
      */
     private void importPlayerData(final @NotNull Map<@NotNull Location, @NotNull String> importedTreasureIds, final @NotNull Path treasurePluginFolder) {
-        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()){
+        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
             forkJoinPool.execute(() -> {
                 synchronized (this) {
                     plugin.getComponentLogger().info("importing PlayerData");
@@ -361,7 +361,7 @@ public class ImportLegacy {
                     final @NotNull Path playersPath = treasurePluginFolder.resolve("players");
 
                     if (Files.isDirectory(playersPath)) {
-                        try (Stream<Path> playersPathStream =  Files.walk(playersPath)){
+                        try (Stream<Path> playersPathStream = Files.walk(playersPath)) {
                             playersPathStream.
                                 filter(Files::isRegularFile).
                                 filter(path -> PATH_MATCHER.matches(path.getFileName())).
@@ -379,7 +379,7 @@ public class ImportLegacy {
                                     try (final @NotNull BufferedReader reader = Files.newBufferedReader(path)) {
                                         final @NotNull FileConfiguration playerFile = YamlConfiguration.loadConfiguration(reader);
 
-                                        for (String worldName : playerFile.getKeys(false)){
+                                        for (String worldName : playerFile.getKeys(false)) {
                                             final @Nullable World world = Bukkit.getWorld(worldName);
 
                                             if (world != null) {
@@ -410,7 +410,7 @@ public class ImportLegacy {
 
                                                             if (treasureId == null) {
                                                                 world.getChunkAtAsync(x >> 4, z >> 4, false).thenAccept(chunk -> {
-                                                                        final @NotNull Block treasureBlock = chunk.getBlock(x, y, z);
+                                                                    final @NotNull Block treasureBlock = chunk.getBlock(x, y, z);
 
                                                                     if (!(treasureBlock.getState(false) instanceof Container container)) {
                                                                         plugin.getComponentLogger().warn("[playerData] Could not load legacy treasure {} because the block at {} is not a container.", path, treasureBlock.getLocation());

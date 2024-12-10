@@ -165,10 +165,10 @@ public class TreasureListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true)
     private void onOpenTreasure(final @NotNull InventoryOpenEvent event) {
-        if (event.getPlayer() instanceof Player ePlayer){
+        if (event.getPlayer() instanceof Player ePlayer) {
             Inventory eInventory = event.getInventory();
 
-            if (eInventory.getHolder(false) instanceof PersistentDataHolder dataHolder){
+            if (eInventory.getHolder(false) instanceof PersistentDataHolder dataHolder) {
                 @Nullable String id = getTreasureId(dataHolder);
 
                 if (id != null) {
@@ -323,7 +323,7 @@ public class TreasureListener implements Listener {
     @EventHandler
     private void onTreasureBreak(final @NotNull BlockBreakEvent event) {
         if (event.getBlock().getState(false) instanceof TileStateInventoryHolder inventoryHolder) {
-            final @Nullable  String id = getTreasureId(inventoryHolder);
+            final @Nullable String id = getTreasureId(inventoryHolder);
 
             if (id != null) {
                 @Nullable TreasureInfo treasureInfo = treasures.get(id);

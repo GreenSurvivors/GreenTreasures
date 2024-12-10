@@ -28,7 +28,7 @@ public class SetSubCommand extends ASubCommand {
         registerSubCommand(new SetUnlimitedSubCommand(plugin));
     }
 
-    private void registerSubCommand (final @NotNull ASubCommand subCommand) {
+    private void registerSubCommand(final @NotNull ASubCommand subCommand) {
         for (@NotNull String alias : subCommand.getAliases()) {
             subCommands.put(alias, subCommand);
         }
