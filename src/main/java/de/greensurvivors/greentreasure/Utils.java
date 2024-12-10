@@ -1,20 +1,18 @@
 package de.greensurvivors.greentreasure;
 
-import org.bukkit.Location;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.block.Container;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.regex.Pattern;
 
 public class Utils {
-    // conversion constants for a period of time into milliseconds
-    public static final long
-            YEAR_IN_MILLISECONDS = 31557600000L,
-            WEAK_IN_MILLISECONDS = 604800000L,
-            DAY_IN_MILLISECONDS = 86400000L,
-            HOUR_IN_MILLISECONDS = 3600000L,
-            MINUTE_IN_MILLISECONDS = 60000L,
-            SECONDS_IN_MILLISECONDS = 1000L,
-            TICKS_IN_MILLISECONDS = 50L;
     final static String Digits = "(\\p{Digit}+)";
     final static String HexDigits = "(\\p{XDigit}+)";
     // an exponent is 'e' or 'E' followed by an optionally
@@ -56,6 +54,28 @@ public class Utils {
     private static final Pattern FLOAT_PATTERN = Pattern.compile(fpRegex);
     private static final Pattern INT_PATTERN = Pattern.compile("^[+-]?\\d+$");
 
+    public static @Nullable InventoryView openInventory (final @NotNull Player player, final @Nullable InventoryHolder owner, final @NotNull InventoryType inventoryType) throws IllegalArgumentException {
+        if (!inventoryType.isCreatable()) {
+            throw new IllegalArgumentException("InventoryType " + inventoryType.name() + " is not creatable!");
+        }
+
+        return switch (inventoryType) {
+            case ANVIL -> player.openAnvil(owner == null ? null : owner.getInventory().getLocation(), true);
+            case CARTOGRAPHY -> player.openCartographyTable(owner == null ? null : owner.getInventory().getLocation(), true);
+            case GRINDSTONE -> player.openGrindstone(owner == null ? null : owner.getInventory().getLocation(), true);
+            case LOOM -> player.openLoom(owner == null ? null : owner.getInventory().getLocation(), true);
+            case SMITHING -> player.openSmithingTable(owner == null ? null : owner.getInventory().getLocation(), true);
+            case STONECUTTER -> player.openStonecutter(owner == null ? null : owner.getInventory().getLocation(), true);
+            default -> player.openInventory(Bukkit.createInventory(owner, inventoryType));
+        };
+    }
+
+    public static @NotNull Component getDisplayName(final @NotNull Container container) {
+        return container.customName() == null ?
+            Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
+            container.customName();
+    }
+
     /**
      * Test if a String can safely convert into an int
      *
@@ -67,7 +87,7 @@ public class Utils {
             return false;
         }
 
-        if (toTest.isEmpty() || toTest.isBlank()) { //empty
+        if (toTest.isBlank()) {
             return false;
         }
 
@@ -85,28 +105,10 @@ public class Utils {
             return false;
         }
 
-        if (toTest.isEmpty() || toTest.isBlank()) { //empty
+        if (toTest.isBlank()) {
             return false;
         }
 
         return FLOAT_PATTERN.matcher(toTest).find();
-    }
-
-    /**
-     * clears a location of its pitch, yaw and turns it to bock locations
-     *
-     * @param locationIn location to be cleaned
-     * @return simplified location or null if the input location was also null
-     */
-    public static @Nullable Location cleanLocation(@Nullable Location locationIn) {
-        if (locationIn == null) {
-            return null;
-        }
-
-        Location locationOut = locationIn.toBlockLocation();
-        locationOut.setPitch(0.0f);
-        locationOut.setYaw(0.0f);
-
-        return locationOut;
     }
 }

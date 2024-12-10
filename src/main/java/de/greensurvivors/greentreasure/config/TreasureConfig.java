@@ -1,249 +1,99 @@
 package de.greensurvivors.greentreasure.config;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.TreasureLogger;
 import de.greensurvivors.greentreasure.dataobjects.DatabaseManager;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.dataobjects.callback.EmptyCallback;
-import de.greensurvivors.greentreasure.dataobjects.callback.PlayerLootDetailCallback;
-import de.greensurvivors.greentreasure.dataobjects.callback.PlayerLootDetailMapCallback;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
+import java.util.concurrent.CompletableFuture;
 
 public class TreasureConfig {
-    private static final Pattern COORD_PATTERN = Pattern.compile("^[+-]?\\d+;[+-]?\\d+;[+-]?\\d+$");
-    private static TreasureConfig instance;
-    private final String
-            TREASURE_FOLDER = "treasures";
-    private final String
-            WORLDS = "worlds",
-            COORDS = "coords",
-            TIME_STAMP = "timeStamp",
+    private static final @NotNull String
             ITEM_LIST = "items",
-            FORGETTING_PERIOD = "forgetting_period",
-            SLOT_CHANCE = "slot_chance",
-            IS_UNLIMITED = "is_unlimited",
-            IS_GLOBAL = "is_global",
-            TREASURE_TYPE = "type";
-    private final UUID
-            // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
-            GLOBAL_UUID = Bukkit.getOfflinePlayer("@Global").getUniqueId();
-    private final long DEFAULT_TIME_STAMP = 0;
+            FORGETTING_DURATION = "forgettingDurationInMillis",
+            SLOT_CHANCE = "slotChance",
+            IS_UNLIMITED = "isUnlimited",
+            IS_SHARED = "isShared";
+    private static final @NotNull OfflinePlayer
+        // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
+        SHARED_PROFILE = Bukkit.getOfflinePlayer("@SHARED");
+    private static final @NotNull String
+        CONFIG_KEY_SQL = "SQL",
+        CONFIG_KEY_LANG = "language",
+        CONFIG_KEY_IMPORT_LEGACY = "import_legacy";
     private final long DEFAULT_FORGETTING_PERIOD = -1;
     private final int DEFAULT_SLOT_CHANCE = 10000;
     private final boolean DEFAULT_IS_UNLIMITED = false;
-    private final boolean DEFAULT_IS_GLOBAL = false;
-    private final String DEFAULT_TYPE = "unknown";
-    //ensures only one thread works with a file at a time
-    private final Object mutexDatabase = new Object();
-    private final Object mutexTreasureFile = new Object();
-    private final Object mutexMainConfig = new Object();
-    private DatabaseManager databaseManager = null;
+    private final boolean DEFAULT_IS_SHARED = false;
+    //ensures only one thread works with the file at a time
+    private final @NotNull Object mutexMainConfig = new Object();
+    private final @NotNull DatabaseManager databaseManager;
+    private final @NotNull GreenTreasure plugin;
+    private final @NotNull Path treasureFolder;
 
-    public static TreasureConfig inst() {
-        if (instance == null)
-            instance = new TreasureConfig();
-        return instance;
-    }
-
-    /**
-     * @param location
-     * @return
-     */
-    private static String getIdFromLoc(Location location) {
-        return location.getWorld().getName() + "_" + location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ();
-    }
-
-    /**
-     * Combining all arguments to a single FileConfiguration key.
-     *
-     * @param args key arguments in order
-     * @return String
-     */
-    private static @NotNull String buildKey(String... args) {
-        return String.join(".", args);
-    }
-
-    /**
-     * takes a list of itemStack and trys to serialize all of them into a List of Maps (or null)
-     *
-     * @param itemList a list of ItemStack
-     * @return serialized list of Map<String, Object>
-     */
-    public static List<Map<String, Object>> serializeItemList(@Nullable List<ItemStack> itemList) {
-        if (itemList == null) {
-            return null;
-        }
-
-        List<Map<String, Object>> serializedOutput = new LinkedList<>();
-
-        for (ItemStack itemStack : itemList) {
-            if (itemStack == null) {
-                serializedOutput.add(null);
-            } else {
-                serializedOutput.add(itemStack.serialize());
-            }
-        }
-
-        return serializedOutput;
-    }
-
-    /**
-     * takes a list of Objects and trys to convert it into a List of ItemStack (or null)
-     *
-     * @param itemObjs a list of Map<String, Object>, as ItemStack.serialize() outputs
-     * @return deserialized List of ItemStack or null, if the input is null
-     */
-    public static List<ItemStack> deserializeItemList(@Nullable List<?> itemObjs) {
-        if (itemObjs != null) {
-            List<ItemStack> items = new ArrayList<>();
-
-            // go through every object end try to convert it into a map
-            for (Object itemObj : itemObjs) {
-                //default value if deserializing was impossible
-                ItemStack itemStack = null;
-                if (itemObj instanceof Map<?, ?> itemMapObj) {
-                    //test every item property
-                    Map<String, Object> itemMap = new HashMap<>();
-                    for (Object itemPropObj : itemMapObj.keySet()) {
-                        if (itemPropObj instanceof String itemPropStr) {
-                            itemMap.put(itemPropStr, itemMapObj.get(itemPropObj));
-                        }
-                    }
-
-                    //deserialize the map into an itemStack
-                    itemStack = ItemStack.deserialize(itemMap);
-                }
-
-                items.add(itemStack);
-            }
-
-            return items;
-        } else {
-            return null;
-        }
+    public TreasureConfig (final @NotNull GreenTreasure plugin) {
+        this.plugin = plugin;
+        this.databaseManager = new DatabaseManager(plugin);
+        this.treasureFolder = Path.of(plugin.getDataFolder().getPath()).resolve("treasures");
     }
 
     /**
      * saves the params to a player file
      *
-     * @param uuid             the UUID of a looting player null means global
-     * @param location         the location of a treasure, the information for identify a treasure
+     * @param player             the UUID of a looting player null means shared
+     * @param treasureId         the treasureId of a treasure, the information for identify a treasure
      * @param timeStamp        when has the player last opened the treasure?
      * @param unlootedTreasure the inventory with all the remaining items. null means the player will be reset
      */
-    public void savePlayerDetailAsync(@Nullable UUID uuid, @NotNull Location location, long timeStamp, @Nullable List<ItemStack> unlootedTreasure) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc(location);
-
-            synchronized (mutexDatabase) {
-                databaseManager.setPlayerData(uuid == null ? GLOBAL_UUID : uuid, id, new PlayerLootDetail(timeStamp, unlootedTreasure));
-            }
-        });
+    public void savePlayerDetail(final @Nullable OfflinePlayer player, final @NotNull String treasureId, final long timeStamp, final @Nullable List<@NotNull ItemStack> unlootedTreasure) {
+        databaseManager.setPlayerData(player == null ? SHARED_PROFILE : player, treasureId, new PlayerLootDetail(timeStamp, unlootedTreasure));
     }
 
     /**
      * forget a player has ever looted a treasure
      *
-     * @param uuid     the UUID of a looting player null means global
-     * @param location the location of a treasure, the information for identify a treasure
+     * @param player     the UUID of a looting player null means shared
      */
-    public void forgetPlayerAsync(@Nullable UUID uuid, @NotNull Location location, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc(location);
-
-            synchronized (mutexDatabase) {
-                databaseManager.forgetPlayer(uuid == null ? GLOBAL_UUID : uuid, id);
-
-                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
-            }
-        });
+    public @NotNull CompletableFuture<Void> forgetPlayer(final @Nullable OfflinePlayer player, final @NotNull String treasureID) {
+        return databaseManager.forgetPlayer(player == null ? SHARED_PROFILE : player, treasureID);
     }
 
     /**
      * forget anybody has ever opened the treasure at the given location.
      *
-     * @param location the location of a treasure, the information for identify a treasure
+     * @param treasureID information to identify a treasure
      */
-    public void forgetAllAsync(@NotNull Location location, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc(location);
-
-            synchronized (mutexDatabase) {
-                databaseManager.forgetAll(id);
-
-                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
-            }
-        });
+    public @NotNull CompletableFuture<Void> forgetAll(final @NotNull String treasureID) {
+        return databaseManager.forgetAll(treasureID);
     }
 
 
     /**
      * load the status of a player about a treasure and calls a function with the information back in the main thread.
      *
-     * @param uuid                     the UUID of a looting player null means global
-     * @param location                 the location of a treasure, the information for identify a treasure
-     * @param playerLootDetailCallback a function to be called after the loading is done, to receive the playerLootDetail
+     * @param player                     the UUID of a looting player null means shared
+     * @param treasureId                 the treasureId of a treasure, the information for identify a treasure
      */
-    public void getPlayerLootDetailAsync(@Nullable UUID uuid, @NotNull Location location, @NotNull PlayerLootDetailCallback playerLootDetailCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc(location);
-
-            synchronized (mutexDatabase) {
-                // load player loot detail information async
-                PlayerLootDetail playerLootDetail = databaseManager.getPlayerData(uuid == null ? GLOBAL_UUID : uuid, id);
-
-                // give the data back to the main thread
-                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), () ->
-                        playerLootDetailCallback.onQueryDone(playerLootDetail));
-            }
-        });
+    public @NotNull CompletableFuture<@Nullable PlayerLootDetail> getPlayerLootDetail(final @Nullable OfflinePlayer player, final @NotNull String treasureId) {
+        return databaseManager.getPlayerData(player == null ? SHARED_PROFILE : player, treasureId);
     }
 
-    /**
-     * @param location
-     * @param callback
-     */
-    public void getAllPlayerDetailAsync(@NotNull Location location, @NotNull PlayerLootDetailMapCallback callback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            String id = getIdFromLoc(location);
-
-            synchronized (mutexDatabase) {
-                // load player loot detail of all players async
-                Map<UUID, PlayerLootDetail> result = databaseManager.getAllPlayerData(id);
-
-                // give the data back to the main thread
-                Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), () ->
-                        callback.onQueryDone(result));
-            }
-        });
-    }
-
-    /**
-     * get a treasureFile from a location
-     */
-    private File getTreasureFile(@NotNull Location location) {
-        String pathAndFile = TREASURE_FOLDER + File.separator +
-                location.getWorld().getName() + File.separator +
-                location.getBlockX() + "_" + location.getBlockY() + "_" + location.getBlockZ() + ".yml";
-
-        return new File(GreenTreasure.inst().getDataFolder(), pathAndFile);
+    public @NotNull CompletableFuture<@NotNull Map<UUID, @NotNull PlayerLootDetail>> getAllPlayerDetail(@NotNull String treasureId) {
+        return databaseManager.getAllPlayerData(treasureId);
     }
 
     /**
@@ -252,351 +102,326 @@ public class TreasureConfig {
     public void reloadMain() {
         loadDatabase();
         loadLanguage();
-        loadTreasuresSave(() -> {});
+        loadLegacy();
+    }
+
+    /**
+     * Save default configuration values.
+     */
+    private void setDefaults(final @NotNull FileConfiguration cfg) {
+        cfg.options().setHeader(List.of(plugin.getName() + " " + plugin.getPluginMeta().getVersion()));
+        cfg.options().copyDefaults(true);
+        cfg.options().parseComments(true);
     }
 
     /**
      * Load language configuration.
      */
     private void loadLanguage() {
-        File file = new File(GreenTreasure.inst().getDataFolder(), "language.yml");
-        FileConfiguration cfg = YamlConfiguration.loadConfiguration(file);
-        String k;
-        // check Config
-        for (Lang l : Lang.values()) {
-            k = l.name().replaceAll("_", ".");
-            // load value, if value not exist add
-            if (cfg.contains(k))
-                l.set(cfg.getString(k));
-            else
-                cfg.set(k, l.get());
-        }
-        // save modified configuration
-        cfg.options().setHeader(Collections.singletonList(String.format(
-                "Language configuration for %s (%s)",
-                GreenTreasure.inst().getName(),
-                GreenTreasure.inst().getDescription().getVersion())));
-        cfg.options().parseComments(true);
-        try {
-            cfg.save(file);
-        } catch (IOException e) {
-            TreasureLogger.log(Level.SEVERE, "Could not save language configuration.", e);
-        }
-    }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (mutexMainConfig) {
+                FileConfiguration mainCfg = plugin.getConfig();
 
-    /**
-     * Save default configuration values.
-     */
-    private void setDefaults(FileConfiguration cfg) {
-        cfg.options().setHeader(List.of(GreenTreasure.inst().getName() + " " + GreenTreasure.inst().getDescription().getVersion()));
-        cfg.options().copyDefaults(true);
-        cfg.options().parseComments(true);
-    }
-
-    /**
-     * deletes a treasure
-     *
-     * @param location the location of a treasure, the information for identify a treasure
-     */
-    public void deleteTreasureAsync(@NotNull Location location, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
-
-                try {
-                    treasureFile.delete();
-
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (Exception e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
-                }
+                Locale locale = Locale.forLanguageTag(mainCfg.getString(CONFIG_KEY_LANG, "en-en").replace("_", "-"));
+                Bukkit.getScheduler().runTask(plugin, () -> plugin.getMessageManager().reload(locale));
             }
         });
     }
 
-    /**
-     * save a treasure
-     *
-     * @param location  the location of a treasure, the information for identify a treasure
-     * @param lootItems list of items a player should receive upon opening the treasure. Size must match the inventory size of the given type.
-     * @param type      type of treasure. it's imported to identify the opened Inventory
-     */
-    public void saveTreasureAsync(@NotNull Location location, @Nullable List<ItemStack> lootItems, @Nullable String type, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
+    public @NotNull CompletableFuture<Void> deleteTreasure(@NotNull String treasureId) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
 
-                String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ());
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasureFile = treasureFolder.resolve(treasureId + ".yml");
 
-                cfg.set(buildKey(cfgKey, ITEM_LIST), serializeItemList(lootItems));
-                cfg.set(buildKey(cfgKey, TREASURE_TYPE), type);
+                if (Files.isRegularFile(treasureFile)) {
+                    try {
+                        Files.deleteIfExists(treasureFile);
 
-                try {
-                    cfg.save(treasureFile);
-
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (IOException e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            databaseManager.forgetAll(treasureId);
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not delete {} treasure file.", treasureFile, e);
+                    }
                 }
             }
         });
+
+        return result;
+    }
+
+    /**
+     * @param treasureId  information to identify a treasure
+     * @param lootItems list of items a player should receive upon opening the treasure.
+     */
+    public @NotNull CompletableFuture<Void> saveTreasureLoot(final @NotNull String treasureId, final @NotNull List<@NotNull ItemStack> lootItems) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
+
+                if (Files.notExists(treasurePath)) {
+                    try {
+                        Files.createFile(treasurePath);
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not create missing {} treasure file.", treasurePath, e);
+                    }
+                }
+
+                if (Files.isRegularFile(treasurePath)) {
+                    try {
+                        final File treasureFile = treasurePath.toFile();
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+                        setDefaults(cfg);
+                        cfg.set(ITEM_LIST, ItemStack.serializeItemsAsBytes(lootItems));
+
+                        cfg.save(treasureFile);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not save {} treasure file.", treasurePath, e);
+                    }
+                }
+            }
+        });
+
+        return result;
     }
 
     /**
      * set the random slot chance
      *
-     * @param location   the location of a treasure, the information for identify a treasure
+     * @param treasureId  information to identify a treasure
      * @param slotChance how probable it is for a slot to be in the freshly opened treasure
      */
-    public void setRandomAsync(@NotNull Location location, int slotChance, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
+    public @NotNull CompletableFuture<Void> setRandom(final @NotNull String treasureId, final int slotChance) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
 
-                String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), SLOT_CHANCE);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
 
-                cfg.set(cfgKey, slotChance);
+                if (Files.notExists(treasurePath)) {
+                    try {
+                        Files.createFile(treasurePath);
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not create missing {} treasure file.", treasurePath, e);
+                    }
+                }
 
-                try {
-                    cfg.save(treasureFile);
+                if (Files.isRegularFile(treasurePath)) {
+                    try {
+                        final File treasureFile = treasurePath.toFile();
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+                        setDefaults(cfg);
+                        cfg.set(SLOT_CHANCE, slotChance);
 
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (IOException e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+                        cfg.save(treasureFile);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not save {} treasure file.", treasurePath, e);
+                    }
                 }
             }
         });
+
+        return result;
     }
 
     /**
-     * set the global status
+     * set the shared status
      *
-     * @param location the location of a treasure, the information for identify a treasure
-     * @param isGlobal if the Inventory is globally shared across all players
+     * @param treasureId information to identify a treasure
+     * @param isShared if the Inventory is globally shared across all players
      */
-    public void setGlobalAsync(@NotNull Location location, boolean isGlobal, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
+    public @NotNull CompletableFuture<Void> setShared(@NotNull String treasureId, final boolean isShared) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
 
-                String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_GLOBAL);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
 
-                cfg.set(cfgKey, isGlobal);
+                if (Files.notExists(treasurePath)) {
+                    try {
+                        Files.createFile(treasurePath);
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not create missing {} treasure file.", treasurePath, e);
+                    }
+                }
 
-                try {
-                    cfg.save(treasureFile);
+                if (Files.isRegularFile(treasurePath)) {
+                    try {
+                        final File treasureFile = treasurePath.toFile();
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+                        setDefaults(cfg);
+                        cfg.set(IS_SHARED, isShared);
 
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (IOException e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+                        cfg.save(treasureFile);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not save {} treasure file.", treasurePath, e);
+                    }
                 }
             }
         });
+
+        return result;
     }
 
     /**
      * set the unlimited status
      *
-     * @param location    the location of a treasure, the information for identify a treasure
+     * @param treasureId  information to identify a treasure
      * @param isUnLimited if one can loot the treasure as often as one wants
      */
-    public void setUnlimitedAsync(@NotNull Location location, boolean isUnLimited, @NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
+    public @NotNull CompletableFuture<Void> setUnlimited(@NotNull String treasureId, boolean isUnLimited) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
 
-                String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), IS_UNLIMITED);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
 
-                cfg.set(cfgKey, isUnLimited);
+                if (Files.notExists(treasurePath)) {
+                    try {
+                        Files.createFile(treasurePath);
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not create missing {} treasure file.", treasurePath, e);
+                    }
+                }
 
-                try {
-                    cfg.save(treasureFile);
+                if (Files.isRegularFile(treasurePath)) {
+                    try {
+                        final File treasureFile = treasurePath.toFile();
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+                        setDefaults(cfg);
+                        cfg.set(IS_UNLIMITED, isUnLimited);
 
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (IOException e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+                        cfg.save(treasureFile);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not save {} treasure file.", treasurePath, e);
+                    }
                 }
             }
         });
+
+        return result;
     }
 
     /**
      * set the forget-period
      *
-     * @param location         the location of a treasure, the information for identify a treasure
-     * @param forgettingPeriod the period in milliseconds how long a Treasure has to be not looted until it is filled again.
+     * @param treasureId        information to identify a treasure
+     * @param forgettingPeriod  how long a Treasure has to be not looted until it is filled again.
      *                         negative values mean the Treasure will never restock.
      */
-    public void setForgetAsync(Location location, long forgettingPeriod, EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-            synchronized (mutexTreasureFile) {
-                File treasureFile = getTreasureFile(location);
-                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-                setDefaults(cfg);
+    public @NotNull CompletableFuture<Void> setForget(final @NotNull String treasureId, final @Nullable Duration forgettingPeriod) {
+        CompletableFuture<Void> result = new CompletableFuture<>();
 
-                String cfgKey = buildKey(WORLDS, location.getWorld().getName(),
-                        COORDS, location.getBlockX() + ";" + location.getBlockY() + ";" + location.getBlockZ(), FORGETTING_PERIOD);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            synchronized (treasureFolder) {
+                Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
 
-                cfg.set(cfgKey, forgettingPeriod);
+                if (Files.notExists(treasurePath)) {
+                    try {
+                        Files.createFile(treasurePath);
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not create missing {} treasure file.", treasurePath, e);
+                    }
+                }
 
-                try {
-                    cfg.save(treasureFile);
+                if (Files.isRegularFile(treasurePath)) {
+                    try {
+                        final File treasureFile = treasurePath.toFile();
+                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
+                        setDefaults(cfg);
+                        cfg.set(FORGETTING_DURATION,  forgettingPeriod == null ? null : forgettingPeriod.toMillis());
 
-                    //reload treasures
-                    loadTreasuresSave(emptyCallback);
-                } catch (IOException e) {
-                    TreasureLogger.log(Level.SEVERE, "Could not save " + treasureFile.getName() + " treausre file.", e);
+                        cfg.save(treasureFile);
+
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            plugin.getTreasureListener().invalidateTreasure(treasureId);
+                            result.complete(null);
+                        });
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().error("Could not save {} treasure file.", treasurePath, e);
+                    }
                 }
             }
         });
+
+        return result;
     }
 
-    /**
-     * load the loot of the containers
-     */
-    private void loadTreasures(EmptyCallback emptyCallback) {
-        File treasureMotherFolder = new File(GreenTreasure.inst().getDataFolder(), TREASURE_FOLDER);
+    public @Nullable TreasureInfo loadTreasure(final @NotNull String treasureId) {
+        synchronized (treasureFolder) {
+            Path treasurePath = treasureFolder.resolve(treasureId + ".yml");
+            if (Files.isRegularFile(treasurePath)) {
+                final File treasureFile = treasurePath.toFile();
+                FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
 
-        //get worldFolders
-        File[] worldFolders = treasureMotherFolder.listFiles();
-        if (worldFolders != null) {
-            for (File worldFolder : worldFolders) {
+                final @Nullable String rawItemStr = cfg.getString(ITEM_LIST);
+                final long forgetting_time = cfg.getLong(FORGETTING_DURATION, DEFAULT_FORGETTING_PERIOD);
+                final int slotChance = cfg.getInt(SLOT_CHANCE, DEFAULT_SLOT_CHANCE);
+                final boolean isUnlimited = cfg.getBoolean(IS_UNLIMITED, DEFAULT_IS_UNLIMITED);
+                final boolean isShared = cfg.getBoolean(IS_SHARED, DEFAULT_IS_SHARED);
 
-                //get treasureFiles
-                File[] treasureFiles = worldFolder.listFiles();
-                if (treasureFiles != null) {
-                    for (File treasureFile : treasureFiles) {
-                        FileConfiguration cfg = YamlConfiguration.loadConfiguration(treasureFile);
-
-                        // load worlds
-                        if (cfg.contains(WORLDS)) {
-                            ConfigurationSection cfgSection_Worlds = cfg.getConfigurationSection(WORLDS);
-
-                            if (cfgSection_Worlds != null) {
-                                cfgSection_Worlds.getKeys(false).forEach(worldName -> {
-                                    World world = Bukkit.getWorld(worldName);
-
-                                    if (world != null) {
-                                        //load coordinates of  containers
-                                        if (cfg.contains(buildKey(WORLDS, worldName, COORDS))) {
-                                            ConfigurationSection cfgSection_coords = cfg.getConfigurationSection(buildKey(WORLDS, worldName, COORDS));
-
-                                            if (cfgSection_coords != null) {
-                                                cfgSection_coords.getKeys(false).forEach(coordStr -> {
-                                                    if (COORD_PATTERN.matcher(coordStr).find()) {
-                                                        String[] coordsArray = coordStr.split(";");
-                                                        int x = Integer.parseInt(coordsArray[0]);
-                                                        int y = Integer.parseInt(coordsArray[1]);
-                                                        int z = Integer.parseInt(coordsArray[2]);
-                                                        Location location = new Location(world, x, y, z);
-
-                                                        //load loot
-                                                        List<?> itemObjs = cfg.getList(buildKey(WORLDS, worldName, COORDS, coordStr, ITEM_LIST));
-
-                                                        long forgetting_time = cfg.getLong(buildKey(WORLDS, worldName, COORDS, coordStr, FORGETTING_PERIOD), DEFAULT_FORGETTING_PERIOD);
-                                                        int slotChance = cfg.getInt(buildKey(WORLDS, worldName, COORDS, coordStr, SLOT_CHANCE), DEFAULT_SLOT_CHANCE);
-                                                        boolean isUnlimited = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_UNLIMITED), DEFAULT_IS_UNLIMITED);
-                                                        boolean isShared = cfg.getBoolean(buildKey(WORLDS, worldName, COORDS, coordStr, IS_GLOBAL), DEFAULT_IS_GLOBAL);
-                                                        String TreasureType = cfg.getString(buildKey(buildKey(WORLDS, worldName, COORDS, coordStr, TREASURE_TYPE)), DEFAULT_TYPE);
-
-                                                        if (itemObjs != null) {
-                                                            TreasureListener.inst().addTreasure(location, new TreasureInfo(deserializeItemList(itemObjs), forgetting_time, slotChance, isUnlimited, isShared, TreasureType));
-                                                        } else {
-                                                            TreasureLogger.log(Level.WARNING, "No or malformed item list found. Skipping.");
-                                                        }
-                                                    } else {
-                                                        TreasureLogger.log(Level.WARNING, String.format("Malformed coordinates string was found: '%s'. Skipping.", coordStr));
-                                                    }
-                                                });
-                                            } else {
-                                                TreasureLogger.log(Level.WARNING, "coordinate keyword was given but no coordinates where found.");
-                                            }
-                                        } else {
-                                            TreasureLogger.log(Level.FINE, "World was given but no coordinates where defined.");
-                                        }
-                                    } else {
-                                        TreasureLogger.log(Level.WARNING, "No such world '%s' was found. Skipping.");
-                                    }
-                                });
-                            } else {
-                                TreasureLogger.log(Level.FINE, "Treasure keyword was given but no worlds where found.");
-                            }
-                        } else {
-                            TreasureLogger.log(Level.FINE, "No Treasures to load.");
-                        }
-                    }
+                if (rawItemStr != null && ! rawItemStr.isBlank()) {
+                    final @NotNull List<ItemStack> items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetting_time), slotChance, isUnlimited, isShared);
+                } else {
+                    plugin.getComponentLogger().warn("No or malformed item list found. Skipping.");
                 }
             }
         }
 
-        Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), emptyCallback::onQueryDone);
+        return null;
     }
 
-    /**
-     *
-     */
     private void loadDatabase() {
-        HashMap<String, Object> serializedDatabaseData = new HashMap<>();
-
-        Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             synchronized (mutexMainConfig) {
-                FileConfiguration mainCfg = GreenTreasure.inst().getConfig();
+                FileConfiguration mainCfg = plugin.getConfig();
 
-                if (mainCfg.contains("SQL")) {
-                    ConfigurationSection section = mainCfg.getConfigurationSection("SQL");
+                final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
 
-                    if (section != null) {
-                        for (String key : section.getKeys(false)) {
-                            serializedDatabaseData.put(key, mainCfg.get("SQL." + key));
-                        }
-                    }
+                if (section != null) {
+                    Bukkit.getScheduler().runTask(plugin, () -> databaseManager.reload(section.getValues(false)));
                 }
 
-                synchronized (mutexDatabase) {
-                    databaseManager = new DatabaseManager(GreenTreasure.inst(), serializedDatabaseData);
-
-                    for (Map.Entry<String, Object> entry : databaseManager.getDatabaseData().entrySet()) {
-                        mainCfg.set("SQL." + entry.getKey(), entry.getValue());
-                    }
-                }
-
-                GreenTreasure.inst().saveConfig();
+                mainCfg.set(CONFIG_KEY_SQL, databaseManager.serializeDatabaseConnectionConfig());
+                plugin.saveConfig();
             }
         });
     }
 
-    /**
-     * Load treasures and clears cached ones.
-     */
-    public void loadTreasuresSave(@NotNull EmptyCallback emptyCallback) {
-        Bukkit.getScheduler().scheduleSyncDelayedTask(GreenTreasure.inst(), () -> {
-            // clear cache
-            TreasureListener.inst().clearTreasures();
-            Bukkit.getScheduler().runTaskAsynchronously(GreenTreasure.inst(), () -> {
-                synchronized (mutexTreasureFile) {
-                    loadTreasures(emptyCallback);
-                }
-                ImportLegacy.inst().importLegacyData();
-            });
-        });
+    private void loadLegacy () {
+        final @NotNull FileConfiguration config = plugin.getConfig();
+        if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
+            new ImportLegacy(plugin).importLegacyData();
+
+            config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
+            plugin.saveConfig();
+        }
     }
 }

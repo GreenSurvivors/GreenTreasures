@@ -1,66 +1,87 @@
 package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.permission.Perm;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.permission.PermmissionManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
+import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.DELETE;
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.REMOVE;
+public class DeleteSubCommand extends ASubCommand {
 
-public class DeleteSubCommand {
-    private static DeleteSubCommand instance;
+    public DeleteSubCommand(@NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
 
-    public static DeleteSubCommand inst() {
-        if (instance == null)
-            instance = new DeleteSubCommand();
-        return instance;
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return permissible.hasPermission(PermmissionManager.TREASURE_DELETE.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("delete", "remove");
+    }
+
+    @Override
+    public @NotNull Component getHelpText() {
+        return null;
     }
 
     /**
      * deletes a treasure AND all the UNLOOTED stuff for every player
      * /gt delete
      *
-     * @param commandSender sender of this command
+     * @param sender sender of this command
      */
-    protected void handleDelete(CommandSender commandSender) {
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_DELETE)) {
-            Container container = TreasureCommands.getContainer(commandSender);
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_START.get()));
+                final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
 
-                TreasureConfig.inst().deleteTreasureAsync(container.getBlock().getLocation(), () -> {
-                });
-                TreasureConfig.inst().forgetAllAsync(container.getBlock().getLocation(), () ->
-                        commandSender.sendMessage(Lang.build(Lang.TREASURE_DELETE_END.get().replace(Lang.TYPE,
-                                container.customName() == null ? container.getBlock().getType().name() :
-                                        PlainTextComponentSerializer.plainText().serialize(container.customName())))));
+                if (treasureId != null) {
+                    plugin.getTreasureListener().removeTreasureId(container);
 
-
+                    plugin.getConfigHandler().deleteTreasure(treasureId).thenRun(() ->
+                        plugin.getConfigHandler().forgetAll(treasureId).thenRun(() ->
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_DELETE_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)))));
+                } else {
+                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                }
             } else {
-                commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
+            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
         }
+
+        return true;
     }
 
+
+
     /**
-     * @param args The arguments passed to the command, including final
-     *             partial argument to be completed
+     * @param sender
+     * @param args   The arguments passed to the command, including final
+     *               partial argument to be completed
      * @return suggestion of arguments
      */
-    public Collection<String> handleTabComplete(@NotNull String[] args) {
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length == 1) {
-            return List.of(DELETE, REMOVE);
+            return List.copyOf(getAliases());
         } else {
             return new ArrayList<>();
         }

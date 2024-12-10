@@ -36,10 +36,9 @@ repositories {
 
 dependencies {
     paperweight.paperDevBundle("$mcVersion-R0.1-SNAPSHOT")
-    //get prebuilt from jitpack.io
-    //compileOnly("com.github.HenrikoMagnifico","TreasureChestX","8dbc187c09")
-    //local installation in case jitpack doesn't work
-    compileOnly("com.mtihc.minecraft.treasurechest.v8.plugin", "TreasureChest", "8.5")
+    compileOnly("com.zaxxer:HikariCP:6.0.0")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:3.1.8") // caches
+    compileOnly("org.yaml:snakeyaml:2.3")
 }
 
 tasks {

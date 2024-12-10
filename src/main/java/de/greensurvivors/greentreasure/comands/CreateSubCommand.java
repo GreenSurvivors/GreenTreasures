@@ -1,64 +1,91 @@
 package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.permission.Perm;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
-import org.bukkit.Location;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.permission.PermmissionManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.CREATE;
+public class CreateSubCommand extends ASubCommand {
 
-public class CreateSubCommand {
-    private static CreateSubCommand instance;
+    public CreateSubCommand(@NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
 
-    public static CreateSubCommand inst() {
-        if (instance == null)
-            instance = new CreateSubCommand();
-        return instance;
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return permissible.hasPermission(PermmissionManager.TREASURE_CREATE.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("create");
+    }
+
+    @Override
+    public @NotNull Component getHelpText() {
+        return null;
     }
 
     /**
      * creates a new treasure
      * /gt create
      *
-     * @param commandSender sender of this command
+     * @param sender sender of this command
      */
-    protected void handleCreate(CommandSender commandSender) {
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_CREATE)) {
-            final Container container = TreasureCommands.getContainer(commandSender);
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                Location location = container.getBlock().getLocation();
-                List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
+                if (container.getInventory().getType().isCreatable()) {
+                    if (plugin.getTreasureListener().getTreasure(container) == null) {
+                        final String newTreasureId = UUID.randomUUID().toString();
+                        plugin.getTreasureListener().setTreasureId(container, newTreasureId);
 
-                commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_START.get()));
+                        List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 
-                TreasureConfig.inst().saveTreasureAsync(location, itemStacks, container.getBlock().getType().name(), () ->
-                        commandSender.sendMessage(Lang.build(Lang.TREASURE_CREATE_END.get().replace(Lang.TYPE,
-                                container.customName() == null ? container.getBlock().getType().name() :
-                                        PlainTextComponentSerializer.plainText().serialize(container.customName())))));
+                        plugin.getConfigHandler().saveTreasureLoot(newTreasureId, itemStacks).thenRun(() ->
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.NAME.getKey(),
+                                    container.customName() == null ?
+                                        Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
+                                        container.customName()
+                                )));
+                    } else {
+                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_ALREADY_TREASURE);
+                    }
+                } else {
+                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_INVALID_CONTAINER);
+                }
             } else {
-                commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
+            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
         }
+
+        return true;
     }
 
     /**
-     * @param args The arguments passed to the command, including final
-     *             partial argument to be completed
+     * @param sender
+     * @param args   The arguments passed to the command, including final
+     *               partial argument to be completed
      * @return suggestion of arguments
      */
-    public Collection<String> handleTabComplete(@NotNull String[] args) {
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length == 1) {
-            return Collections.singletonList(CREATE);
+            return List.copyOf(getAliases());
         } else {
             return new ArrayList<>();
         }

@@ -1,11 +1,11 @@
 package de.greensurvivors.greentreasure.listener;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
-import de.greensurvivors.greentreasure.language.Lang;
-import org.bukkit.Location;
+import de.greensurvivors.greentreasure.language.LangPath;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -13,24 +13,25 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * this is a technical class to handle the inventories opened by commands
  */
 public class CommandInventoriesListener implements Listener {
-    private static CommandInventoriesListener instance;
+    private final@NotNull GreenTreasure plugin;
 
-    private final HashMap<InventoryView, Location> editingTreasures = new HashMap<>();
-    private final HashMap<InventoryView, PeekedTreasure> peekingTreasures = new HashMap<>();
+    private final Map<@NotNull InventoryView, @NotNull String> editingTreasures = new HashMap<>();
+    private final Map<@NotNull InventoryView, @NotNull PeekedTreasure> peekingTreasures = new HashMap<>();
 
-    public static CommandInventoriesListener inst() {
-        if (instance == null) {
-            instance = new CommandInventoriesListener();
-        }
-        return instance;
+    public CommandInventoriesListener (final @NotNull GreenTreasure plugin) {
+        this.plugin = plugin;
+
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     /**
@@ -38,10 +39,9 @@ public class CommandInventoriesListener implements Listener {
      * note: two 2 players editing the same inventory at the same time is NOT supported right now
      *
      * @param editingView the view given back by player.openInventory when /gt edit was called
-     * @param location    location to identify the treasure
      */
-    public void addEditingTreasure(InventoryView editingView, Location location) {
-        editingTreasures.put(editingView, location);
+    public void addEditingTreasure(final @NotNull InventoryView editingView, final @NotNull String treasureId) {
+        editingTreasures.put(editingView, treasureId);
     }
 
     /**
@@ -50,7 +50,7 @@ public class CommandInventoriesListener implements Listener {
      * @param peekingView    the view given back by player.openInventory when /gt peek was called
      * @param peekedTreasure location to identify the treasure
      */
-    public void addPeekingTreasure(InventoryView peekingView, PeekedTreasure peekedTreasure) {
+    public void addPeekingTreasure(final @NotNull InventoryView peekingView, final @NotNull PeekedTreasure peekedTreasure) {
         peekingTreasures.put(peekingView, peekedTreasure);
     }
 
@@ -80,23 +80,23 @@ public class CommandInventoriesListener implements Listener {
      * saves the new contents of a treasure inventory if an editing inventory view was closed
      */
     @EventHandler(priority = EventPriority.MONITOR)
-    private void onEditingDone(InventoryCloseEvent event) {
+    private void onEditingDone(final @NotNull InventoryCloseEvent event) {
         Inventory eInventory = event.getInventory();
-        Location location = editingTreasures.get(event.getView());
+        String treasureId = editingTreasures.get(event.getView());
 
-        if (location != null) {
-            TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
+        if (treasureId != null) {
+            TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
 
             //if the treasure wasn't deleted while the inventory was open
             if (treasureInfo != null) {
                 editingTreasures.remove(event.getView());
 
-                event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED_START.get()));
-
-                TreasureConfig.inst().saveTreasureAsync(location, Arrays.asList(eInventory.getContents()), treasureInfo.type(), () ->
-                        event.getPlayer().sendMessage(Lang.build(Lang.TREASURE_EDITED_END.get())));
+                // the IDE is confused with two annotations
+                //noinspection NullableProblems
+                plugin.getConfigHandler().saveTreasureLoot(treasureId, Arrays.asList(eInventory.getContents())).
+                    thenRun(() -> plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ACTION_TREASURE_EDITED));
             } else {
-                event.getPlayer().sendMessage(Lang.build(Lang.UNKNOWN_ERROR.get()));
+                plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ERROR_UNKNOWN);
             }
         }
     }
@@ -105,21 +105,27 @@ public class CommandInventoriesListener implements Listener {
      * saves the new contents of a treasure inventory to a player file if a peeking inventory view was closed
      */
     @EventHandler(priority = EventPriority.MONITOR)
-    private void onPeekingDone(InventoryCloseEvent event) {
+    private void onPeekingDone(final @NotNull InventoryCloseEvent event) {
         PeekedTreasure peekedTreasure = peekingTreasures.get(event.getView());
 
         if (peekedTreasure != null) {
             Inventory eInventory = event.getInventory();
-            Location location = peekedTreasure.locationOfTreasure();
+            String treasureId = peekedTreasure.treasureId();
 
-            TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
+            TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
 
             //if the treasure wasn't deleted while the inventory was open call the close event
             if (treasureInfo != null) {
                 new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
 
                 peekingTreasures.remove(event.getView());
-                TreasureConfig.inst().savePlayerDetailAsync(treasureInfo.isGlobal() ? null : peekedTreasure.playerPeeked(), location, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
+                    // the IDE is confused with two annotations
+                    //noinspection NullableProblems
+                    plugin.getConfigHandler().savePlayerDetail(null, treasureId, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                } else {
+                    plugin.getConfigHandler().savePlayerDetail(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                }
             }
         }
     }

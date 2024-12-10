@@ -1,0 +1,9 @@
+SQL:
+  password: '1234'
+  database: greentreasure_database
+  port: 3306
+  host: localhost
+  user: greentreasure
+
+language: en_en
+import_legacy: false

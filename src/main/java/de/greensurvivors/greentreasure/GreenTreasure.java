@@ -2,42 +2,72 @@ package de.greensurvivors.greentreasure;
 
 import de.greensurvivors.greentreasure.comands.TreasureCommands;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.NotNull;
 
 public class GreenTreasure extends JavaPlugin {
+    private TreasureConfig configHandler;
+    private TreasureListener treasureListener;
+    private CommandInventoriesListener commandInventoriesListener;
+    private MessageManager messageManager;
+    private TreasureCommands treasureCommands;
+
     private static GreenTreasure instance;
 
+    @Deprecated // only use if you really have to!
     public static GreenTreasure inst() {
         return instance;
     }
 
+    public GreenTreasure() {
+        super();
+
+        instance = this;
+    }
+
     @Override
     public void onEnable() {
-        // set instance
-        instance = this;
-        // set logger
-        TreasureLogger.setLogger(getLogger());
-
         // configuration
-        TreasureConfig.inst().reloadMain();
+        configHandler = new TreasureConfig(this);
+        configHandler.reloadMain();
+
         // command
-        getCommand(TreasureCommands.CMD).setExecutor(TreasureCommands.inst());
+        treasureCommands = new TreasureCommands(this);
         // listener
-        PluginManager pm = Bukkit.getPluginManager();
-        pm.registerEvents(TreasureListener.inst(), this);
-        pm.registerEvents(CommandInventoriesListener.inst(), this);
+        treasureListener = new TreasureListener(this);
+        commandInventoriesListener = new CommandInventoriesListener(this);
+        messageManager = new MessageManager(this);
     }
 
     @Override
     public void onDisable() {
         //clean up
-        TreasureListener.inst().closeAllInventories();
-        CommandInventoriesListener.inst().clearInventories();
+        treasureListener.closeAllInventories();
+        commandInventoriesListener.clearInventories();
 
-        TreasureListener.inst().clearTreasures();
+        treasureListener.clearTreasures();
+    }
+
+    public @NotNull TreasureConfig getConfigHandler() {
+        return configHandler;
+    }
+
+    public @NotNull TreasureListener getTreasureListener() {
+        return treasureListener;
+    }
+
+    public @NotNull CommandInventoriesListener getCommandInventoriesListener() {
+        return commandInventoriesListener;
+    }
+
+    public MessageManager getMessageManager() {
+        return messageManager;
+    }
+
+    public TreasureCommands getTreasureCommands() {
+        return treasureCommands;
     }
 }

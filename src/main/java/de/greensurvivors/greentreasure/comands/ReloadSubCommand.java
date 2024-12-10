@@ -1,50 +1,66 @@
 package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.permission.Perm;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.permission.PermmissionManager;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
+import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.RELOAD;
+public class ReloadSubCommand extends ASubCommand {
 
-public class ReloadSubCommand {
-    private static ReloadSubCommand instance;
+    public ReloadSubCommand(@NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
 
-    public static ReloadSubCommand inst() {
-        if (instance == null)
-            instance = new ReloadSubCommand();
-        return instance;
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return permissible.hasPermission(PermmissionManager.TREASURE_RELOAD.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("reload");
+    }
+
+    @Override
+    @NotNull
+    public Component getHelpText() {
+        return null;
     }
 
     /**
      * reloads the plugin
      * /gt reload
      *
-     * @param commandSender sender of this command
+     * @param sender sender of this command
      */
-    protected void handleReload(CommandSender commandSender) {
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_RELOAD)) {
-            TreasureConfig.inst().reloadMain();
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            plugin.getConfigHandler().reloadMain();
 
-            commandSender.sendMessage(Lang.build(Lang.RELOAD.get()));
+            plugin.getMessageManager().sendLang(sender, LangPath.CMD_RELOAD_SUCCESS);
         } else {
-            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
+            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
         }
+
+        return true;
     }
 
     /**
-     * @param args The arguments passed to the command, including final
-     *             partial argument to be completed
+     * @param sender
+     * @param args   The arguments passed to the command, including final
+     *               partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabComplete(@NotNull String[] args) {
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length == 1) {
-            return Collections.singletonList(RELOAD);
+            return List.copyOf(getAliases());
         } else {
             return new ArrayList<>();
         }

@@ -1,34 +1,47 @@
 package de.greensurvivors.greentreasure.comands;
 
+import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
-import de.greensurvivors.greentreasure.listener.TreasureListener;
-import de.greensurvivors.greentreasure.permission.Perm;
+import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.permission.PermmissionManager;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.PEEK;
+public class PeekSubCommand extends ASubCommand {
 
-public class PeekSubCommand {
-    private static PeekSubCommand instance;
+    public PeekSubCommand(final @NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
 
-    public static PeekSubCommand inst() {
-        if (instance == null)
-            instance = new PeekSubCommand();
-        return instance;
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return permissible.hasPermission(PermmissionManager.TREASURE_PEEK.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("peek");
+    }
+
+    @Override
+    @NotNull
+    public Component getHelpText() {
+        return null;
     }
 
     /**
@@ -37,126 +50,165 @@ public class PeekSubCommand {
      * /gt peek playerName
      * /gt peek uuid
      *
-     * @param commandSender sender of this command
-     * @param args          given arguments
+     * @param sender sender of this command
+     * @param args   given arguments
      */
-    protected void handlePeek(CommandSender commandSender, String[] args) {
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_PEEK)) {
-            if (commandSender instanceof Player player) {
-                Container container = TreasureCommands.getContainer(commandSender);
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            if (sender instanceof Player player) {
+                Container container = plugin.getTreasureCommands().getContainer(sender);
 
                 if (container != null) {
-                    Location location = Utils.cleanLocation(container.getBlock().getLocation());
-                    TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
+                    final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
 
-                    if (treasureInfo != null) {
-                        // unlimited treasure
-                        if (treasureInfo.isUnlimited()) {
-                            commandSender.sendMessage(Lang.build(Lang.PEEK_UNLIMITED.get()));
-                        }
+                    if (treasureId != null) {
+                        final @Nullable TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
 
-                        if (treasureInfo.isGlobal()) {
-                            //load global treasure async
-                            TreasureConfig.inst().getPlayerLootDetailAsync(null, location, playerLootDetail -> {
-                                Inventory nowPeeking;
-                                long timeStamp = playerLootDetail.lastLootedTimeStamp();
-
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
-                                    commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
-
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
-
-                                    int slotChance = treasureInfo.slotChance();
-                                    Random random = new Random();
-
-                                    // clone every item stack and put it into the new inventory
-                                    nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
-
-                                    player.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
-                                } else {
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_GLOBAL.get()));
-                                    // get items left there last time
-                                    nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
-
-                                    player.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
-                                }
-
-                                CommandInventoriesListener.inst().addPeekingTreasure(player.openInventory(nowPeeking), new PeekedTreasure(null, location, timeStamp));
-                            });
-                        } else {
-                            UUID uuidToPeek;
-                            if (args.length >= 2) {
-                                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                                if (offlinePlayer.hasPlayedBefore()) {
-                                    uuidToPeek = offlinePlayer.getUniqueId();
-                                } else {
-                                    try {
-                                        uuidToPeek = UUID.fromString(args[1]);
-                                    } catch (IllegalArgumentException ignored) {
-                                        commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
-                                        return;
-                                    }
-                                }
-                            } else {
-                                uuidToPeek = player.getUniqueId();
+                        if (treasureInfo != null) {
+                            // unlimited treasure
+                            if (treasureInfo.isUnlimited()) {
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_UNLIMITED);
                             }
 
-                            TreasureConfig.inst().getPlayerLootDetailAsync(uuidToPeek, location, playerLootDetail -> {
-                                Inventory nowPeeking;
+                            if (treasureInfo.isShared()) {
+                                //load shared treasure
+                                plugin.getConfigHandler().getPlayerLootDetail(null, treasureId).thenAccept(playerLootDetail -> {
+                                    final InventoryView nowPeeking;
+                                    long timeStamp = playerLootDetail.lastChangedTimeStamp();
 
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
-                                    commandSender.sendMessage(Lang.build(Lang.PEEK_GENERATE.get()));
+                                    if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_SHARED,
+                                            Placeholder.component(PlaceHolderKey.NAME.getKey(), plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED)));
 
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
+                                        nowPeeking = Utils.openInventory(player, container, container.getInventory().getType());
 
-                                    int slotChance = treasureInfo.slotChance();
-                                    Random random = new Random();
+                                        if (nowPeeking == null) {
+                                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
 
-                                    // clone every item stack and put it into the new inventory
-                                    nowPeeking.setContents(TreasureListener.inst().getTreasure(location).itemLoot().stream().map(s -> s == null ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                                            return;
+                                        }
+
+                                        int slotChance = treasureInfo.slotChance();
+                                        Random random = new Random();
+
+                                        // clone every item stack and put it into the new inventory
+                                        nowPeeking.getTopInventory().setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                    } else {
+                                        nowPeeking =  Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_SHARED.get()));
+
+                                        if (nowPeeking == null) {
+                                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
+
+                                            return;
+                                        }
+                                        // get items left there last time
+                                        nowPeeking.getTopInventory().setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                    }
+
+                                    plugin.getCommandInventoriesListener().addPeekingTreasure(nowPeeking, new PeekedTreasure(null, treasureId, timeStamp));
+                                });
+                            } else {
+                                final @NotNull OfflinePlayer playerToPeek;
+                                if (args.length >= 2) {
+                                    OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
+                                    if (offlinePlayer.hasPlayedBefore()) {
+                                        playerToPeek = offlinePlayer;
+                                    } else {
+                                        try {
+                                            playerToPeek = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
+
+                                            if (!playerToPeek.hasPlayedBefore()) {
+                                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
+                                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                                return false;
+                                            }
+                                        } catch (IllegalArgumentException ignored) {
+                                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
+                                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                            return false;
+                                        }
+                                    }
                                 } else {
-                                    nowPeeking = Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, uuidToPeek.toString())));
-                                    // get items left there last time
-                                    nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                    playerToPeek = player;
                                 }
 
-                                CommandInventoriesListener.inst().addPeekingTreasure(player.openInventory(nowPeeking), new PeekedTreasure(uuidToPeek, location, playerLootDetail.lastLootedTimeStamp()));
-                                commandSender.sendMessage(Lang.build(Lang.PEEK_WARNING.get()));
-                            });
+                                plugin.getConfigHandler().getPlayerLootDetail(playerToPeek, treasureId).thenAccept( playerLootDetail -> {
+                                    final InventoryView nowPeeking;
+
+                                    if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
+                                        final @NotNull Component name;
+                                        if (playerToPeek.isOnline()) {
+                                            name = playerToPeek.getPlayer().displayName();
+                                        } else if (playerToPeek.getName() != null) {
+                                            name = Component.text(playerToPeek.getName());
+                                        } else {
+                                            name = Component.text(playerToPeek.getUniqueId().toString());
+                                        }
+
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
+                                            Placeholder.component(PlaceHolderKey.NAME.getKey(), name));
+
+                                        nowPeeking =  Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, playerToPeek.toString())));
+
+                                        if (nowPeeking == null) {
+                                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
+
+                                            return;
+                                        }
+
+                                        int slotChance = treasureInfo.slotChance();
+                                        Random random = new Random();
+
+                                        // clone every item stack and put it into the new inventory
+                                        nowPeeking.getTopInventory().setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                                    } else {
+                                        nowPeeking = Utils.openInventory(player, container, container.getInventory().getType()); //Bukkit.createInventory(null, container.getInventory().getType(), Lang.build(Lang.PEEK_PLAYER.get().replace(Lang.VALUE, playerToPeek.toString())));
+
+                                        if (nowPeeking == null) {
+                                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
+
+                                            return;
+                                        }
+
+                                        // get items left there last time
+                                        nowPeeking.getTopInventory().setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                    }
+
+                                    plugin.getCommandInventoriesListener().addPeekingTreasure(nowPeeking, new PeekedTreasure(playerToPeek.getUniqueId(), treasureId, playerLootDetail.lastChangedTimeStamp()));
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                });
+                            }
+                        } else {
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                         }
                     } else {
-                        commandSender.sendMessage(Lang.build(Lang.NO_TREASURE.get()));
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
                 } else {
-                    commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
                 }
             } else {
-                commandSender.sendMessage(Lang.build(Lang.NO_PLAYER.get()));
+                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
             }
         } else {
-            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
+            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
         }
+
+        return true;
     }
 
     /**
-     * @param args The arguments passed to the command, including final
-     *             partial argument to be completed
+     * @param args   The arguments passed to the command, including final
+     *               partial argument to be completed
      * @return suggestion of arguments
      */
-    protected List<String> handleTabComplete(@NotNull String[] args) {
-        switch (args.length) {
-            case 1 -> {
-                return Collections.singletonList(PEEK);
-            }
-            case 2 -> {
-                if (args[0].equalsIgnoreCase(PEEK)) {
-                    Collection<? extends Player> onlinePlayers = Bukkit.getOnlinePlayers();
-
-                    if (!onlinePlayers.isEmpty()) {
-                        return onlinePlayers.stream().map(Player::getName).toList();
-                    }
-                }
-            }
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+        if (args.length == 2) {
+            return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }
 
         return new ArrayList<>();

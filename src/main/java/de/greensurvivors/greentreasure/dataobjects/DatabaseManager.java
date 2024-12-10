@@ -1,497 +1,473 @@
 package de.greensurvivors.greentreasure.dataobjects;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.ToNumberPolicy;
-import com.google.gson.reflect.TypeToken;
+import com.zaxxer.hikari.HikariDataSource;
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.TreasureLogger;
-import de.greensurvivors.greentreasure.config.TreasureConfig;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
-import javax.annotation.Nullable;
-import java.lang.reflect.Type;
-import java.sql.*;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.logging.Level;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class DatabaseManager {
-    private final String
-            /**
-             * uuid of player
-             */
-            UUID_KEY = "uuid",
-    /**
-     * last time a player had looted the treasure
-     */
-    TREASURE_TIMESTAMP_KEY = "tstamp",
-    /**
-     * the items remaining in this treasure
-     */
-    TREASURE_LOOT_KEY = "loot";
+    // database keys
+    private final static @NotNull String
+        /// player table
+        USER_TABLE = "user",
+        /// player identifier
+        PID_KEY = "pid",
+        /// uuid of player
+        UUID_KEY = "uuid",
+        /// name of player
+        NAME = "name",
+        /// treasure table
+        TREASURES_TABLE = "treasures",
+        /// treasure identifier
+        TREASURE_ID_KEY = "treasureid",
+        /// last time a player had changed the treasure
+        TREASURE_TIMESTAMP_KEY = "timestamp",
+        /// the items remaining in this treasure
+        TREASURE_CONTENT_KEY = "content";
+    // config keys
+    private final static @NotNull String
+        HOST = "host",
+        PORT = "port",
+        LOGIN_USER_NAME = "user",
+        PASSWORD = "password",
+        DATABASE = "database";
+    public static final String NULL = "NULL";
+    private final @NotNull GreenTreasure plugin;
+    /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
+    private final @NotNull Executor asyncExecutor;
+    private @Nullable HikariDataSource dataSource = null;
+    // connection information
+    private volatile @NotNull String host = "localhost", database = "database";
+    private volatile @Nullable String loginUserName = null, password = null;
+    private volatile int port = 3306;
 
-    private final String
-            HOST = "localhost",
-            PORT = "3306",
-            USER = "greentreasure",
-            PASSWORD = "password",
-            DATABASE = "greentreasure_database";
-    private final GreenTreasure plugin;
-    //don't lose precision on longs
-    private final Gson GSON = new GsonBuilder().setObjectToNumberStrategy(ToNumberPolicy.LONG_OR_DOUBLE).create();
-    private final Type MAP_TYPE = new TypeToken<Map>() {
-    }.getType();
-    private final Type LIST_TYPE = new TypeToken<List>() {
-    }.getType();
-    private Connection conn;
-    private String host, user, password, database;
-    private Integer port;
-    private BukkitTask thread = null;
-    private int reconnected_Tries = 0;
-    private boolean shouldConnect = true;
-
-    /**
-     * @param plugin
-     * @param databaseData
-     */
-    public DatabaseManager(GreenTreasure plugin, HashMap<String, Object> databaseData) {
+    public DatabaseManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
 
-        loadData(databaseData);
+        // we expect a burst of requests and long time nothing.
+        // so don't hold any thread in the dry periods, but grow as big as we need to
+        // log errors with the plugins logger
+        final @NotNull AtomicLong count = new AtomicLong(0L);
+        final @NotNull ThreadFactory threadFactory = runnable -> {
+            Thread thread = Executors.defaultThreadFactory().newThread(runnable);
+            Objects.requireNonNull(thread);
 
-        if (shouldConnect) {
-            reconnect();
-        }
+            thread.setName(String.format("GreenTreasure Database thread - %1$d", count.getAndIncrement()));
+            thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler(plugin.getComponentLogger()));
+
+            return thread;
+        };
+        asyncExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 30L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
     }
 
-    /**
-     * @return
-     */
-    public HashMap<String, Object> getDatabaseData() {
+    public @NotNull Map<@NotNull String, @NotNull Object> serializeDatabaseConnectionConfig() {
         HashMap<String, Object> databaseData = new HashMap<>();
 
-        databaseData.put(HOST, host == null ? HOST : host);
-        databaseData.put(PORT, port == null ? PORT : port);
-        databaseData.put(USER, user == null ? USER : user);
-        databaseData.put(PASSWORD, password == null ? PASSWORD : password);
-        databaseData.put(DATABASE, database == null ? DATABASE : database);
+        databaseData.put(HOST, host);
+        databaseData.put(PORT, port);
+        databaseData.put(LOGIN_USER_NAME, loginUserName);
+        databaseData.put(PASSWORD, password);
+        databaseData.put(DATABASE, database);
 
         return databaseData;
     }
 
     /**
-     * Returns the known information about a treasure looted by a player
-     *
-     * @param uuid           uuid of player who we want data of
-     * @param lootIdentifier identifier of the treasure
-     * @return PlayerLootDetail or null, if getting the data wasn't successfully
-     * (like in cases if the player never opened this treasure)
+     * loads SQL- login details from a map (config).
      */
-    public @Nullable PlayerLootDetail getPlayerData(@NotNull UUID uuid, @NotNull String lootIdentifier) {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            ResultSet rs = null;
-
-            try {
-                st = conn.prepareStatement(String.format("SELECT EXISTS ( " +
-                                        "SELECT TABLE_NAME FROM " +
-                                        "information_schema.TABLES " +
-                                        "WHERE TABLE_NAME = '%s' )",
-                                lootIdentifier),
-                        ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY);
-                rs = st.executeQuery();
-
-                if (rs.next() && rs.getInt(1) > 0) {
-
-                    st = conn.prepareStatement(String.format(
-                                    "SELECT `%s`, `%s` " +
-                                            "FROM `%s` " +
-                                            "WHERE %s LIKE ?",
-                                    TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
-                                    lootIdentifier,
-                                    UUID_KEY),
-                            ResultSet.TYPE_FORWARD_ONLY,
-                            ResultSet.CONCUR_READ_ONLY);
-                    st.setString(1, uuid.toString());
-                    rs = st.executeQuery();
-
-                    if (rs.next()) {
-                        long timeStamp = rs.getLong(1);
-
-                        //get list from string
-                        List<?> itemList = GSON.fromJson(rs.getString(2), LIST_TYPE);
-                        List<ItemStack> items = TreasureConfig.deserializeItemList(itemList);
-
-                        return new PlayerLootDetail(timeStamp, items);
-                    } else { //player had never opened this treasure
-                        TreasureLogger.log(Level.INFO, "null treasure");
-                        return null;
-                    }
-                } else {
-                    TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for '%s'", lootIdentifier, uuid));
-                }
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for '%s'", lootIdentifier, uuid), e);
-            } finally {
-                closeResources(st, rs);
-            }
-        } else {
-            noConnection();
-        }
-        return null;
-    }
-
-    /**
-     * Saves the loot detail of a player
-     *
-     * @param uuid           uuid of player whose data is about to be saved.
-     * @param lootIdentifier the treasure id
-     * @param lootDetail     the new data
-     */
-    public void setPlayerData(@NotNull UUID uuid, @NotNull String lootIdentifier, @NotNull PlayerLootDetail lootDetail) {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                createTreasureTable(lootIdentifier);
-
-                st = conn.prepareStatement(String.format(
-                        "INSERT INTO `%s` " +
-                                "(%s, %s, %s) " +
-                                "VALUES (?, ?, ?) " +
-                                "ON DUPLICATE KEY UPDATE %s = VALUES(%s), " +
-                                " %s = VALUES(%s)",
-                        lootIdentifier,
-                        UUID_KEY, TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
-                        TREASURE_TIMESTAMP_KEY, TREASURE_TIMESTAMP_KEY,
-                        TREASURE_LOOT_KEY, TREASURE_LOOT_KEY));
-
-                st.setString(1, uuid.toString());
-                st.setLong(2, lootDetail.lastLootedTimeStamp());
-                st.setString(3, GSON.toJson(TreasureConfig.serializeItemList(lootDetail.unLootedStuff()), LIST_TYPE));
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not set player loot detail '%s' for '%s' to '%s'", lootIdentifier, uuid, GSON.toJson(lootDetail.serialize(), MAP_TYPE)), e);
-            } finally {
-                closeResources(st, null);
-            }
-        } else {
-            noConnection();
-        }
-    }
-
-    /**
-     * @param lootIdentifier
-     */
-    public void forgetAll(@NotNull String lootIdentifier) {
-        deleteTreasureTable(lootIdentifier);
-    }
-
-    public void forgetPlayer(@NotNull UUID uuid, @NotNull String lootIdentifier) {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                createTreasureTable(lootIdentifier);
-
-                st = conn.prepareStatement(String.format(
-                        "DELETE FROM %s " +
-                                "WHERE %s LIKE ?",
-                        lootIdentifier,
-                        UUID_KEY));
-                st.setString(1, uuid.toString());
-
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not forget player loot detail '%s' for '%s'", lootIdentifier, uuid), e);
-            } finally {
-                closeResources(st, null);
-            }
-        }
-    }
-
-    /**
-     * @param lootIdentifier
-     * @return
-     */
-    public @NotNull Map<UUID, PlayerLootDetail> getAllPlayerData(@NotNull String lootIdentifier) {
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            ResultSet rs = null;
-
-            try {
-                st = conn.prepareStatement(String.format("SELECT EXISTS ( SELECT TABLE_NAME FROM " +
-                                "information_schema.TABLES " +
-                                "WHERE TABLE_NAME = '%s' )", lootIdentifier),
-                        ResultSet.TYPE_FORWARD_ONLY,
-                        ResultSet.CONCUR_READ_ONLY);
-                rs = st.executeQuery();
-
-                if (rs.next() && rs.getInt(1) > 0) {
-
-                    st = conn.prepareStatement(String.format(
-                                    "SELECT `%s`, `%s`, `%s` " +
-                                            "FROM `%s` ",
-                                    UUID_KEY, TREASURE_TIMESTAMP_KEY, TREASURE_LOOT_KEY,
-                                    lootIdentifier),
-                            ResultSet.TYPE_FORWARD_ONLY,
-                            ResultSet.CONCUR_READ_ONLY);
-                    rs = st.executeQuery();
-
-                    HashMap<UUID, PlayerLootDetail> result = new HashMap<>();
-
-                    while (rs.next()) {
-                        String uuidStr = rs.getString(1); //todo check if this is a valid uuid
-
-                        long timeStamp = rs.getLong(2);
-
-                        //get list from string
-                        List<?> itemList = GSON.fromJson(rs.getString(3), LIST_TYPE);
-                        List<ItemStack> items = TreasureConfig.deserializeItemList(itemList);
-
-                        result.put(UUID.fromString(uuidStr), new PlayerLootDetail(timeStamp, items));
-                    }
-
-                    return result;
-
-                } else {
-                    TreasureLogger.log(Level.FINE, String.format("Unknown loot identifier '%s' for all-query", lootIdentifier));
-                }
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, String.format("Could not get lootIdentifier '%s' loot detail for all-query", lootIdentifier), e);
-            } finally {
-                closeResources(st, rs);
-            }
-        } else {
-            noConnection();
-        }
-
-        //empty map
-        return new HashMap<>();
-    }
-
-    /**
-     * creates a new table for a treasure
-     *
-     * @param identifier unique id of this treasure
-     */
-    private void createTreasureTable(String identifier) {
-        // try to connect to treasure tables
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                st = conn.prepareStatement(String.format(
-                        "CREATE TABLE IF NOT EXISTS `%s` (" +
-                                "%s VARCHAR(36) PRIMARY KEY, " +
-                                "%s BIGINT, " +
-                                "%s MEDIUMTEXT)",
-                        identifier,
-                        UUID_KEY,
-                        TREASURE_TIMESTAMP_KEY,
-                        TREASURE_LOOT_KEY));
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, "Could not create loot detail table for " + identifier, e);
-            } finally {
-                closeResources(st, null);
-            }
-        } else {
-            TreasureLogger.log(Level.WARNING, "Could not create loot detail table, no connection.");
-        }
-    }
-
-    /**
-     * deletes the table of a treasure and therefore effectively forgets any player ever looted it
-     *
-     * @param identifier
-     */
-    private void deleteTreasureTable(String identifier) {
-        // try to connect to treasure tables
-        if (hasConnection()) {
-            PreparedStatement st = null;
-            try {
-                st = conn.prepareStatement(String.format(
-                        "DROP TABLE IF EXISTS `%s`", identifier));
-                st.executeUpdate();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.WARNING, "Could not delete loot detail Table for " + identifier, e);
-            } finally {
-                closeResources(st, null);
-            }
-        } else {
-            TreasureLogger.log(Level.WARNING, "Could not create loot detail table, no connection.");
-        }
-    }
-
-    /**
-     * Tests and validates the connection
-     *
-     * @return true, if the connection is valid
-     */
-    public Boolean hasConnection() {
-        try {
-            return (conn != null) && conn.isValid(1);
-        } catch (SQLException ex) {
-            return false;
-        }
-    }
-
-    /**
-     * loads MySQL-data from config map.
-     */
-    private void loadData(HashMap<String, Object> databaseData) {
+    public void reload(final @Nullable Map<@NotNull String, @NotNull Object> databaseData) {
         if (databaseData == null) {
             return;
         }
+
+        boolean shouldConnect = true;
 
         // host
         if (databaseData.containsKey(HOST) && databaseData.get(HOST) instanceof String hostStr) {
             host = hostStr;
         } else {
-            TreasureLogger.log(Level.WARNING, "Missing sql value for " + HOST);
+            plugin.getComponentLogger().warn("Missing value for  {}", HOST);
             shouldConnect = false;
         }
         // user
-        if (databaseData.containsKey(USER) && databaseData.get(USER) instanceof String userStr) {
-            user = userStr;
+        if (databaseData.containsKey(LOGIN_USER_NAME) && databaseData.get(LOGIN_USER_NAME) instanceof String userStr) {
+            loginUserName = userStr;
         } else {
-            TreasureLogger.log(Level.WARNING, "Missing sql value for " + USER);
+            plugin.getComponentLogger().warn("Missing value for {}", LOGIN_USER_NAME);
             shouldConnect = false;
         }
         // password
         if (databaseData.containsKey(PASSWORD) && databaseData.get(PASSWORD) instanceof String passwortStr) {
             password = passwortStr;
         } else {
-            TreasureLogger.log(Level.WARNING, "Missing sql value for " + PASSWORD);
+            plugin.getComponentLogger().warn("Missing value for {}", PASSWORD);
         }
         // database
         if (databaseData.containsKey(DATABASE) && databaseData.get(DATABASE) instanceof String databaseNameStr) {
             database = databaseNameStr;
         } else {
-            TreasureLogger.log(Level.WARNING, "Missing sql value for " + DATABASE);
+            plugin.getComponentLogger().warn("Missing value for {}", DATABASE);
             shouldConnect = false;
         }
         // port
-        if (databaseData.containsKey(PORT) && databaseData.get(PORT) instanceof Integer portInt) {
-            port = portInt;
+        if (databaseData.containsKey(PORT) && databaseData.get(PORT) instanceof Number portInt) {
+            port = portInt.intValue();
         } else {
-            TreasureLogger.log(Level.WARNING, "Missing sql value for " + PORT);
-        }
-    }
-
-    /**
-     * opens a SQL-connection
-     */
-    private void connect() {
-        // After 5 stop and don't attempt to connect, if the data wasn't valid
-        if (++reconnected_Tries > 10 || !shouldConnect) {
-            return;
+            plugin.getComponentLogger().warn("Missing value for {}", PORT);
         }
 
-        // close reconnection thread
-        closeThread();
-        // close old connection
-        if (hasConnection())
+        if (dataSource != null){
             closeConnection();
+        }
 
-        // try to connect
-        try {
-            TreasureLogger.log(Level.FINE, "SQL-Connection");
+        if (shouldConnect) {
+            dataSource = new HikariDataSource();
+            dataSource.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
+            dataSource.setUsername(loginUserName);
+            dataSource.setPassword(password);
+            //dataSource.setIdleTimeout(60000); // unused, since maximum pool size == minimum
+            dataSource.setMaximumPoolSize(4); // don't keep the default 10 threads alive. we are way too small for that
 
-            // preload class
-            Class.forName("com.mysql.cj.jdbc.Driver");
-            // verbinde
-            conn = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port + "/" + database, user, password);
-
-        } catch (Exception e) {
-            TreasureLogger.log(Level.WARNING, e.getMessage());
-            TreasureLogger.log(Level.WARNING, "No Connection");
-            TreasureLogger.log(Level.WARNING, "Try SQL-Reconnection in 30 seconds.");
-            thread = Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, this::connect, 30 * 20L);
+            // pre start pool - the first time hasConnection() is called would return false otherwise since the pool needs a second to start after it was invoked
+            createTablePlayer();
+            createTableTreasure();
         }
     }
 
     /**
-     * reconnects and resets the thread
-     */
-    public void reconnect() {
-        // if Thread exists stop
-        closeThread();
-        // if connection exists stop
-        if (hasConnection())
-            closeConnection();
-        // connect
-        reconnected_Tries = 0;
-        connect();
-    }
-
-    /**
-     * closes reconnection thread
-     */
-    private void closeThread() {
-        if (thread != null) {
-            thread.cancel();
-            thread = null;
-        }
-    }
-
-    /**
-     * handles no connection error
-     */
-    public void noConnection() {
-        //if Thread exists stop Thread
-        closeThread();
-        //if we have no Connection try to connect
-        if (!hasConnection()) {
-            // connect
-            reconnected_Tries = 0;
-            connect();
-        }
-    }
-
-    /**
-     * save closing of resources
+     * Returns the known information about a treasure looted by a player
      *
-     * @param st PreparedStatement
-     * @param rs ResultSet
+     * @param player         player who we want data of
+     * @param treasureId identifier of the treasure
+     * @return PlayerLootDetail or null, if getting the data wasn't successfully
+     * (like in cases if the player never opened this treasure)
      */
-    private void closeResources(PreparedStatement st, ResultSet rs) {
-        if (rs != null) {
-            try {
-                rs.close();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not close ResultSet");
-                TreasureLogger.log(Level.SEVERE, e.getMessage());
+    public @NotNull CompletableFuture<@Nullable PlayerLootDetail> getPlayerData(final @NotNull OfflinePlayer player, final @NotNull String treasureId) {
+        final @NotNull CompletableFuture<@Nullable PlayerLootDetail> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
             }
-        }
-        if (st != null) {
-            try {
-                st.close();
-            } catch (SQLException e) {
-                TreasureLogger.log(Level.SEVERE, "Could not close Statement", e);
-            }
-        }
+
+            createTableTreasure();
+            addPlayer(player);
+
+            final @NotNull String statementStr =
+                "SELECT q." + TREASURE_TIMESTAMP_KEY + ", q." + TREASURE_CONTENT_KEY +
+                    " FROM " + TREASURES_TABLE +
+                    " AS q JOIN " + USER_TABLE + " AS p ON q." + PID_KEY + " = p." + PID_KEY +
+                    " WHERE q." + TREASURE_ID_KEY + " LIKE ? AND p." + UUID_KEY + " = ?";
+
+                try (final @NotNull Connection connection = dataSource.getConnection();
+                     final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
+                    preparedStatement.setString(1, treasureId);
+                    preparedStatement.setString(2, player.getUniqueId().toString());
+
+                    try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                        if (resultSet.next()) {
+                            long timeStamp = resultSet.getLong(1);
+
+                            //get list from string
+                            final @Nullable String rawItemStr = resultSet.getString(2);
+                            final @Nullable List<ItemStack> items;
+                            if (rawItemStr == null || rawItemStr.equalsIgnoreCase(NULL)) {
+                                items = null;
+                            } else {
+                                items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                            }
+
+                            //plugin.getComponentLogger().debug("successfully got amount for get request for player {} to {} amount of times, on thread {}", player.getName(), result, Thread.currentThread().getName());
+                            Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
+                        } else { //player had never done this quest
+
+                            plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}", player.getName(), Thread.currentThread().getName());
+                            Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+                        }
+                    }
+                } catch (SQLException e) {
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                    plugin.getComponentLogger().warn("Could not get treasure identifier '{}' player loot detail for '{}'", treasureId, player.getName(), e);
+                }
+        });
+
+        return resultFuture;
     }
 
     /**
-     * closes a valid connection and sets the connection to null
+     * Saves the loot detail of a player
+     *
+     * @param player         player whose data is about to be saved.
+     * @param treasureId the treasure id
+     * @param lootDetail     the new data
+     */
+    public @NotNull CompletableFuture<Void> setPlayerData(final @NotNull OfflinePlayer player, final @NotNull String treasureId, final @NotNull PlayerLootDetail lootDetail) {
+        final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                return;
+            }
+
+            createTableTreasure();
+            addPlayer(player);
+
+            final @NotNull String statementStr =
+                "INSERT INTO " + TREASURES_TABLE + " (" + TREASURE_ID_KEY + ", " + PID_KEY + ", " + TREASURE_TIMESTAMP_KEY + ", " + TREASURE_CONTENT_KEY + ") VALUES (" +
+                    "?, " +
+                    "(SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?), " +
+                    "?, " +
+                    "?) ON DUPLICATE KEY UPDATE " +
+                    TREASURE_TIMESTAMP_KEY + " = VALUES(" + TREASURE_TIMESTAMP_KEY + "), " +
+                    TREASURE_CONTENT_KEY + " = VALUES(" + TREASURE_CONTENT_KEY + ")";
+
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+                preparedStatement.setString(1, treasureId);
+                preparedStatement.setString(2, player.getUniqueId().toString());
+                preparedStatement.setLong(3, lootDetail.lastChangedTimeStamp());
+                preparedStatement.setString(4, lootDetail.unLootedStuff() == null ? NULL : Base64.getEncoder().encodeToString(ItemStack.serializeItemsAsBytes(lootDetail.unLootedStuff())));
+
+                int rowsAffected = preparedStatement.executeUpdate();
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set request for player {} at timestamp {}, on thread {}", rowsAffected, player.getName(), lootDetail.lastChangedTimeStamp(), Thread.currentThread().getName());
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().warn("Could not set player loot data for '{}' at timestamp '{}' for '{}'",
+                    treasureId, lootDetail.lastChangedTimeStamp(), player.getName(), e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    public @NotNull CompletableFuture<Void> forgetAll(final @NotNull String treasureId) {
+        final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                return;
+            }
+
+            createTableTreasure();
+
+            final @NotNull String statementStr = "DELETE FROM " + TREASURES_TABLE + " WHERE  " + TREASURE_ID_KEY + " = ?";
+
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+                preparedStatement.setString(1, treasureId);
+
+                int rowsAffected = preparedStatement.executeUpdate();
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished forgetAll request for treasure id {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().warn("Could not forgetAll treasure data for '{}'", treasureId, e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    public @NotNull CompletableFuture<Void> forgetPlayer(final @NotNull OfflinePlayer player, final @NotNull String treasureId) {
+        final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                return;
+            }
+
+            createTableTreasure();
+            addPlayer(player);
+
+            final String statementStr =
+                "DELETE FROM " + TREASURES_TABLE +
+                    " WHERE " + TREASURE_ID_KEY + " = ? " +
+                    "AND " + PID_KEY + " = (SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?)";
+
+            try (final Connection connection = dataSource.getConnection();
+                 final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+
+                preparedStatement.setString(1, treasureId);
+                preparedStatement.setString(2, player.getUniqueId().toString());
+                int rowsAffected = preparedStatement.executeUpdate();
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished forgetPlayer for {} and treasure {}, on thread {}",
+                    rowsAffected, player.getName(), treasureId, Thread.currentThread().getName());
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
+
+                plugin.getComponentLogger().warn("Could not forget player loot detail for '{}' with treasure '{}'", player.getName(), treasureId, e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    public @NotNull CompletableFuture<@NotNull Map<UUID, @NotNull PlayerLootDetail>> getAllPlayerData(final @NotNull String treasureId) {
+        final CompletableFuture<Map<UUID, PlayerLootDetail>> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(Collections.emptyMap()));
+                return;
+            }
+
+            createTableTreasure();
+
+            final String statementStr =
+                "SELECT u." + UUID_KEY + ", t." + TREASURE_TIMESTAMP_KEY + ", t." + TREASURE_CONTENT_KEY +
+                    " FROM " + TREASURES_TABLE + " AS t" +
+                    " JOIN " + USER_TABLE + " AS u ON t." + PID_KEY + " = u." + PID_KEY +
+                    " WHERE t." + TREASURE_ID_KEY + " = ?";
+
+            try (final Connection connection = dataSource.getConnection();
+                 final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+
+                preparedStatement.setString(1, treasureId);
+
+                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
+                    final Map<UUID, PlayerLootDetail> result = new HashMap<>();
+
+                    while (resultSet.next()) {
+                        final UUID playerUUID = UUID.fromString(resultSet.getString(1));
+                        final long timeStamp = resultSet.getLong(2);
+
+                        //get list from string
+                        final @Nullable String rawItemStr = resultSet.getString(2);
+                        final @Nullable List<ItemStack> items;
+                        if (rawItemStr == null || rawItemStr.equalsIgnoreCase(NULL)) {
+                            items = null;
+                        } else {
+                            items = new ArrayList<> (List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                        }
+
+                        result.put(playerUUID, new PlayerLootDetail(timeStamp, items));
+                    }
+
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
+                }
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(Collections.emptyMap()));
+                plugin.getComponentLogger().warn("Could not retrieve all player data for treasure '{}'", treasureId, e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    /**
+     * Checks if the connection exists and is valid.
+     */
+    public boolean hasConnection() {
+        return dataSource != null && dataSource.isRunning();
+    }
+
+    /**
+     * closes the connection if valid and sets the connection to null
      */
     public void closeConnection() {
-        try {
-            closeThread();
-            if (hasConnection()) {
-                conn.close();
-                TreasureLogger.log(Level.FINE, "Logout");
-            }
+        if (dataSource != null && !dataSource.isClosed()) {
+            dataSource.close();
+            plugin.getComponentLogger().debug("Logout");
+        }
+    }
+
+    /**
+     * creates missing treasure table
+     */
+    private void createTableTreasure() {
+        createTablePlayer();
+
+        final String statementStr = "CREATE TABLE IF NOT EXISTS " + TREASURES_TABLE + " (" +
+            PID_KEY + " INT UNSIGNED NOT NULL," +
+            TREASURE_ID_KEY + " VARCHAR(255) NOT NULL, " +
+            TREASURE_TIMESTAMP_KEY + " BIGINT, " +
+            TREASURE_CONTENT_KEY + " MEDIUMTEXT, " +
+            // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise
+            // but also don't let TREASURE_ID without constrains, else wise a player can infinit entries of the same treasure, not updating them
+            "PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
+            "FOREIGN KEY (" + PID_KEY + ") REFERENCES " + USER_TABLE + "(" + PID_KEY + "))";
+
+        try (final @NotNull Connection connection = dataSource.getConnection();
+             final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+            preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            TreasureLogger.log(Level.SEVERE, "Could not close connection", e);
-        } finally {
-            conn = null;
+            plugin.getComponentLogger().error("Could not create quests.", e);
+        }
+    }
+
+    /**
+     * Create a player table to reference against
+     */
+    protected void createTablePlayer() {
+        if (dataSource != null) {
+            final String statementStr = "CREATE TABLE IF NOT EXISTS " + USER_TABLE + " (" +
+                PID_KEY + " INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, " +
+                NAME + " VARCHAR(16) UNIQUE NOT NULL, " +
+                UUID_KEY + " VARCHAR(36) UNIQUE NOT NULL )";
+
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+                preparedStatement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getComponentLogger().error("Could not create players.", e);
+            }
+        }
+    }
+
+    /**
+     * Tries to add a player into the player table
+     */
+    protected void addPlayer(final @NotNull OfflinePlayer player) {
+        createTablePlayer();
+
+        final String statementStr =
+            "INSERT INTO " + USER_TABLE + " " +
+                "(" + NAME + ", " + UUID_KEY + ") VALUES (?, ?) " +
+                "ON DUPLICATE KEY UPDATE " + NAME + " = VALUES(" + NAME + ")";
+
+        try (final @NotNull Connection connection = dataSource.getConnection();
+             final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+            preparedStatement.setString(1, player.getName());
+            preparedStatement.setString(2, player.getUniqueId().toString());
+            preparedStatement.executeUpdate();
+
+        } catch (SQLException e) {
+            plugin.getComponentLogger().error("Could not add player '{}'.", player.getName(), e);
+        }
+    }
+
+    public static class UncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+        private final @NotNull Logger logger;
+
+        public UncaughtExceptionHandler(final @NotNull Logger logger) {
+            this.logger = logger;
+        }
+
+        @Override
+        public void uncaughtException(final @NotNull Thread thread, final @NotNull Throwable throwable) {
+            this.logger.error("Caught previously unhandled exception :");
+            this.logger.error(thread.getName(), throwable);
         }
     }
 }

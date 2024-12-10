@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  * called if a player opens a treasure
  * Note: this Event doesn't include PlayerLootDetail, since it's loaded async,
  * and therefore we couldn't cancel the open-Inventory-event afterward.
- * If you need the info, you have to call TreasureConfig.inst().getPlayerLootDetailAsync() yourself.
+ * If you need the info, you have to call TreasureConfig.inst().getPlayerLootDetail() yourself.
  */
 public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
     public enum Result {
@@ -29,11 +29,11 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
         CANCELED
     }
 
-    private static final HandlerList handlers = new HandlerList();
-    private final TreasureInfo treasureInfo;
+    private static final @NotNull HandlerList handlers = new HandlerList();
+    private final @NotNull TreasureInfo treasureInfo;
     private final boolean hasPermission;
-    private Result result = Result.DEFAULT;
-    public TreasureOpenEvent(@NotNull Player who, @NotNull TreasureInfo what, boolean hasPermission) {
+    private @NotNull Result result = Result.DEFAULT;
+    public TreasureOpenEvent(final @NotNull Player who, final @NotNull TreasureInfo what, final boolean hasPermission) {
         super(who);
 
         this.treasureInfo = what;
@@ -49,11 +49,11 @@ public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
         return handlers;
     }
 
-    public Result getResult() {
+    public @NotNull Result getResult() {
         return this.result;
     }
 
-    public void setResult(Result result) {
+    public void setResult(@NotNull Result result) {
         this.result = result;
     }
 

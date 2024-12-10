@@ -1,9 +1,10 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.comands.list.ListPlayerSubCommand;
-import de.greensurvivors.greentreasure.comands.list.ListTreasuresSubCommand;
-import de.greensurvivors.greentreasure.comands.list.ListWhoSubCommand;
+import de.greensurvivors.greentreasure.comands.set.SetForgetSubCommand;
+import de.greensurvivors.greentreasure.comands.set.SetRandomSubCommand;
+import de.greensurvivors.greentreasure.comands.set.SetSharedSubCommand;
+import de.greensurvivors.greentreasure.comands.set.SetUnlimitedSubCommand;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -15,16 +16,16 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-public class ListSubCommand extends ASubCommand {
-    public static final byte ENTRIES_PER_PAGE = 5;
+public class SetSubCommand extends ASubCommand {
     private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
 
-    public ListSubCommand(@NotNull GreenTreasure plugin) {
+    public SetSubCommand(@NotNull GreenTreasure plugin) {
         super(plugin);
 
-        registerSubCommand(new ListPlayerSubCommand(plugin));
-        registerSubCommand(new ListTreasuresSubCommand(plugin));
-        registerSubCommand(new ListWhoSubCommand(plugin));
+        registerSubCommand(new SetForgetSubCommand(plugin));
+        registerSubCommand(new SetSharedSubCommand(plugin));
+        registerSubCommand(new SetRandomSubCommand(plugin));
+        registerSubCommand(new SetUnlimitedSubCommand(plugin));
     }
 
     private void registerSubCommand (final @NotNull ASubCommand subCommand) {
@@ -40,7 +41,7 @@ public class ListSubCommand extends ASubCommand {
 
     @Override
     public @NotNull Set<@NotNull String> getAliases() {
-        return Set.of("list");
+        return Set.of("set");
     }
 
     @Override
@@ -49,16 +50,6 @@ public class ListSubCommand extends ASubCommand {
         return null;
     }
 
-    /**
-     * list all treasures on this server,
-     * or if a player was given lists all looted treasures
-     * /gt list(0) treasures(1) [num - optional](2) - list all treasures
-     * /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
-     * /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
-     * /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
-     *
-     * @param sender sender of this command
-     */
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length > 1) {
@@ -84,16 +75,6 @@ public class ListSubCommand extends ASubCommand {
         return true;
     }
 
-    /**
-     * @param sender
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
-     *               /gt list(0) treasures(1) [num - optional](2) - list all treasures
-     *               /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
-     *               /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
-     *               /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
-     * @return suggestion of arguments, filtert by what's already written
-     */
     @Override
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length <= 2) {

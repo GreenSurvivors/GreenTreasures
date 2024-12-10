@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
  */
 public class TreasureCloseEvent extends PlayerEvent {
     private final HandlerList handlers = new HandlerList();
-    private final TreasureInfo treasureInfo;
+    private final @NotNull TreasureInfo treasureInfo;
 
     /**
      * @param who          the player who closes a treasure
@@ -28,7 +28,7 @@ public class TreasureCloseEvent extends PlayerEvent {
         return handlers;
     }
 
-    public TreasureInfo getTreasureInfo() {
+    public @NotNull TreasureInfo getTreasureInfo() {
         return treasureInfo;
     }
 }

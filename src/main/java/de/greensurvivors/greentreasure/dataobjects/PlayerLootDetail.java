@@ -1,31 +1,25 @@
 package de.greensurvivors.greentreasure.dataobjects;
 
-import de.greensurvivors.greentreasure.TreasureLogger;
-import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.GreenTreasure;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.logging.Level;
+import java.util.*;
 
 /**
  * all important information about a treasure a player may or may not have opened before
  *
- * @param lastLootedTimeStamp the unix time in milliseconds a player last has opened the treasure
+ * @param lastChangedTimeStamp the unix time in milliseconds a player last has opened the treasure
  * @param unLootedStuff       the list of items a player has not looted yet.
  *                            Might be null if the player never opened the inventory
  */
-public record PlayerLootDetail(long lastLootedTimeStamp,
-                               @Nullable List<ItemStack> unLootedStuff) implements ConfigurationSerializable, Serializable {
-    @Serial
-    private static final long serialVersionUID = -3305276997530613807L;
+public record PlayerLootDetail(long lastChangedTimeStamp, @Nullable List<ItemStack> unLootedStuff) implements ConfigurationSerializable {
+    private static final String UNLOOTED_KEY = "unlooted";
+    private static final String LAST_CHANGED_TIME_STAMP_KEY = "lastChangedTimeStamp";
+    private static final String NULL = "NULL";
 
     public PlayerLootDetail {
         ConfigurationSerialization.registerClass(PlayerLootDetail.class);
@@ -33,9 +27,8 @@ public record PlayerLootDetail(long lastLootedTimeStamp,
 
     @Nullable
     public static PlayerLootDetail deserialize(Map<String, Object> objMap) {
-
         Long lastLootedTimeStamp = null;
-        Object tempObj = objMap.get("lastLootedTimeStamp");
+        Object tempObj = objMap.get(LAST_CHANGED_TIME_STAMP_KEY);
 
         //don't ask me why, it's fucktup.
         //basically the problem is, json doesn't differentiate between number types, and it could be really anything.
@@ -45,14 +38,22 @@ public record PlayerLootDetail(long lastLootedTimeStamp,
         }
 
         if (lastLootedTimeStamp != null) {
-            if (objMap.get("unLootedStuff") != null && objMap.get("unLootedStuff") instanceof List<?> itemList) {
-                return new PlayerLootDetail(lastLootedTimeStamp, TreasureConfig.deserializeItemList(itemList));
+            if (objMap.get(UNLOOTED_KEY) instanceof String rawItemStr) {
+                //get list from string
+                final @Nullable List<ItemStack> items;
+                if (rawItemStr.equalsIgnoreCase(NULL)) {
+                    items = null;
+                } else {
+                    items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(Base64.getDecoder().decode(rawItemStr))));
+                }
+
+                return new PlayerLootDetail(lastLootedTimeStamp, items);
             } else {
-                TreasureLogger.log(Level.WARNING, "Couldn't deserialize PlayerLootDetail: unLootedStuff not list" + objMap.get("unLootedStuff"));
+                GreenTreasure.inst().getComponentLogger().warn("Couldn't deserialize PlayerLootDetail: unLootedStuff not list {}", objMap.get(UNLOOTED_KEY));
                 return null;
             }
         } else {
-            TreasureLogger.log(Level.WARNING, "Couldn't deserialize PlayerLootDetail: lastLootedTimeStamp not long" + tempObj);
+            GreenTreasure.inst().getComponentLogger().warn("Couldn't deserialize PlayerLootDetail: lastChangedTimeStamp not long {}", tempObj);
             return null;
         }
     }
@@ -61,9 +62,9 @@ public record PlayerLootDetail(long lastLootedTimeStamp,
     public Map<String, Object> serialize() {
         HashMap<String, Object> objMap = new HashMap<>();
 
-        objMap.put("lastLootedTimeStamp", lastLootedTimeStamp);
+        objMap.put(LAST_CHANGED_TIME_STAMP_KEY, lastChangedTimeStamp);
 
-        objMap.put("unLootedStuff", TreasureConfig.serializeItemList(unLootedStuff));
+        objMap.put(UNLOOTED_KEY, unLootedStuff == null ? NULL : Base64.getEncoder().encodeToString(ItemStack.serializeItemsAsBytes(unLootedStuff)));
         return objMap;
     }
 }
