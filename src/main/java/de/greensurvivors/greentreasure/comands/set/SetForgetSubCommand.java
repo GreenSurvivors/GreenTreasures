@@ -1,11 +1,12 @@
 package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
@@ -63,9 +64,9 @@ public class SetForgetSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
-                if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
+                if (treasureInfo != null) {
                     if (args.length > 2) {
                         @NotNull Duration forgetDuration = Duration.ZERO;
 
@@ -82,13 +83,13 @@ public class SetForgetSubCommand extends ASubCommand {
                         }
 
                         if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
-                            plugin.getDatabaseManager().setForgetDuration(treasureId, null).thenRun(() ->
+                            plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
                             );
                         } else {
                             final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
 
-                            plugin.getDatabaseManager().setForgetDuration(treasureId, forgetDuration).thenRun(() ->
+                            plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), forgetDuration).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.SET_FORGET_DURATION,
                                     Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
                         }

@@ -189,7 +189,7 @@ public class DatabaseManager {
                 int rowsAffected = preparedStatement.executeUpdate();
                 blob.free();
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 });
 
@@ -270,7 +270,7 @@ public class DatabaseManager {
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished delete request for treasure {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
 
                 Bukkit.getScheduler().runTask(plugin, () -> forgetAll(treasureId).thenRun(() -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 }));
             } catch (SQLException e) {
@@ -314,7 +314,7 @@ public class DatabaseManager {
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 });
 
@@ -359,7 +359,7 @@ public class DatabaseManager {
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 });
 
@@ -404,7 +404,7 @@ public class DatabaseManager {
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 });
 
@@ -450,7 +450,7 @@ public class DatabaseManager {
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    plugin.getTreasureListener().invalidateTreasure(treasureId);
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
                 });
 

@@ -1,10 +1,10 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
@@ -49,10 +49,10 @@ public class DeleteSubCommand extends ASubCommand {
             Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                final @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
 
                 if (treasureId != null) {
-                    plugin.getTreasureListener().removeTreasureId(container);
+                    plugin.getTreasureManager().removeTreasureId(container);
 
                     plugin.getDatabaseManager().deleteTreasure(treasureId).thenRun(() ->
                         plugin.getDatabaseManager().forgetAll(treasureId).thenRun(() ->

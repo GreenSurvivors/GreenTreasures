@@ -1,9 +1,9 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
@@ -48,9 +48,9 @@ public class CreateSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (container.getInventory().getType().isCreatable()) {
-                    if (plugin.getTreasureListener().getTreasure(container) == null) {
+                    if (plugin.getTreasureManager().getTreasure(container) == null) {
                         final String newTreasureId = UUID.randomUUID().toString();
-                        plugin.getTreasureListener().setTreasureId(container, newTreasureId);
+                        plugin.getTreasureManager().setTreasureId(container, newTreasureId);
 
                         List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
 

@@ -1,10 +1,10 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
@@ -53,24 +53,18 @@ public class EditSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (sender instanceof Player player) {
-                    final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
-                    if (treasureId != null) {
-                        final @Nullable TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
+                    if (treasureInfo != null) {
+                        final @Nullable InventoryView view = Utils.openInventory(player, container, container.getInventory().getType());
 
-                        if (treasureInfo != null) {
-                            final @Nullable InventoryView view = Utils.openInventory(player, container, container.getInventory().getType());
+                        if (view != null) {
+                            // clone every item stack and put it into the new inventory
+                            view.getTopInventory().setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() : s.clone()).toArray(ItemStack[]::new));
 
-                            if (view != null) {
-                                // clone every item stack and put it into the new inventory
-                                view.getTopInventory().setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() : s.clone()).toArray(ItemStack[]::new));
-
-                                plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureId);
-                            } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
-                            }
+                            plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
                         }
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

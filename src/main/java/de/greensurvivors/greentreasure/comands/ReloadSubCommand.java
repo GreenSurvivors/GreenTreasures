@@ -1,8 +1,8 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;

@@ -1,10 +1,11 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
@@ -49,10 +50,10 @@ public class ForgetAllSubCommand extends ASubCommand {
             Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
-                if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
-                    plugin.getDatabaseManager().forgetAll(treasureId).thenRun(() ->
+                if (treasureInfo != null) {
+                    plugin.getDatabaseManager().forgetAll(treasureInfo.treasureId()).thenRun(() ->
                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_ALL_SUCCESS,
                             Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container))));
                 } else {

@@ -1,10 +1,11 @@
 package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang3.BooleanUtils;
@@ -52,14 +53,14 @@ public class SetUnlimitedSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
-                if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
+                if (treasureInfo != null) {
                     if (args.length > 2) {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null) {
-                            plugin.getDatabaseManager().setUnlimited(treasureId, isUnLimited).thenRun(() ->
+                            plugin.getDatabaseManager().setUnlimited(treasureInfo.treasureId(), isUnLimited).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_UNLIMITED_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.BOOL.getKey(), plugin.getMessageManager().getLang(isUnLimited ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
                                 ));

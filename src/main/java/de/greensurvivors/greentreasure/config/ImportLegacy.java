@@ -193,11 +193,11 @@ public class ImportLegacy {
                 return null;
             }
 
-            @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+            @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
             if (treasureId == null) {
                 treasureId = UUID.randomUUID().toString();
 
-                plugin.getTreasureListener().setTreasureId(container, treasureId);
+                plugin.getTreasureManager().setTreasureId(container, treasureId);
             }
 
             return treasureId;
@@ -283,9 +283,7 @@ public class ImportLegacy {
 
         final @Nullable Location treasureLocation = getLocation(objectMap, path);
 
-        if (treasureLocation == null) {
-            return null;
-        } else {
+        if (treasureLocation != null) {
             // todo set id if missing
         }
 
@@ -419,7 +417,7 @@ public class ImportLegacy {
                                                                         return;
                                                                     }
 
-                                                                    final @Nullable String asyncTreasureId = plugin.getTreasureListener().getTreasureId(container);
+                                                                    final @Nullable String asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
                                                                     if (asyncTreasureId != null) {
                                                                         plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));

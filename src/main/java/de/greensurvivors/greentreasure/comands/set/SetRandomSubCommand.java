@@ -1,11 +1,12 @@
 package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
@@ -53,9 +54,9 @@ public class SetRandomSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
-                if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
+                if (treasureInfo != null) {
                     if (args.length > 2) {
                         if (Utils.isDouble(args[2])) {
                             @Range(from = 0, to = 10000) short slotPercentage = (short) (Double.parseDouble(args[2]) * 100);
@@ -63,7 +64,7 @@ public class SetRandomSubCommand extends ASubCommand {
                             slotPercentage = (short) Math.max(Math.min(slotPercentage, 10000), 0);
 
                             int finalSlotPercentage = slotPercentage;
-                            plugin.getDatabaseManager().setRandom(treasureId, slotPercentage).thenRun(() ->
+                            plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), slotPercentage).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
                                     Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((float) finalSlotPercentage) / 100.0f))));
                         } else {

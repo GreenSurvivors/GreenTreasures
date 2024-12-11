@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 public class GreenTreasure extends JavaPlugin {
     private static GreenTreasure instance;
     private DatabaseManager databaseManager;
+    private TreasureManager treasureManager;
     private TreasureConfig configHandler;
     private TreasureListener treasureListener;
     private CommandInventoriesListener commandInventoriesListener;
@@ -30,7 +31,9 @@ public class GreenTreasure extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // order is important, the config depends on the database and treasureManager
         databaseManager = new DatabaseManager(this);
+        treasureManager = new TreasureManager(this);
         // configuration
         configHandler = new TreasureConfig(this);
         configHandler.reloadMain();
@@ -48,7 +51,7 @@ public class GreenTreasure extends JavaPlugin {
         treasureListener.closeAllInventories();
         commandInventoriesListener.clearInventories();
 
-        treasureListener.clearTreasures();
+        treasureManager.clearTreasures();
     }
 
     public @NotNull DatabaseManager getDatabaseManager () {
@@ -59,10 +62,9 @@ public class GreenTreasure extends JavaPlugin {
         return configHandler;
     }
 
-    public @NotNull TreasureListener getTreasureListener() {
-        return treasureListener;
+    public TreasureManager getTreasureManager() {
+        return treasureManager;
     }
-
     public @NotNull CommandInventoriesListener getCommandInventoriesListener() {
         return commandInventoriesListener;
     }
@@ -71,7 +73,12 @@ public class GreenTreasure extends JavaPlugin {
         return messageManager;
     }
 
+    public @NotNull TreasureListener getTreasureListener() {
+        return treasureListener;
+    }
+
     public TreasureCommands getTreasureCommands() {
         return treasureCommands;
     }
+
 }

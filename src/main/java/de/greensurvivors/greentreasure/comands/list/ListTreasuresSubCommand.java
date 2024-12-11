@@ -1,6 +1,7 @@
 package de.greensurvivors.greentreasure.comands.list;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
@@ -10,7 +11,6 @@ import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import de.greensurvivors.greentreasure.permission.PermmissionManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -76,7 +76,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
 
                     //add the treasure info for the page
                     for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
-                        TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureIds.get(num));
+                        TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureIds.get(num));
 
                         helper.addEntry(treasureInfo, treasureIds.get(num));
                     }

@@ -1,4 +1,4 @@
-package de.greensurvivors.greentreasure.permission;
+package de.greensurvivors.greentreasure;
 
 import org.bukkit.Bukkit;
 import org.bukkit.permissions.Permission;

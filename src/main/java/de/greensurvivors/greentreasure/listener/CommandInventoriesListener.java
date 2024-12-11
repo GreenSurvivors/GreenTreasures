@@ -86,7 +86,7 @@ public class CommandInventoriesListener implements Listener {
         String treasureId = editingTreasures.get(event.getView());
 
         if (treasureId != null) {
-            TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
+            TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureId);
 
             //if the treasure wasn't deleted while the inventory was open
             if (treasureInfo != null) {
@@ -113,7 +113,7 @@ public class CommandInventoriesListener implements Listener {
             Inventory eInventory = event.getInventory();
             String treasureId = peekedTreasure.treasureId();
 
-            TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureId);
+            TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureId);
 
             //if the treasure wasn't deleted while the inventory was open call the close event
             if (treasureInfo != null) {
