@@ -20,7 +20,7 @@ public abstract class AListCmdHelper {
     private final int pageNow, lastPage;
     private final @NotNull CommandSender commandSender;
     protected int numOfEntriesStillToDo;
-    protected @NotNull String command;
+    protected final @NotNull String command;
 
     public AListCmdHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender,
                           int pageNow, int lastPage, int numEntries,

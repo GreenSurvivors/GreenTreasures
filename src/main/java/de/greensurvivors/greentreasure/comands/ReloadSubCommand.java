@@ -52,12 +52,6 @@ public class ReloadSubCommand extends ASubCommand {
         return true;
     }
 
-    /**
-     * @param sender
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
-     * @return suggestion of arguments
-     */
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length == 1) {
             return List.copyOf(getAliases());

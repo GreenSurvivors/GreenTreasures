@@ -14,6 +14,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Arrays;
@@ -121,11 +122,11 @@ public class CommandInventoriesListener implements Listener {
 
                 peekingTreasures.remove(event.getView());
                 if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
-                    // the IDE is confused with two annotations
-                    //noinspection NullableProblems
-                    plugin.getDatabaseManager().setPlayerData(null, treasureId, new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents())));
+                    plugin.getDatabaseManager().setPlayerData(null, treasureId,
+                        new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
                 } else {
-                    plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId, new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents())));
+                    plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
+                        new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
                 }
             }
         }

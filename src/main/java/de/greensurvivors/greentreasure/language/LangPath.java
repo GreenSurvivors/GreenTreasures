@@ -8,7 +8,6 @@ public enum LangPath {
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
     ACTION_FIND_LIMITED("action.find.limited"),
     ACTION_FIND_UNLIMITED("action.find.unlimited"),
-    ACTION_PREVENTED_USE_CMDS("action.prevented.use-commands"),
     ACTION_TREASURE_EDITED("action.treasure-edit.success"),
 
     // user cmd args errors
@@ -32,8 +31,6 @@ public enum LangPath {
     CMD_FORGET_ALL_SUCCESS("cmd.forget-all.success"),
     CMD_FORGET_SHARED_SUCCESS("cmd.forget.shared.success"),
     CMD_FORGET_USER_SUCCESS("cmd.forget.user.success"),
-    CMD_HELP_HELP("cmd.help.help"),
-    CMD_HELP_RELOAD("cmd.help.reload"),
     CMD_HELP_WIKI("cmd.help.wiki"),
     CMD_LIST_FOOTER_BACK("cmd.list.footer.back"),
     CMD_LIST_FOOTER_INNER("cmd.list.footer.inner"),

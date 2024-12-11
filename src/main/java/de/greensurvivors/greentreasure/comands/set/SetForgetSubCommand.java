@@ -109,12 +109,6 @@ public class SetForgetSubCommand extends ASubCommand {
         return true;
     }
 
-    /**
-     * @param sender
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
-     * @return suggestion of arguments
-     */
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length > 2) {
             return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK, SUFFIX_MILLISECOND);

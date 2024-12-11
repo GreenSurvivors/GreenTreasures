@@ -64,7 +64,7 @@ public class TreasureListener implements Listener {
     }
 
     /**
-     * if a treasure was closed update the timestamp and unloosed inventory in the player file
+     * if a treasure was closed update the timestamp and unlooted inventory in the player file
      */
     @EventHandler(priority = EventPriority.MONITOR)
     private void onCloseTreasure(final @NotNull InventoryCloseEvent event) {

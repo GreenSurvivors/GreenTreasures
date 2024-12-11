@@ -91,12 +91,6 @@ public class SetRandomSubCommand extends ASubCommand {
         return true;
     }
 
-    /**
-     * @param sender
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
-     * @return suggestion of arguments
-     */
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length == 3) {
             return List.of("100.0", "75.0", "50.0", "25.0", "10.0", "5.0", "2.0");

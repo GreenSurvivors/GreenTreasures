@@ -65,7 +65,7 @@ public class ListSubCommand extends ASubCommand {
             for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
                 if (entry.getKey().equalsIgnoreCase(args[1])) {
                     if (entry.getValue().checkPermission(sender)) {
-                        entry.getValue().onCommand(sender, args);
+                        return entry.getValue().onCommand(sender, args);
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
                     }
@@ -85,7 +85,6 @@ public class ListSubCommand extends ASubCommand {
     }
 
     /**
-     * @param sender
      * @param args   The arguments passed to the command, including final
      *               partial argument to be completed
      *               /gt list(0) treasures(1) [num - optional](2) - list all treasures

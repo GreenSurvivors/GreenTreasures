@@ -56,7 +56,7 @@ public class SetSubCommand extends ASubCommand {
             for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
                 if (entry.getKey().equalsIgnoreCase(args[1])) {
                     if (entry.getValue().checkPermission(sender)) {
-                        entry.getValue().onCommand(sender, args);
+                        return entry.getValue().onCommand(sender, args);
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
                     }

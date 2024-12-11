@@ -69,7 +69,7 @@ public enum PermmissionManager {
     PermmissionManager(final @NotNull Permission permission) {
         this.permission = permission;
 
-        Bukkit.getPluginManager().removePermission(permission);
+        Bukkit.getPluginManager().addPermission(permission);
     }
 
     public Permission get() {

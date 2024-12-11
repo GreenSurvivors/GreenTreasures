@@ -63,7 +63,6 @@ public abstract class ASubCommand {
     public abstract boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args);
 
     /**
-     * @param sender
      * @param args   The arguments passed to the command, including final
      *               partial argument to be completed
      * @return suggestion of arguments
