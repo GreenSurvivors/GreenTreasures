@@ -55,7 +55,7 @@ public class ListWhoSubCommand extends ASubCommand {
                 final @Nullable String treasureId = plugin.getTreasureListener().getTreasureId(container);
 
                 if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
-                    plugin.getConfigHandler().getAllPlayerDetail(treasureId).thenAccept(playerLootDetailMap -> {
+                    plugin.getDatabaseManager().getAllPlayerData(treasureId).thenAccept(playerLootDetailMap -> {
                         final int numOfPlayers = playerLootDetailMap.size();
 
                         if (numOfPlayers > 0) {

@@ -13,6 +13,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,12 +58,12 @@ public class SetRandomSubCommand extends ASubCommand {
                 if (treasureId != null && plugin.getTreasureListener().getTreasure(treasureId) != null) {
                     if (args.length > 2) {
                         if (Utils.isDouble(args[2])) {
-                            int slotPercentage = (int) (Double.parseDouble(args[2]) * 100);
+                            @Range(from = 0, to = 10000) short slotPercentage = (short) (Double.parseDouble(args[2]) * 100);
 
-                            slotPercentage = Math.max(Math.min(slotPercentage, 10000), 0);
+                            slotPercentage = (short) Math.max(Math.min(slotPercentage, 10000), 0);
 
                             int finalSlotPercentage = slotPercentage;
-                            plugin.getConfigHandler().setRandom(treasureId, slotPercentage).thenRun(() ->
+                            plugin.getDatabaseManager().setRandom(treasureId, slotPercentage).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
                                     Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((float) finalSlotPercentage) / 100.0f))));
                         } else {

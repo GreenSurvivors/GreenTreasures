@@ -59,7 +59,7 @@ public class SetUnlimitedSubCommand extends ASubCommand {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null) {
-                            plugin.getConfigHandler().setUnlimited(treasureId, isUnLimited).thenRun(() ->
+                            plugin.getDatabaseManager().setUnlimited(treasureId, isUnLimited).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_UNLIMITED_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.BOOL.getKey(), plugin.getMessageManager().getLang(isUnLimited ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
                                 ));

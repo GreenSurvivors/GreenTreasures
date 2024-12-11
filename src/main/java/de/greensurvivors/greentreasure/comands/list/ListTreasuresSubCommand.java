@@ -21,7 +21,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.IntStream;
 
 public class ListTreasuresSubCommand extends ASubCommand {
 
@@ -48,47 +47,47 @@ public class ListTreasuresSubCommand extends ASubCommand {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            ArrayList<String> treasureIds = new ArrayList<>(plugin.getTreasureListener().getTreasureLocations());
-            final int numOfTreasures = treasureIds.size();
+            plugin.getDatabaseManager().getTreasureIds().thenAccept(treasureIds -> {
+                final int numOfTreasures = treasureIds.size();
 
-            if (numOfTreasures > 0) {
-                final int numPages = (int) Math.ceil((double) numOfTreasures / (double) ListSubCommand.ENTRIES_PER_PAGE);
+                if (numOfTreasures > 0) {
+                    final int numPages = (int) Math.ceil((double) numOfTreasures / (double) ListSubCommand.ENTRIES_PER_PAGE);
 
-                final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
-                if (args.length >= 3) {
-                    if (Utils.isInt(args[2])) {
-                        //limit page to how many exits
-                        pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                    final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                    if (args.length >= 3) {
+                        if (Utils.isInt(args[2])) {
+                            //limit page to how many exits
+                            pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                        } else {
+                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
+                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                            return;
+                        }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
-                        return false;
+                        pageNow = 1;
                     }
+
+                    //maximum of treasures out of all this page can display
+                    final int MAX_TREASURES_THIS_PAGE = Math.min(numOfTreasures, pageNow * ListSubCommand.ENTRIES_PER_PAGE);
+                    //maximum of entries this page can display
+                    final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
+
+                    final ListCmdTreasureHelper helper = new ListCmdTreasureHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES);
+
+                    //add the treasure info for the page
+                    for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
+                        TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureIds.get(num));
+
+                        helper.addEntry(treasureInfo, treasureIds.get(num));
+                    }
+
                 } else {
-                    pageNow = 1;
+                    final @NotNull String cmd = TreasureCommands.CMD + " " + plugin.getTreasureCommands().getCreateSubCmd().getAliases().iterator().next();
+
+                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_TREASURES_EMPTY,
+                        Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
                 }
-
-                //maximum of treasures out of all this page can display
-                final int MAX_TREASURES_THIS_PAGE = Math.min(numOfTreasures, pageNow * ListSubCommand.ENTRIES_PER_PAGE);
-                //maximum of entries this page can display
-                final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
-
-                final ListCmdTreasureHelper helper = new ListCmdTreasureHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES);
-
-                //add the treasure info for the page
-                for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
-                    TreasureInfo treasureInfo = plugin.getTreasureListener().getTreasure(treasureIds.get(num));
-
-                    helper.addEntry(treasureInfo, treasureIds.get(num));
-                }
-
-            } else {
-                final @NotNull String cmd = TreasureCommands.CMD + " " + plugin.getTreasureCommands().getCreateSubCmd().getAliases().iterator().next();
-
-                plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_TREASURES_EMPTY,
-                    Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
-            }
-
+            });
         } else {
             plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
         }
@@ -98,20 +97,6 @@ public class ListTreasuresSubCommand extends ASubCommand {
 
     @Override
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
-        if (args.length == 3) {
-            List<String> result = new ArrayList<>();
-
-            final int numOfTreasures = plugin.getTreasureListener().getTreasureLocations().size();
-            if (numOfTreasures > 0) {
-                result.addAll(IntStream.rangeClosed(1, (int) Math.ceil((double) numOfTreasures / (double) ListSubCommand.ENTRIES_PER_PAGE))
-                    .boxed()
-                    .map(String::valueOf)
-                    .toList());
-            }
-
-            return result;
-        }
-
         return new ArrayList<>();
     }
 
@@ -149,5 +134,4 @@ public class ListTreasuresSubCommand extends ASubCommand {
             }
         }
     }
-
 }

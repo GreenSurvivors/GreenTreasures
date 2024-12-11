@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure.listener;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -93,7 +94,7 @@ public class CommandInventoriesListener implements Listener {
 
                 // the IDE is confused with two annotations
                 //noinspection NullableProblems
-                plugin.getConfigHandler().saveTreasureLoot(treasureId, Arrays.asList(eInventory.getContents())).
+                plugin.getDatabaseManager().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
                     thenRun(() -> plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ACTION_TREASURE_EDITED));
             } else {
                 plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ERROR_UNKNOWN);
@@ -122,9 +123,9 @@ public class CommandInventoriesListener implements Listener {
                 if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
                     // the IDE is confused with two annotations
                     //noinspection NullableProblems
-                    plugin.getConfigHandler().savePlayerDetail(null, treasureId, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                    plugin.getDatabaseManager().setPlayerData(null, treasureId, new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents())));
                 } else {
-                    plugin.getConfigHandler().savePlayerDetail(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId, peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents()));
+                    plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId, new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.asList(eInventory.getContents())));
                 }
             }
         }

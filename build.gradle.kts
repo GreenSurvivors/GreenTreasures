@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "de.greensurvivors"
-version = "0.1.2-SNAPSHOT"
+version = "0.2.0-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
 val mcVersion by extra("1.21.4")
 
@@ -27,11 +27,6 @@ repositories {
     maven {
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
-
-    //prebuilt jars from public gits
-    maven {
-        url = uri("https://jitpack.io/")
-    }
 }
 
 dependencies {
@@ -39,6 +34,7 @@ dependencies {
     compileOnly("com.zaxxer:HikariCP:6.0.0")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.1.8") // caches
     compileOnly("org.yaml:snakeyaml:2.3")
+    compileOnly("org.apache.commons:commons-collections4:4.5.0-M2")
 }
 
 tasks {

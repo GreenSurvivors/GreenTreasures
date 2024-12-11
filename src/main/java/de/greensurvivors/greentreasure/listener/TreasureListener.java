@@ -3,6 +3,7 @@ package de.greensurvivors.greentreasure.listener;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
 import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
@@ -30,10 +31,8 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
+import java.util.stream.Collectors;
 
 // todo the last rework removed the ability to get all treasureLocatoins. Might be usefull to list them in commands.
 public class TreasureListener implements Listener {
@@ -50,7 +49,7 @@ public class TreasureListener implements Listener {
     public TreasureListener(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "id");
-        this.treasures = Caffeine.newBuilder().build(id -> plugin.getConfigHandler().loadTreasure(id));
+        this.treasures = Caffeine.newBuilder().build(id -> plugin.getDatabaseManager().loadTreasure(id));
 
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -116,8 +115,8 @@ public class TreasureListener implements Listener {
                     openInventories.remove(event.getView());
 
                     // everything is fine. The IDE is just confused with the two annotations of the array
-                    //noinspection NullableProblems
-                    plugin.getConfigHandler().savePlayerDetail(treasureInfo.isShared() ? null : ePlayer, treasureId, System.currentTimeMillis(), Arrays.asList(eInventory.getContents()));
+                    plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
+                        new PlayerLootDetail(System.currentTimeMillis(), Arrays.stream(eInventory.getContents()).collect(Collectors.toCollection(ArrayList::new))));
                 }
             }
         }
@@ -216,7 +215,7 @@ public class TreasureListener implements Listener {
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
                                 } else {
                                     //load global treasure async
-                                    plugin.getConfigHandler().getPlayerLootDetail(null, id).thenAccept(playerLootDetail -> {
+                                    plugin.getDatabaseManager().getPlayerData(null, id).thenAccept(playerLootDetail -> {
                                         Inventory nowLooting;
 
                                         // automatically forget after a given time
@@ -249,7 +248,7 @@ public class TreasureListener implements Listener {
                                     });
                                 }
                             } else { // not globally shared
-                                plugin.getConfigHandler().getPlayerLootDetail(ePlayer, id).thenAccept(playerLootDetail -> {
+                                plugin.getDatabaseManager().getPlayerData(ePlayer, id).thenAccept(playerLootDetail -> {
                                     Inventory nowLooting;
 
                                     if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||

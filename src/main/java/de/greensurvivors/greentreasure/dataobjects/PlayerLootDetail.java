@@ -16,7 +16,7 @@ import java.util.*;
  * @param unLootedStuff        the list of items a player has not looted yet.
  *                             Might be null if the player never opened the inventory
  */
-public record PlayerLootDetail(long lastChangedTimeStamp, @Nullable List<ItemStack> unLootedStuff) implements ConfigurationSerializable {
+public record PlayerLootDetail(long lastChangedTimeStamp, @Nullable List<@NotNull ItemStack> unLootedStuff) implements ConfigurationSerializable {
     private static final String UNLOOTED_KEY = "unlooted";
     private static final String LAST_CHANGED_TIME_STAMP_KEY = "lastChangedTimeStamp";
     private static final String NULL = "NULL";

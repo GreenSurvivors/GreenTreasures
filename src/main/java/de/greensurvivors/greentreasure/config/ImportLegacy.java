@@ -1,6 +1,8 @@
 package de.greensurvivors.greentreasure.config;
 
+import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
@@ -210,25 +212,25 @@ public class ImportLegacy {
                 contents.addAll(rightContents);
             }
 
-            final @NotNull TreasureConfig configHandler = plugin.getConfigHandler();
-            configHandler.saveTreasureLoot(treasureId, contents);
+            final @NotNull DatabaseManager databaseManager = plugin.getDatabaseManager();
+            databaseManager.setTreasureContents(treasureId, contents);
 
             if (checkedRootMap.get("unlimited") instanceof Boolean unlimited) {
-                configHandler.setUnlimited(treasureId, unlimited);
+                databaseManager.setUnlimited(treasureId, unlimited);
             }
             if (checkedRootMap.get("shared") instanceof Boolean shared) {
-                configHandler.setShared(treasureId, shared);
+                databaseManager.setShared(treasureId, shared);
             }
             if (!contents.isEmpty() && checkedRootMap.get("random") instanceof Number randomNumber) {
                 final double randomChance = randomNumber.longValue() == 0 ? 100.00 : randomNumber.doubleValue() / ((double) contents.size());
-                configHandler.setRandom(treasureId, (int) (randomChance * 100));
+                databaseManager.setRandom(treasureId, (short) (randomChance * 100));
             }
             if (checkedRootMap.get("forget-time") instanceof Number forgetTimeNumber) {
                 Duration forget_time = Duration.ofMillis(forgetTimeNumber.longValue());
                 if (forget_time.isZero()) {
                     forget_time = DEFAULT_FORGETTING_PERIOD;
                 }
-                configHandler.setForget(treasureId, forget_time);
+                databaseManager.setForgetDuration(treasureId, forget_time);
             }
 
             plugin.getComponentLogger().debug("imported treasure with id {} from path {}", treasureId, path);
@@ -420,7 +422,7 @@ public class ImportLegacy {
                                                                     final @Nullable String asyncTreasureId = plugin.getTreasureListener().getTreasureId(container);
 
                                                                     if (asyncTreasureId != null) {
-                                                                        plugin.getConfigHandler().savePlayerDetail(offlinePlayer, asyncTreasureId, timeStampNumber.longValue(), List.of());
+                                                                        plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
                                                                     } else {
                                                                         plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
                                                                         gotNoError.set(false);
@@ -428,7 +430,7 @@ public class ImportLegacy {
                                                                     }
                                                                 });
                                                             } else {
-                                                                plugin.getConfigHandler().savePlayerDetail(offlinePlayer, treasureId, timeStampNumber.longValue(), List.of());
+                                                                plugin.getDatabaseManager().setPlayerData(offlinePlayer, treasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
                                                             }
                                                         }
                                                     } else {

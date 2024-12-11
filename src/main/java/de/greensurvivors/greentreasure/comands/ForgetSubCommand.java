@@ -61,7 +61,7 @@ public class ForgetSubCommand extends ASubCommand {
 
                     if (treasureInfo != null) {
                         if (treasureInfo.isShared()) {
-                            plugin.getConfigHandler().forgetPlayer(null, treasureId).thenRun(() ->
+                            plugin.getDatabaseManager().forgetPlayer(null, treasureId).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_SHARED_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container))));
                         }
@@ -90,7 +90,7 @@ public class ForgetSubCommand extends ASubCommand {
                         }
 
                         if (playerToForget.hasPlayedBefore()) {
-                            plugin.getConfigHandler().forgetPlayer(playerToForget, treasureId).thenRun(() -> {
+                            plugin.getDatabaseManager().forgetPlayer(playerToForget, treasureId).thenRun(() -> {
                                 final @NotNull Component playerName;
                                 final @Nullable Player player = playerToForget.getPlayer();
                                 if (player != null) {

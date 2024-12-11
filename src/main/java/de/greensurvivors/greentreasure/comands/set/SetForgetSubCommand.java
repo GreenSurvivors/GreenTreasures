@@ -82,13 +82,13 @@ public class SetForgetSubCommand extends ASubCommand {
                         }
 
                         if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
-                            plugin.getConfigHandler().setForget(treasureId, null).thenRun(() ->
+                            plugin.getDatabaseManager().setForgetDuration(treasureId, null).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
                             );
                         } else {
                             final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
 
-                            plugin.getConfigHandler().setForget(treasureId, forgetDuration).thenRun(() ->
+                            plugin.getDatabaseManager().setForgetDuration(treasureId, forgetDuration).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.SET_FORGET_DURATION,
                                     Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
                         }

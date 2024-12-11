@@ -59,7 +59,7 @@ public class SetSharedSubCommand extends ASubCommand {
                         Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
                         if (isUnLimited != null) {
-                            plugin.getConfigHandler().setShared(treasureId, isUnLimited).thenRun(() ->
+                            plugin.getDatabaseManager().setShared(treasureId, isUnLimited).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_SHARED_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.BOOL.getKey(), plugin.getMessageManager().getLang(isUnLimited ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
                                 ));

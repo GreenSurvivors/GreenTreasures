@@ -72,7 +72,7 @@ public class PeekSubCommand extends ASubCommand {
 
                             if (treasureInfo.isShared()) {
                                 //load shared treasure
-                                plugin.getConfigHandler().getPlayerLootDetail(null, treasureId).thenAccept(playerLootDetail -> {
+                                plugin.getDatabaseManager().getPlayerData(null, treasureId).thenAccept(playerLootDetail -> {
                                     final InventoryView nowPeeking;
                                     long timeStamp = playerLootDetail.lastChangedTimeStamp();
 
@@ -136,7 +136,7 @@ public class PeekSubCommand extends ASubCommand {
                                     playerToPeek = player;
                                 }
 
-                                plugin.getConfigHandler().getPlayerLootDetail(playerToPeek, treasureId).thenAccept(playerLootDetail -> {
+                                plugin.getDatabaseManager().getPlayerData(playerToPeek, treasureId).thenAccept(playerLootDetail -> {
                                     final InventoryView nowPeeking;
 
                                     if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {

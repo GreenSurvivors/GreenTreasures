@@ -54,6 +54,10 @@ public class Utils {
     private static final Pattern FLOAT_PATTERN = Pattern.compile(fpRegex);
     private static final Pattern INT_PATTERN = Pattern.compile("^[+-]?\\d+$");
 
+    private Utils () {
+        throw new RuntimeException("Do not try to instantiate this");
+    }
+
     public static @Nullable InventoryView openInventory(final @NotNull Player player, final @Nullable InventoryHolder owner, final @NotNull InventoryType inventoryType) throws IllegalArgumentException {
         if (!inventoryType.isCreatable()) {
             throw new IllegalArgumentException("InventoryType " + inventoryType.name() + " is not creatable!");
