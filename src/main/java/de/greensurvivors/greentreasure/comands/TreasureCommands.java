@@ -7,7 +7,9 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
@@ -72,6 +74,11 @@ public class TreasureCommands extends Command {
             Block block = livingEntity.getTargetBlockExact(5);
 
             if (block != null && block.getState(false) instanceof Container container) {
+                // double chests are wierd
+                if (container.getInventory().getHolder(false) instanceof DoubleChest doubleChest) {
+                    return (Chest)doubleChest.getLeftSide();
+                }
+
                 return container;
             } else {
                 return null;

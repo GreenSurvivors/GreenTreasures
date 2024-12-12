@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure.listener;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
@@ -11,6 +12,7 @@ import de.greensurvivors.greentreasure.language.LangPath;
 import io.papermc.paper.block.TileStateInventoryHolder;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -71,8 +73,9 @@ public class TreasureListener implements Listener {
         if (event.getPlayer() instanceof Player ePlayer) {
             Inventory eInventory = event.getInventory();
 
-            if (event.getInventory().getHolder(false) instanceof PersistentDataHolder persistentDataHolder) {
-                TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(persistentDataHolder);
+            final @Nullable String treasureId = openInventories.get(event.getView());
+            if (treasureId != null) {
+                TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureId);
 
                 //if the treasure wasn't deleted while the inventory was open call the close event
                 if (treasureInfo != null) {
@@ -81,7 +84,7 @@ public class TreasureListener implements Listener {
                     openInventories.remove(event.getView());
 
                     // everything is fine. The IDE is just confused with the two annotations of the array
-                    plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureInfo.treasureId(),
+                    plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
                         new PlayerLootDetail(System.currentTimeMillis(), Arrays.stream(eInventory.getContents()).collect(Collectors.toCollection(ArrayList::new))));
                 }
             }
@@ -133,7 +136,16 @@ public class TreasureListener implements Listener {
         if (event.getPlayer() instanceof Player ePlayer) {
             Inventory eInventory = event.getInventory();
 
-            if (eInventory.getHolder(false) instanceof PersistentDataHolder dataHolder) {
+            final @Nullable PersistentDataHolder dataHolder;
+            if (eInventory.getHolder(false) instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder leftDataHolder) {
+                dataHolder = leftDataHolder;
+            } else if (eInventory.getHolder(false) instanceof PersistentDataHolder directDataHolder) {
+                dataHolder = directDataHolder;
+            } else {
+                dataHolder = null;
+            }
+
+            if (dataHolder != null) {
                 final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(dataHolder);
 
                 if (treasureInfo != null) {
@@ -241,6 +253,8 @@ public class TreasureListener implements Listener {
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
                                 } else {
                                     //not saved inventory but timer is still running. Should never occur but better be safe than sorry
+
+                                    Utils.openInventory(ePlayer, eInventory.getHolder(), eInventory.getType());
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
 
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
@@ -276,7 +290,14 @@ public class TreasureListener implements Listener {
     @EventHandler
     private void onTreasureBreak(final @NotNull BlockBreakEvent event) {
         if (event.getBlock().getState(false) instanceof TileStateInventoryHolder inventoryHolder) {
-            final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(inventoryHolder);
+            final @Nullable TreasureInfo treasureInfo;
+
+            // double chests are wierd.
+            if (inventoryHolder.getInventory().getHolder() instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder persistentDataHolder) {
+                treasureInfo = plugin.getTreasureManager().getTreasure(persistentDataHolder);
+            } else {
+                treasureInfo = plugin.getTreasureManager().getTreasure(inventoryHolder);
+            }
 
             if (treasureInfo != null) {
                 if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {

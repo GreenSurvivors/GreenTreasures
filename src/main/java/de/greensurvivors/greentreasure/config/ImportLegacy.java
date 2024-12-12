@@ -10,7 +10,9 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -191,6 +193,11 @@ public class ImportLegacy {
             if (!(treasureBlock.getState(false) instanceof Container container)) {
                 plugin.getComponentLogger().warn("Could not load legacy treasure {} because the block at {} is not a container.", path, treasureBlock.getLocation());
                 return null;
+            }
+
+            // double chests are wierd.
+            if (container.getInventory().getHolder(false) instanceof DoubleChest doubleChest && doubleChest.getLeftSide() != null) {
+                container = (Chest)doubleChest.getLeftSide();
             }
 
             @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);

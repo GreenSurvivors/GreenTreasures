@@ -46,7 +46,7 @@ public class DeleteSubCommand extends ASubCommand {
      */
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            Container container = plugin.getTreasureCommands().getContainer(sender);
+            final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
                 final @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
