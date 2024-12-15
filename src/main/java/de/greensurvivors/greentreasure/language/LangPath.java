@@ -71,7 +71,12 @@ public enum LangPath {
     FORMAT_LOCATION("format.location"),
     NO_PERMISSION("no-permission"),
     PLUGIN_PREFIX("prefix", "<gold>[GreenTreasure]</gold> "),
-    SET_FORGET_DURATION("cmd.set.forget.duration");
+    SET_FORGET_DURATION("cmd.set.forget.duration"),
+
+    //
+    TREASURE_TITLE_EDIT("treasure.title.edit"),
+    TREASURE_TITLE_PEEK_SHARED("treasure.title.peek.shared"),
+    TREASURE_TITLE_PEEK_PLAYER("treasure.title.peek.player");
 
     private final String path;
     private final String defaultValue;

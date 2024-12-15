@@ -5,10 +5,14 @@ import de.greensurvivors.greentreasure.PermmissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.Bukkit;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permissible;
@@ -56,12 +60,18 @@ public class EditSubCommand extends ASubCommand {
                     final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
 
                     if (treasureInfo != null) {
-                        final @Nullable InventoryView view = Utils.openInventory(player, container, container.getInventory().getType());
+                        final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,
+                            Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
+
+                        final @NotNull Inventory inventory = Bukkit.createInventory(container, container.getInventory().getType(), title);
+                        // clone every item stack and put it into the new inventory
+                        inventory.setContents(treasureInfo.itemLoot().stream().map(itemStack -> itemStack == null || itemStack.isEmpty() ?
+                            ItemStack.empty() :
+                            itemStack.clone()).toArray(ItemStack[]::new));
+
+                        InventoryView view = player.openInventory(inventory);
 
                         if (view != null) {
-                            // clone every item stack and put it into the new inventory
-                            view.getTopInventory().setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() : s.clone()).toArray(ItemStack[]::new));
-
                             plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
                         } else {
                             plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);

@@ -2,7 +2,6 @@ package de.greensurvivors.greentreasure.listener;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermmissionManager;
-import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
@@ -253,9 +252,7 @@ public class TreasureListener implements Listener {
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
                                 } else {
                                     //not saved inventory but timer is still running. Should never occur but better be safe than sorry
-
-                                    Utils.openInventory(ePlayer, eInventory.getHolder(), eInventory.getType());
-                                    nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+                                    nowLooting = Bukkit.createInventory(eInventory.getHolder(), eInventory.getType(), eTitle);
 
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                 }

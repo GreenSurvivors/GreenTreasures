@@ -1,12 +1,7 @@
 package de.greensurvivors.greentreasure;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.block.Container;
-import org.bukkit.entity.Player;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.InventoryView;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -56,22 +51,6 @@ public class Utils {
 
     private Utils () {
         throw new RuntimeException("Do not try to instantiate this");
-    }
-
-    public static @Nullable InventoryView openInventory(final @NotNull Player player, final @Nullable InventoryHolder owner, final @NotNull InventoryType inventoryType) throws IllegalArgumentException {
-        if (!inventoryType.isCreatable()) {
-            throw new IllegalArgumentException("InventoryType " + inventoryType.name() + " is not creatable!");
-        }
-
-        return switch (inventoryType) {
-            case ANVIL -> player.openAnvil(owner == null ? null : owner.getInventory().getLocation(), true);
-            case CARTOGRAPHY -> player.openCartographyTable(owner == null ? null : owner.getInventory().getLocation(), true);
-            case GRINDSTONE -> player.openGrindstone(owner == null ? null : owner.getInventory().getLocation(), true);
-            case LOOM -> player.openLoom(owner == null ? null : owner.getInventory().getLocation(), true);
-            case SMITHING -> player.openSmithingTable(owner == null ? null : owner.getInventory().getLocation(), true);
-            case STONECUTTER -> player.openStonecutter(owner == null ? null : owner.getInventory().getLocation(), true);
-            default -> player.openInventory(Bukkit.createInventory(owner, inventoryType));
-        };
     }
 
     public static @NotNull Component getDisplayName(final @NotNull Container container) {
