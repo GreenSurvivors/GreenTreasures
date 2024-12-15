@@ -2,9 +2,15 @@ package de.greensurvivors.greentreasure;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Container;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Range;
 
+import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 public class Utils {
@@ -57,6 +63,57 @@ public class Utils {
         return container.customName() == null ?
             Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
             container.customName();
+    }
+
+    /// clone every item stack and put it into the new inventory
+    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items){
+        final int inventorySize = inventory.getSize();
+        final @NotNull ItemStack[] newContents = new ItemStack[inventorySize];
+
+        for (int i = 0, itemsSize = items.size(); i < itemsSize && i < inventorySize; i++) {
+            @Nullable ItemStack itemStack = items.get(i);
+
+            if (itemStack == null || itemStack.isEmpty()) {
+                newContents[i] = ItemStack.empty();
+            } else {
+                newContents[i] = itemStack.clone();
+            }
+        }
+
+        // fill missing slots, this is technically obsolete, since the Inventory should replace missing item slots with empty ones.
+        // but just to be extra safe we do it beforehand.
+        for (int i = items.size(); i < inventorySize; i++) {
+            newContents[i] = ItemStack.empty();
+        }
+
+        inventory.setContents(newContents);
+    }
+
+
+    /// clone every item stack and put it into the new inventory
+    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items, final @Range(from = 0, to = 10000) int slotChance){
+        final int inventorySize = inventory.getSize();
+        final @NotNull ItemStack[] newContents = new ItemStack[inventorySize];
+        final @NotNull Random random = ThreadLocalRandom.current();
+
+        for (int i = 0, itemsSize = items.size(); i < itemsSize && i < inventorySize; i++) {
+            @Nullable ItemStack itemStack = items.get(i);
+
+            if (itemStack == null || itemStack.isEmpty() || 
+                random.nextInt(0, 10000) > slotChance) {
+                newContents[i] = ItemStack.empty();
+            } else {
+                newContents[i] = itemStack.clone();
+            }
+        }
+
+        // fill missing slots, this is technically obsolete, since the Inventory should replace missing item slots with empty ones.
+        // but just to be extra safe we do it beforehand.
+        for (int i = items.size(); i < inventorySize; i++) {
+            newContents[i] = ItemStack.empty();
+        }
+
+        inventory.setContents(newContents);
     }
 
     /**

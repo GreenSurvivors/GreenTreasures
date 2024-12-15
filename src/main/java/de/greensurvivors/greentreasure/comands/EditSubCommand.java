@@ -14,7 +14,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -64,11 +63,7 @@ public class EditSubCommand extends ASubCommand {
                             Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
 
                         final @NotNull Inventory inventory = Bukkit.createInventory(container, container.getInventory().getType(), title);
-                        // clone every item stack and put it into the new inventory
-                        inventory.setContents(treasureInfo.itemLoot().stream().map(itemStack -> itemStack == null || itemStack.isEmpty() ?
-                            ItemStack.empty() :
-                            itemStack.clone()).toArray(ItemStack[]::new));
-
+                        Utils.setContents(inventory, treasureInfo.itemLoot());
                         InventoryView view = player.openInventory(inventory);
 
                         if (view != null) {

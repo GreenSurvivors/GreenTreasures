@@ -15,12 +15,14 @@ import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class PeekSubCommand extends ASubCommand {
 
@@ -81,13 +83,7 @@ public class PeekSubCommand extends ASubCommand {
                                         Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
-                                    int slotChance = treasureInfo.slotChance();
-                                    Random random = new Random();
-
-                                    // clone every item stack and put it into the new inventory
-                                    nowPeeking.setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ?
-                                        ItemStack.empty() : random.nextInt(0, 1000) > slotChance ? ItemStack.empty() :
-                                        s.clone()).toArray(ItemStack[]::new));
+                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
                                 } else {
@@ -97,8 +93,7 @@ public class PeekSubCommand extends ASubCommand {
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
                                     // get items left there last time
-                                    nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
-
+                                    Utils.setContents(nowPeeking, playerLootDetail.unLootedStuff());
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
                                 }
 
@@ -151,20 +146,14 @@ public class PeekSubCommand extends ASubCommand {
                                         Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
-                                    final int slotChance = treasureInfo.slotChance();
-                                    final @NotNull Random random = new Random();
-
-                                    // clone every item stack and put it into the new inventory
-                                    nowPeeking.setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? ItemStack.empty() :
-                                        random.nextInt(0, 1000) > slotChance ? ItemStack.empty() : s.clone()).toArray(ItemStack[]::new));
+                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
                                 } else {
                                     final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
                                         Placeholder.unparsed(PlaceHolderKey.PLAYER.getKey(), playerToPeek.toString()),
                                         Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
-                                    // get items left there last time
-                                    nowPeeking.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                    Utils.setContents(nowPeeking, playerLootDetail.unLootedStuff());
                                 }
 
                                 plugin.getCommandInventoriesListener().addPeekingTreasure(player.openInventory(nowPeeking), new PeekedTreasure(playerToPeek.getUniqueId(), treasureInfo.treasureId(), playerLootDetail.lastChangedTimeStamp()));

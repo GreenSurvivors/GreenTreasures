@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure.listener;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
@@ -23,7 +24,6 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -180,14 +180,7 @@ public class TreasureListener implements Listener {
 
                             } else if (treasureInfo.isUnlimited()) {
                                 Inventory nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                // clone every item stack and put it into the new inventory
-
-                                int slotChance = treasureInfo.slotChance();
-                                Random random = new Random();
-
-                                nowLooting.setContents(treasureInfo.itemLoot().stream()
-                                    .map(s -> s == null || s.isEmpty() ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).
-                                    toArray(ItemStack[]::new));
+                                Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                 ePlayer.openInventory(nowLooting);
                                 plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
@@ -201,18 +194,13 @@ public class TreasureListener implements Listener {
                                         !(treasureInfo.timeUntilForget().isPositive() && System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp() > treasureInfo.timeUntilForget().toMillis()))) {
 
                                         nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-
-                                        int slotChance = treasureInfo.slotChance();
-                                        Random random = new Random();
-
-                                        // clone every item stack and put it into the new inventory
-                                        nowLooting.setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                                        Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                     } else if (playerLootDetail.unLootedStuff() != null) {
                                         nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                                         // get items left there last time
-                                        nowLooting.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                        Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
                                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
                                     } else {
@@ -236,18 +224,12 @@ public class TreasureListener implements Listener {
                                     !((treasureInfo.timeUntilForget().isPositive()) && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()))) {
 
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-
-                                    int slotChance = treasureInfo.slotChance();
-                                    Random random = new Random();
-
-                                    // clone every item stack and put it into the new inventory
-                                    nowLooting.setContents(treasureInfo.itemLoot().stream().map(s -> s == null || s.isEmpty() ? null : random.nextInt(0, 1000) > slotChance ? null : s.clone()).toArray(ItemStack[]::new));
+                                    Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                 } else if (playerLootDetail.unLootedStuff() != null) {
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                    // get items left there last time
-                                    nowLooting.setContents(playerLootDetail.unLootedStuff().toArray(new ItemStack[0]));
+                                    Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
                                 } else {
