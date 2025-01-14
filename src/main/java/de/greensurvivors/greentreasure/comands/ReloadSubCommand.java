@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.language.LangPath;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
@@ -20,7 +20,7 @@ public class ReloadSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermmissionManager.TREASURE_RELOAD.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_RELOAD.get());
     }
 
     @Override

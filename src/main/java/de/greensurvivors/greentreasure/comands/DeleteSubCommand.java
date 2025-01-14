@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
@@ -25,7 +25,7 @@ public class DeleteSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermmissionManager.TREASURE_DELETE.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_DELETE.get());
     }
 
     @Override

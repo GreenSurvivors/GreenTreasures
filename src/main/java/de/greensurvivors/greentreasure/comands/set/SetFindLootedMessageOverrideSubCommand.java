@@ -7,8 +7,8 @@ import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.apache.commons.lang.BooleanUtils;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -16,23 +16,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
-public class SetSharedSubCommand extends ASubCommand {
+public class SetFindLootedMessageOverrideSubCommand extends ASubCommand {
 
-    public SetSharedSubCommand(@NotNull GreenTreasure plugin) {
+    public SetFindLootedMessageOverrideSubCommand(@NotNull GreenTreasure plugin) {
         super(plugin);
     }
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermissionManager.TREASURE_SET_SHARED.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_SET_FIND_LOOTED_MSG_OVERRIDE.get());
     }
 
     @Override
     public @NotNull Set<@NotNull String> getAliases() {
-        return Set.of("global", "shared");
+        return Set.of("findlootedmessageoverride", "findlooted", "findlootedhmsg");
     }
 
     @Override
@@ -42,8 +43,8 @@ public class SetSharedSubCommand extends ASubCommand {
     }
 
     /**
-     * set's if all player share the same loot inventory or not
-     * /gt set(0) shared(1) <true/false>(2)
+     * set's the message the user gets, if they open the treasure with new generated loot
+     * /gt set(0) findlootedmsg(1) <new message>(2)
      *
      * @param sender sender of this command
      * @param args   given arguments
@@ -57,22 +58,16 @@ public class SetSharedSubCommand extends ASubCommand {
 
                 if (treasureInfo != null) {
                     if (args.length > 2) {
-                        Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
+                        final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-                        if (isUnLimited != null) {
-                            plugin.getDatabaseManager().setShared(treasureInfo.treasureId(), isUnLimited).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_SHARED_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.BOOL.getKey(), plugin.getMessageManager().getLang(isUnLimited ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
-                                ));
-                        } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_BOOL,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                        plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
+                            ));
 
-                            return false;
-                        }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
-                        return false;
+                        plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_REMOVED));
                     }
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
@@ -87,11 +82,7 @@ public class SetSharedSubCommand extends ASubCommand {
         return true;
     }
 
-    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
-        if (args.length == 3) {
-            return List.of(Boolean.TRUE.toString(), Boolean.FALSE.toString());
-        }
-
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         return new ArrayList<>();
     }
 }

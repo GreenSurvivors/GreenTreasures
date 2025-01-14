@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
@@ -28,7 +28,7 @@ public class SetRandomSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermmissionManager.TREASURE_SET_RANDOM.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_SET_RANDOM.get());
     }
 
     @Override

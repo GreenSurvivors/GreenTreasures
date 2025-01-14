@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -38,7 +38,7 @@ public class SetForgetSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermmissionManager.TREASURE_SET_FORGET.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_SET_FORGET.get());
     }
 
     @Override

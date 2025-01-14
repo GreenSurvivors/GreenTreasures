@@ -1,10 +1,7 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.comands.set.SetForgetSubCommand;
-import de.greensurvivors.greentreasure.comands.set.SetRandomSubCommand;
-import de.greensurvivors.greentreasure.comands.set.SetSharedSubCommand;
-import de.greensurvivors.greentreasure.comands.set.SetUnlimitedSubCommand;
+import de.greensurvivors.greentreasure.comands.set.*;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -26,6 +23,8 @@ public class SetSubCommand extends ASubCommand {
         registerSubCommand(new SetSharedSubCommand(plugin));
         registerSubCommand(new SetRandomSubCommand(plugin));
         registerSubCommand(new SetUnlimitedSubCommand(plugin));
+        registerSubCommand(new SetFindFreshMessageOverrideSubCommand(plugin));
+        registerSubCommand(new SetFindLootedMessageOverrideSubCommand(plugin));
     }
 
     private void registerSubCommand(final @NotNull ASubCommand subCommand) {

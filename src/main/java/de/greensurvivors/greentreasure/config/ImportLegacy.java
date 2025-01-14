@@ -222,7 +222,9 @@ public class ImportLegacy {
             final @NotNull DatabaseManager databaseManager = plugin.getDatabaseManager();
             databaseManager.setTreasureContents(treasureId, contents);
 
+            boolean isUnlimited = false;
             if (checkedRootMap.get("unlimited") instanceof Boolean unlimited) {
+                isUnlimited = unlimited;
                 databaseManager.setUnlimited(treasureId, unlimited);
             }
             if (checkedRootMap.get("shared") instanceof Boolean shared) {
@@ -238,6 +240,26 @@ public class ImportLegacy {
                     forget_time = DEFAULT_FORGETTING_PERIOD;
                 }
                 databaseManager.setForgetDuration(treasureId, forget_time);
+            }
+            if (checkedRootMap.get("messages") instanceof Map<?, ?> messageMap) {
+                final @NotNull Map<@NotNull String, @NotNull Object> checkedMessageMap = validateMap(messageMap);
+
+                if (isUnlimited) {
+                    if (checkedMessageMap.get("UNLIMITED") instanceof String unlimitedMessage &&
+                        !unlimitedMessage.equals("Take as much as you want!")) {
+                        databaseManager.setFindFreshMessageOverride(treasureId, unlimitedMessage);
+                    }
+                } else {
+                    if (checkedMessageMap.get("FOUND") instanceof String freshFindMessage &&
+                        !freshFindMessage.equals("You have found treasure!")) {
+                        databaseManager.setFindFreshMessageOverride(treasureId, freshFindMessage);
+                    }
+                }
+
+                if (checkedMessageMap.get("FOUND_ALREADY") instanceof String lootedMessage &&
+                    !lootedMessage.equals("You have already looted this treasure...")) {
+                    databaseManager.setFindLootedMessageOverride(treasureId, lootedMessage);
+                }
             }
 
             plugin.getComponentLogger().debug("imported treasure with id {} from path {}", treasureId, path);

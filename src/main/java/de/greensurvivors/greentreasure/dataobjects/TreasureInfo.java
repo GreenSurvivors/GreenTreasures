@@ -18,5 +18,8 @@ import java.util.List;
  * @param isShared        if the inventory a treasure has is globally shared
  */
 public record TreasureInfo(@NotNull String treasureId, @NotNull List<@Nullable ItemStack> itemLoot,
-                           @NotNull Duration timeUntilForget, @Range(from = 0, to = 10000) int slotChance, boolean isUnlimited, boolean isShared) {
+                           @NotNull Duration timeUntilForget,
+                           @Range(from = 0, to = 10000) int slotChance,
+                           boolean isUnlimited, boolean isShared,
+                           @Nullable String rawFindFreshMessageOverride, @Nullable String rawFindLootedMessageOverride) {
 }

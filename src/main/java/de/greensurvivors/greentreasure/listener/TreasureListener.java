@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.listener;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
@@ -9,8 +9,11 @@ import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
 import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
 import de.greensurvivors.greentreasure.event.TreasureOpenEvent;
 import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import io.papermc.paper.block.TileStateInventoryHolder;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.block.DoubleChest;
 import org.bukkit.entity.Player;
@@ -149,7 +152,7 @@ public class TreasureListener implements Listener {
 
                 if (treasureInfo != null) {
                     //test permission
-                    if (ePlayer.hasPermission(PermmissionManager.TREASURE_OPEN.get())) {
+                    if (ePlayer.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
                         Component eTitle = event.getView().title();
                         // don't open the original block inventory
                         event.setCancelled(true);
@@ -183,7 +186,17 @@ public class TreasureListener implements Listener {
                                 Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                 ePlayer.openInventory(nowLooting);
-                                plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
+
+                                if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                    plugin.getMessageManager().sendMessage(ePlayer,
+                                        MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                            Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                            Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_TRUE))
+                                        ));
+                                } else {
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
+                                }
                             } else {
                                 //load global treasure async
                                 plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
@@ -196,18 +209,45 @@ public class TreasureListener implements Listener {
                                         nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                                         Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
-                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                        if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                            plugin.getMessageManager().sendMessage(ePlayer,
+                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                                ));
+                                        } else {
+                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                        }
                                     } else if (playerLootDetail.unLootedStuff() != null) {
                                         nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                                         // get items left there last time
                                         Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
-                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
+                                        if (treasureInfo.rawFindLootedMessageOverride() != null) {
+                                            plugin.getMessageManager().sendMessage(ePlayer,
+                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindLootedMessageOverride(),
+                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                                ));
+                                        } else {
+                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
+                                        }
                                     } else {
                                         //not saved inventory but timer is still running. Should never occur but better be safe than sorry
                                         nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
 
-                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                        if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                            plugin.getMessageManager().sendMessage(ePlayer,
+                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                                ));
+                                        } else {
+                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                        }
                                     }
 
                                     openInventories.put(ePlayer.openInventory(nowLooting), treasureInfo.treasureId());
@@ -226,17 +266,44 @@ public class TreasureListener implements Listener {
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                                     Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                    if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                        plugin.getMessageManager().sendMessage(ePlayer,
+                                            MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                            ));
+                                    } else {
+                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                    }
                                 } else if (playerLootDetail.unLootedStuff() != null) {
                                     nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
                                     Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
+                                    if (treasureInfo.rawFindLootedMessageOverride() != null) {
+                                        plugin.getMessageManager().sendMessage(ePlayer,
+                                            MiniMessage.miniMessage().deserialize(treasureInfo.rawFindLootedMessageOverride(),
+                                                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                            ));
+                                    } else {
+                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
+                                    }
                                 } else {
                                     //not saved inventory but timer is still running. Should never occur but better be safe than sorry
                                     nowLooting = Bukkit.createInventory(eInventory.getHolder(), eInventory.getType(), eTitle);
 
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                    if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                        plugin.getMessageManager().sendMessage(ePlayer,
+                                            MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                                Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                                Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                            ));
+                                    } else {
+                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                    }
                                 }
 
                                 openInventories.put(ePlayer.openInventory(nowLooting), treasureInfo.treasureId());
@@ -283,7 +350,7 @@ public class TreasureListener implements Listener {
                     event.setCancelled(true);
 
                     Player ePlayer = event.getPlayer();
-                    if (ePlayer.hasPermission(PermmissionManager.TREASURE_DELETE.get())) {
+                    if (ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get())) {
                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_ADMIN);
                     } else {
                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_USER);

@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands.list;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.PermmissionManager;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
@@ -30,7 +30,7 @@ public class ListNearbyCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return permissible.hasPermission(PermmissionManager.TREASURE_LIST_NEAR.get());
+        return permissible.hasPermission(PermissionManager.TREASURE_LIST_NEAR.get());
     }
 
     @Override

@@ -44,7 +44,9 @@ public class DatabaseManager {
         TREASURE_FORGET_DURATION_KEY = "forgetduration",
         TREASURE_SLOT_CHANCE_KEY = "slotchance",
         TREASURE_UNLIMITED_KEY = "unlimited",
-        TREASURE_SHARED_KEY = "shared";
+        TREASURE_SHARED_KEY = "shared",
+        TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY = "findfreshmessageoverride",
+        TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY = "findlootedmessageoverride";
     // config keys
     private final static @NotNull String
         HOST = "host",
@@ -466,6 +468,90 @@ public class DatabaseManager {
     }
 
     /**
+     * @param treasureId information to identify a treasure
+     */
+    public @NotNull CompletableFuture<Void> setFindFreshMessageOverride(final @NotNull String treasureId, final @Nullable String findFreshMessageOverride) {
+        final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
+                return;
+            }
+
+            createTableTreasure();
+
+            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
+                TREASURE_ID_KEY + ", " +
+                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ") " +
+                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
+                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " = VALUES(" + TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ")";
+
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+                preparedStatement.setString(1, treasureId);
+                preparedStatement.setString(2, findFreshMessageOverride);
+
+                int rowsAffected = preparedStatement.executeUpdate();
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
+                    resultFuture.complete(null);
+                });
+
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set findFreshMessageOverride request for treasure {} to {}, on thread {}", rowsAffected, treasureId, findFreshMessageOverride, Thread.currentThread().getName());
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
+
+                plugin.getComponentLogger().warn("Could not set treasure findFreshMessageOverride setting for '{}' to {}", treasureId, findFreshMessageOverride, e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    /**
+     * @param treasureId information to identify a treasure
+     */
+    public @NotNull CompletableFuture<Void> setFindLootedMessageOverride(final @NotNull String treasureId, final @Nullable String findLootedMessageOverride) {
+        final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
+                return;
+            }
+
+            createTableTreasure();
+
+            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
+                TREASURE_ID_KEY + ", " +
+                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + ") " +
+                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
+                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " = VALUES(" + TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + ")";
+
+            try (final @NotNull Connection connection = dataSource.getConnection();
+                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
+                preparedStatement.setString(1, treasureId);
+                preparedStatement.setString(2, findLootedMessageOverride);
+
+                int rowsAffected = preparedStatement.executeUpdate();
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    plugin.getTreasureManager().invalidateTreasure(treasureId);
+                    resultFuture.complete(null);
+                });
+
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set findLootedMessageOverride request for treasure {} to {}, on thread {}", rowsAffected, treasureId, findLootedMessageOverride, Thread.currentThread().getName());
+            } catch (SQLException e) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
+
+                plugin.getComponentLogger().warn("Could not set treasure findLootedMessageOverride setting for '{}' to {}", treasureId, findLootedMessageOverride, e);
+            }
+        });
+
+        return resultFuture;
+    }
+
+    /**
      * The reason why this method is NOT async is that certain actions in this plugin can't just wait around for a CompletableFuture to complete.
      * Like to know if an Event should get canceled, the server has to get stalled until we retrieve the data.
      * So just skip the nonsense and cache the data whenever possible.
@@ -478,7 +564,9 @@ public class DatabaseManager {
             TREASURE_FORGET_DURATION_KEY + ", " +
             TREASURE_SLOT_CHANCE_KEY + ", " +
             TREASURE_UNLIMITED_KEY + ", " +
-            TREASURE_SHARED_KEY +
+            TREASURE_SHARED_KEY +", " +
+            TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY +", " +
+            TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY +
             " FROM " + TREASURE_TABLE +
             " WHERE " + TREASURE_ID_KEY + " = ?";
 
@@ -494,6 +582,8 @@ public class DatabaseManager {
                     final short slotChance = resultSet.getShort(TREASURE_SLOT_CHANCE_KEY);
                     final boolean isUnlimited = resultSet.getBoolean(TREASURE_UNLIMITED_KEY);
                     final boolean isShared = resultSet.getBoolean(TREASURE_SHARED_KEY);
+                    final @Nullable String findFreshMessageOverride = resultSet.getString(TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY);
+                    final @Nullable String findLootedMessageOverride = resultSet.getString(TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY);
 
                     if (blob.length() <= 1) {
                         plugin.getComponentLogger().warn("No or malformed item list found for treasure id {}. Skipping. On thread {}", treasureId, Thread.currentThread().getName());
@@ -503,7 +593,7 @@ public class DatabaseManager {
                     final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
                     blob.free();
 
-                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), slotChance, isUnlimited, isShared);
+                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), slotChance, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
                 } else { // this treasure was deleted / never created
                     plugin.getComponentLogger().debug("got no answer for get request for treasure info {}, on thread {}", treasureId, Thread.currentThread().getName());
                     return null;
@@ -825,7 +915,9 @@ public class DatabaseManager {
                 TREASURE_FORGET_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
                 TREASURE_SLOT_CHANCE_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
                 TREASURE_UNLIMITED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_UNLIMITED + ", " +
-                TREASURE_SHARED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_SHARED + ")";
+                TREASURE_SHARED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_SHARED + ", " +
+                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " TEXT, " + // test is nullable with the default being null
+                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " TEXT)";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
