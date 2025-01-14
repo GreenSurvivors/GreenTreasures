@@ -76,7 +76,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
 
                     //add the treasure info for the page
                     for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
-                        TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureIds.get(num));
+                        TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureIds.get(num));
 
                         helper.addEntry(treasureInfo, treasureIds.get(num));
                     }
@@ -115,7 +115,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
             super.numOfEntriesStillToDo--;
 
             //build treasureInfo
-            @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURE_BODY,
+            @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId),
                 Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((double) treasureInfo.slotChance()) / 100.0d)),
                 Placeholder.component(PlaceHolderKey.SHARED.getKey(), plugin.getMessageManager().getLang(treasureInfo.isShared() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)),

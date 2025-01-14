@@ -61,7 +61,7 @@ public class PeekSubCommand extends ASubCommand {
                 Container container = plugin.getTreasureCommands().getContainer(sender);
 
                 if (container != null) {
-                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
+                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                     if (treasureInfo != null) {
                         // unlimited treasure

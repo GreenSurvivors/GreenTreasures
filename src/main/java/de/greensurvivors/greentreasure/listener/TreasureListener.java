@@ -74,7 +74,7 @@ public class TreasureListener implements Listener {
 
             final @Nullable String treasureId = openInventories.get(event.getView());
             if (treasureId != null) {
-                TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(treasureId);
+                TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
 
                 //if the treasure wasn't deleted while the inventory was open call the close event
                 if (treasureInfo != null) {
@@ -145,7 +145,7 @@ public class TreasureListener implements Listener {
             }
 
             if (dataHolder != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(dataHolder);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(dataHolder);
 
                 if (treasureInfo != null) {
                     //test permission
@@ -273,9 +273,9 @@ public class TreasureListener implements Listener {
 
             // double chests are wierd.
             if (inventoryHolder.getInventory().getHolder() instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder persistentDataHolder) {
-                treasureInfo = plugin.getTreasureManager().getTreasure(persistentDataHolder);
+                treasureInfo = plugin.getTreasureManager().getTreasureInfo(persistentDataHolder);
             } else {
-                treasureInfo = plugin.getTreasureManager().getTreasure(inventoryHolder);
+                treasureInfo = plugin.getTreasureManager().getTreasureInfo(inventoryHolder);
             }
 
             if (treasureInfo != null) {

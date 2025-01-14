@@ -1,6 +1,7 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.comands.list.ListNearbyCommand;
 import de.greensurvivors.greentreasure.comands.list.ListPlayerSubCommand;
 import de.greensurvivors.greentreasure.comands.list.ListTreasuresSubCommand;
 import de.greensurvivors.greentreasure.comands.list.ListWhoSubCommand;
@@ -25,6 +26,7 @@ public class ListSubCommand extends ASubCommand {
         registerSubCommand(new ListPlayerSubCommand(plugin));
         registerSubCommand(new ListTreasuresSubCommand(plugin));
         registerSubCommand(new ListWhoSubCommand(plugin));
+        registerSubCommand(new ListNearbyCommand(plugin));
     }
 
     private void registerSubCommand(final @NotNull ASubCommand subCommand) {
@@ -44,8 +46,7 @@ public class ListSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 

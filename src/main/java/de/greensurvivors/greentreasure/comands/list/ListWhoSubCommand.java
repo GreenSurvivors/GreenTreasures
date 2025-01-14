@@ -33,7 +33,7 @@ public class ListWhoSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return false;
+        return permissible.hasPermission(PermmissionManager.TREASURE_LIST_WHO.get());
     }
 
     @Override
@@ -49,11 +49,11 @@ public class ListWhoSubCommand extends ASubCommand {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
-        if (sender.hasPermission(PermmissionManager.TREASURE_LIST_WHO.get())) {
+        if (checkPermission(sender)) {
             Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                 if (treasureInfo != null) {
                     plugin.getDatabaseManager().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {

@@ -56,7 +56,7 @@ public class EditSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (sender instanceof Player player) {
-                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
+                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                     if (treasureInfo != null) {
                         final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,

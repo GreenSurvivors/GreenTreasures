@@ -48,7 +48,7 @@ public class CreateSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (container.getInventory().getType().isCreatable()) {
-                    if (plugin.getTreasureManager().getTreasure(container) == null) {
+                    if (plugin.getTreasureManager().getTreasureInfo(container) == null) {
                         final String newTreasureId = UUID.randomUUID().toString();
                         plugin.getTreasureManager().setTreasureId(container, newTreasureId);
 

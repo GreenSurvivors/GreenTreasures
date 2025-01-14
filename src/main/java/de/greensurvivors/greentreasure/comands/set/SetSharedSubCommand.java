@@ -53,7 +53,7 @@ public class SetSharedSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasure(container);
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                 if (treasureInfo != null) {
                     if (args.length > 2) {

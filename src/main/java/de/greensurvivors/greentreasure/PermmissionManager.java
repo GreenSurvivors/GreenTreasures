@@ -40,8 +40,8 @@ public enum PermmissionManager {
     TREASURE_LIST_PLAYERS(new Permission("greentreasure.list.player")),
     //right to list all treasures
     TREASURE_LIST_TREASURES(new Permission("greentreasure.list.treasures")),
-    //right to list all treasures
     TREASURE_LIST_WHO(new Permission("greentreasure.list.who")),
+    TREASURE_LIST_NEAR(new Permission("greentreasure.list.near")),
 
     //all rights
     TREASURE_ADMIN(new Permission("greentreasure.*", PermissionDefault.OP,
@@ -60,7 +60,8 @@ public enum PermmissionManager {
             Map.entry(TREASURE_SET_FORGET.permission.getName(), Boolean.TRUE),
             Map.entry(TREASURE_LIST_PLAYERS.permission.getName(), Boolean.TRUE),
             Map.entry(TREASURE_LIST_TREASURES.permission.getName(), Boolean.TRUE),
-            Map.entry(TREASURE_LIST_WHO.permission.getName(), Boolean.TRUE)
+            Map.entry(TREASURE_LIST_WHO.permission.getName(), Boolean.TRUE),
+            Map.entry(TREASURE_LIST_NEAR.permission.getName(), Boolean.TRUE)
         )
     ));
 

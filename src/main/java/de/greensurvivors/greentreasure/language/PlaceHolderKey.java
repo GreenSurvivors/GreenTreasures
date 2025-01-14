@@ -7,22 +7,23 @@ import org.jetbrains.annotations.NotNull;
  * placeholder strings used. will be surrounded in Minimassage typical format of <>
  */
 public enum PlaceHolderKey {
+    BOOL("bool"),
+    CMD("cmd"),
+    LAST_PAGE("last_page"),
+    LOCATION("location"),
+    NAME("name"),
+    NUMBER("number"),
     PLAYER("player"),
+    SHARED("shared"),
+    TEXT("text"),
     TIME("time"),
+    TREASURE_ID("treasure_id"),
+    UNLIMITED("unlimited"),
+    UUID("uuid"),
+    WORLD("world"),
     X("x"),
     Y("y"),
-    Z("z"),
-    LAST_PAGE("last_page"),
-    TEXT("text"),
-    UUID("uuid"),
-    NAME("name"),
-    WORLD("world"),
-    BOOL("bool"),
-    NUMBER("number"),
-    TREASURE_ID("treasure_id"),
-    CMD("cmd"),
-    SHARED("shared"),
-    UNLIMITED("unlimited");
+    Z("z");
 
     private final @NotNull String key;
 

@@ -1,10 +1,8 @@
-//import net.minecrell.pluginyml.bukkit.BukkitPluginDescription
-
 plugins {
     `java-library`
     //java
-    id("io.papermc.paperweight.userdev") version "1.7.3"
-    id("xyz.jpenilla.run-paper") version "2.3.0"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.13"
+    id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
 group = "de.greensurvivors"
@@ -31,10 +29,10 @@ repositories {
 
 dependencies {
     paperweight.paperDevBundle("$mcVersion-R0.1-SNAPSHOT")
-    compileOnly("com.zaxxer:HikariCP:6.0.0")
+    compileOnly("com.zaxxer:HikariCP:6.2.1")
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.1.8") // caches
     compileOnly("org.yaml:snakeyaml:2.3")
-    compileOnly("org.apache.commons:commons-collections4:4.5.0-M2")
+    compileOnly("org.apache.commons:commons-collections4:4.5.0-M3")
 }
 
 tasks {

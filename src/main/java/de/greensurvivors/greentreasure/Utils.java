@@ -14,14 +14,13 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
 
 public class Utils {
-    final static String Digits = "(\\p{Digit}+)";
-    final static String HexDigits = "(\\p{XDigit}+)";
+    final static String HexDigits = "\\p{XDigit}+";
     // an exponent is 'e' or 'E' followed by an optionally
     // signed decimal integer.
-    final static String Exp = "[eE][+-]?" + Digits;
+    final static String Exp = "[eE][+-]?\\d+";
     final static String fpRegex =
         ("[\\x00-\\x20]*" + // Optional leading "whitespace"
-            "[+-]?(" +         // Optional sign character
+            "[+-]?" +         // Optional sign character
             //"NaN|" +           // "NaN" string
             //"Infinity|" +      // "Infinity" string
 
@@ -36,22 +35,22 @@ public class Utils {
             // edition, section 3.10.2.
 
             // Digits ._opt Digits_opt ExponentPart_opt FloatTypeSuffix_opt
-            "(((" + Digits + "(\\.)?(" + Digits + "?)(" + Exp + ")?)|" +
+            "^(?:(\\d+\\.?\\d+?(?:" + Exp + ")?)|" +
 
             // . Digits ExponentPart_opt FloatTypeSuffix_opt
-            "(\\.(" + Digits + ")(" + Exp + ")?)|" +
+            "(\\.\\d+(?:" + Exp + ")?)|" +
 
             // Hexadecimal strings
-            "((" +
+            "(?:" +
             // 0[xX] HexDigits ._opt BinaryExponent FloatTypeSuffix_opt
             "(0[xX]" + HexDigits + "(\\.)?)|" +
 
             // 0[xX] HexDigits_opt . HexDigits BinaryExponent FloatTypeSuffix_opt
-            "(0[xX]" + HexDigits + "?(\\.)" + HexDigits + ")" +
+            "0[xX]" + HexDigits + "?(\\.)" + HexDigits +
 
-            ")[pP][+-]?" + Digits + "))" +
-            "[fFdD]?))" +
-            "[\\x00-\\x20]*");// Optional trailing "whitespace"
+            ")[pP][+-]?\\d+)" +
+            "[fFdD]?" +
+            "[\\x00-\\x20]*$");// Optional trailing "whitespace"
     private static final Pattern FLOAT_PATTERN = Pattern.compile(fpRegex);
     private static final Pattern INT_PATTERN = Pattern.compile("^[+-]?\\d+$");
 
@@ -131,7 +130,7 @@ public class Utils {
             return false;
         }
 
-        return INT_PATTERN.matcher(toTest).find();
+        return INT_PATTERN.matcher(toTest).matches();
     }
 
     /**
@@ -149,6 +148,6 @@ public class Utils {
             return false;
         }
 
-        return FLOAT_PATTERN.matcher(toTest).find();
+        return FLOAT_PATTERN.matcher(toTest).matches();
     }
 }
