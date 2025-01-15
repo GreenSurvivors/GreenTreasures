@@ -56,7 +56,7 @@ public class GreenTreasure extends JavaPlugin {
         treasureManager.clearTreasures();
     }
 
-    public @NotNull DatabaseManager getDatabaseManager () {
+    public @NotNull DatabaseManager getDatabaseManager() {
         return databaseManager;
     }
 
@@ -67,6 +67,7 @@ public class GreenTreasure extends JavaPlugin {
     public TreasureManager getTreasureManager() {
         return treasureManager;
     }
+
     public @NotNull CommandInventoriesListener getCommandInventoriesListener() {
         return commandInventoriesListener;
     }

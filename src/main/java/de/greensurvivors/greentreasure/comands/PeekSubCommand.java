@@ -3,6 +3,7 @@ package de.greensurvivors.greentreasure.comands;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -126,33 +127,26 @@ public class PeekSubCommand extends ASubCommand {
                             }
 
                             plugin.getDatabaseManager().getPlayerData(playerToPeek, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
-                                final Inventory nowPeeking;
+                                final @NotNull Component name;
+                                if (playerToPeek.isOnline()) {
+                                    name = playerToPeek.getPlayer().displayName();
+                                } else if (playerToPeek.getName() != null) {
+                                    name = Component.text(playerToPeek.getName());
+                                } else {
+                                    name = Component.text(playerToPeek.getUniqueId().toString());
+                                }
 
-                                if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
-                                    final @NotNull Component name;
-                                    if (playerToPeek.isOnline()) {
-                                        name = playerToPeek.getPlayer().displayName();
-                                    } else if (playerToPeek.getName() != null) {
-                                        name = Component.text(playerToPeek.getName());
-                                    } else {
-                                        name = Component.text(playerToPeek.getUniqueId().toString());
-                                    }
+                                final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
+                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name),
+                                    Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
+                                final Inventory nowPeeking = Bukkit.createInventory(new InventoryHolderWrapper<>(container, true), container.getInventory().getType(), title);
 
+                                if ((playerLootDetail == null || playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
                                         Placeholder.component(PlaceHolderKey.NAME.getKey(), name));
 
-                                    final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
-                                        Placeholder.unparsed(PlaceHolderKey.PLAYER.getKey(), playerToPeek.toString()),
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
-                                    nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
-
                                     Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
                                 } else {
-                                    final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
-                                        Placeholder.unparsed(PlaceHolderKey.PLAYER.getKey(), playerToPeek.toString()),
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
-                                    nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
-
                                     Utils.setContents(nowPeeking, playerLootDetail.unLootedStuff());
                                 }
 

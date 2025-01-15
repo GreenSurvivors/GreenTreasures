@@ -30,6 +30,10 @@ public class TreasureBreakEvent extends BlockEvent implements Cancellable {
         return handlers;
     }
 
+    public static @NotNull HandlerList getHandlerList() {
+        return handlers;
+    }
+
     /**
      * Gets the Player that is breaking the block involved in this event.
      *

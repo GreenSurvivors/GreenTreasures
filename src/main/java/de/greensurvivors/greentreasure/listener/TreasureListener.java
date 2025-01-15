@@ -3,6 +3,7 @@ package de.greensurvivors.greentreasure.listener;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
@@ -15,7 +16,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
-import org.bukkit.block.DoubleChest;
+import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -26,6 +27,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
@@ -36,8 +38,8 @@ import java.util.stream.Collectors;
 
 public class TreasureListener implements Listener {
     //list of open inventories, needed to have shared treasures and saving the contents of a treasure after the inventory view was closed
-    private final @NotNull Map<@NotNull InventoryView, @NotNull String> openInventories = new HashMap<>();
-     private final @NotNull GreenTreasure plugin;
+    private final @NotNull Map<@NotNull String, @NotNull Set<@NotNull InventoryView>> openInventories = new HashMap<>();
+    private final @NotNull GreenTreasure plugin;
 
     public TreasureListener(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
@@ -46,13 +48,10 @@ public class TreasureListener implements Listener {
     }
 
     public void closeInventories(final @NotNull String treasureId) {
-        for (Iterator<Map.Entry<@NotNull InventoryView, @NotNull String>> iterator = openInventories.entrySet().iterator(); iterator.hasNext(); ) {
-            final @NotNull Map.Entry<@NotNull InventoryView, @NotNull String> entry = iterator.next();
+        final @Nullable Collection<@NotNull InventoryView> views = openInventories.remove(treasureId);
 
-            if (entry.getValue().equals(treasureId)) {
-                entry.getKey().close();
-                iterator.remove();
-            }
+        if (views != null) {
+            views.forEach(InventoryView::close);
         }
     }
 
@@ -60,11 +59,10 @@ public class TreasureListener implements Listener {
      * closes all open inventories to update them
      */
     public void closeAllInventories() {
-        for (Iterator<@NotNull InventoryView> iterator = openInventories.keySet().iterator(); iterator.hasNext();) {
-            final @NotNull InventoryView view = iterator.next();
-            view.close(); // will call inventory close event first before moving to next line
-            iterator.remove();
+        for (Collection<InventoryView> views : openInventories.values()) {
+            views.forEach(InventoryView::close); // will call inventory close event first before removing this entry
         }
+        openInventories.clear();
     }
 
     /**
@@ -75,7 +73,12 @@ public class TreasureListener implements Listener {
         if (event.getPlayer() instanceof Player ePlayer) {
             final @NotNull Inventory eInventory = event.getInventory();
 
-            final @Nullable String treasureId = openInventories.get(event.getView());
+            // skip peeked treasures
+            if (event.getView().getTopInventory().getHolder(false) instanceof InventoryHolderWrapper<?> wrapper && wrapper.isPerCommand()) {
+                return;
+            }
+
+            final @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(event.getView());
             if (treasureId != null) {
                 TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
 
@@ -83,7 +86,10 @@ public class TreasureListener implements Listener {
                 if (treasureInfo != null) {
                     new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
 
-                    openInventories.remove(event.getView());
+                    final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureId);
+                    if (views != null) {
+                        views.remove(event.getView());
+                    }
 
                     // everything is fine. The IDE is just confused with the two annotations of the array
                     plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
@@ -98,7 +104,11 @@ public class TreasureListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true)
     private void onInventoryDrag(final @NotNull InventoryDragEvent event) {
-        if (openInventories.get(event.getView()) != null) {
+        if (event.getView().getTopInventory().getHolder(false) instanceof InventoryHolderWrapper<?> wrapper && wrapper.isPerCommand()) {
+            return;
+        }
+
+        if (plugin.getTreasureManager().getTreasureId(event.getView()) != null) {
             for (int slot : event.getRawSlots()) {
                 if (slot >= 0 && slot < event.getView().getTopInventory().getSize()) {
                     event.setCancelled(true);
@@ -112,7 +122,11 @@ public class TreasureListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true)
     private void onInventoryClick(final @NotNull InventoryClickEvent event) {
-        if (openInventories.get(event.getView()) != null) {
+        if (event.getView().getTopInventory().getHolder(false) instanceof InventoryHolderWrapper<?> wrapper && wrapper.isPerCommand()) {
+            return;
+        }
+
+        if (plugin.getTreasureManager().getTreasureId(event.getView()) != null) {
 
             switch (event.getAction()) {
                 case PLACE_ALL, PLACE_SOME, PLACE_ONE, SWAP_WITH_CURSOR, HOTBAR_SWAP, COLLECT_TO_CURSOR -> {
@@ -138,132 +152,86 @@ public class TreasureListener implements Listener {
         if (event.getPlayer() instanceof Player ePlayer) {
             final @NotNull Inventory eInventory = event.getInventory();
 
-            final @Nullable PersistentDataHolder dataHolder;
-            if (eInventory.getHolder(false) instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder leftDataHolder) {
-                dataHolder = leftDataHolder;
-            } else if (eInventory.getHolder(false) instanceof PersistentDataHolder directDataHolder) {
-                dataHolder = directDataHolder;
-            } else {
-                dataHolder = null;
-            }
+            final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(event.getView());
 
-            if (dataHolder != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(dataHolder);
+            if (treasureInfo != null) {
+                final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureInfo.treasureId());
 
-                if (treasureInfo != null) {
-                    //test permission
-                    if (ePlayer.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
-                        Component eTitle = event.getView().title();
-                        // don't open the original block inventory
-                        event.setCancelled(true);
+                if (eInventory.getHolder(false) instanceof InventoryHolderWrapper<?>) {
+                    return;
+                }
 
-                        // call api event: TreasureOpenEvent
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
-                        treasureOpenEvent.callEvent();
+                if (views != null) {
+                    plugin.getComponentLogger().info("found entry in openInventories.");
 
-                        // evaluate result
-                        switch (treasureOpenEvent.getResult()) {
-                            case DEFAULT -> event.setCancelled(true);
-                            case ORIGINAL -> {
-                                return;
-                            }
-                            case CANCELED -> {
-                                event.setCancelled(true);
-                                return;
-                            }
+                    if (views.contains(event.getView())) {
+                        plugin.getComponentLogger().info("same view!.");
+                        return;
+                    }
+                }
+
+                //test permission
+                if (ePlayer.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
+                    Component eTitle = event.getView().title();
+                    // don't open the original block inventory
+                    event.setCancelled(true);
+
+                    // call api event: TreasureOpenEvent
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                    treasureOpenEvent.callEvent();
+
+                    // evaluate result
+                    switch (treasureOpenEvent.getResult()) {
+                        case DEFAULT -> event.setCancelled(true);
+                        case ORIGINAL -> {
+                            return;
+                        }
+                        case CANCELED -> {
+                            event.setCancelled(true);
+                            return;
+                        }
+                    }
+
+                    final @NotNull InventoryHolderWrapper<?> owner = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder)
+                        Utils.getTreasureHolder(eInventory.getHolder(false)), false);
+
+                    if (treasureInfo.isShared()) {
+                        final @Nullable InventoryView inventoryView;
+                        if (views == null || views.isEmpty()) {
+                            inventoryView = null;
+                        } else {
+                            inventoryView = views.iterator().next();
                         }
 
-                        if (treasureInfo.isShared()) {
-                            InventoryView inventoryView = openInventories.entrySet().stream().
-                                filter(entry -> entry.getValue() == treasureInfo.treasureId()).
-                                map(Map.Entry::getKey).findAny().orElse(null);
+                        if (inventoryView != null && !treasureInfo.isUnlimited()) {
+                            ePlayer.openInventory(inventoryView.getTopInventory());
 
-                            if (inventoryView != null && !treasureInfo.isUnlimited()) {
-                                ePlayer.openInventory(inventoryView.getTopInventory());
+                        } else if (treasureInfo.isUnlimited()) {
+                            Inventory nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                            Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
-                            } else if (treasureInfo.isUnlimited()) {
-                                Inventory nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                            ePlayer.openInventory(nowLooting);
 
-                                ePlayer.openInventory(nowLooting);
-
-                                if (treasureInfo.rawFindFreshMessageOverride() != null) {
-                                    plugin.getMessageManager().sendMessage(ePlayer,
-                                        MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
-                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
-                                            Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
-                                            Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_TRUE))
-                                        ));
-                                } else {
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
-                                }
+                            if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                plugin.getMessageManager().sendMessage(ePlayer,
+                                    MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                        Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                        Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                        Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_TRUE))
+                                    ));
                             } else {
-                                //load global treasure async
-                                plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
-                                    Inventory nowLooting;
-
-                                    // automatically forget after a given time
-                                    if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
-                                        !(treasureInfo.timeUntilForget().isPositive() && System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp() > treasureInfo.timeUntilForget().toMillis()))) {
-
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                        Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
-
-                                        if (treasureInfo.rawFindFreshMessageOverride() != null) {
-                                            plugin.getMessageManager().sendMessage(ePlayer,
-                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
-                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
-                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
-                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
-                                                ));
-                                        } else {
-                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
-                                        }
-                                    } else if (playerLootDetail.unLootedStuff() != null) {
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-                                        // get items left there last time
-                                        Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
-
-                                        if (treasureInfo.rawFindLootedMessageOverride() != null) {
-                                            plugin.getMessageManager().sendMessage(ePlayer,
-                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindLootedMessageOverride(),
-                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
-                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
-                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
-                                                ));
-                                        } else {
-                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
-                                        }
-                                    } else {
-                                        //not saved inventory but timer is still running. Should never occur but better be safe than sorry
-                                        nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
-
-                                        if (treasureInfo.rawFindFreshMessageOverride() != null) {
-                                            plugin.getMessageManager().sendMessage(ePlayer,
-                                                MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
-                                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
-                                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
-                                                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
-                                                ));
-                                        } else {
-                                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
-                                        }
-                                    }
-
-                                    openInventories.put(ePlayer.openInventory(nowLooting), treasureInfo.treasureId());
-                                });
+                                plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_UNLIMITED);
                             }
-                        } else { // not globally shared
-                            plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
+                        } else {
+                            //load global treasure async
+                            plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
                                 Inventory nowLooting;
 
-                                if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
-                                    // unlimited treasure
-                                    treasureInfo.isUnlimited()) &&
-                                    // automatically forget after a given time
-                                    !((treasureInfo.timeUntilForget().isPositive()) && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()))) {
+                                // automatically forget after a given time
+                                if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
+                                    !(treasureInfo.timeUntilForget().isPositive() && System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp() > treasureInfo.timeUntilForget().toMillis()))) {
 
-                                    nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                                     Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                     if (treasureInfo.rawFindFreshMessageOverride() != null) {
@@ -277,7 +245,8 @@ public class TreasureListener implements Listener {
                                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                     }
                                 } else if (playerLootDetail.unLootedStuff() != null) {
-                                    nowLooting = Bukkit.createInventory(null, eInventory.getType(), eTitle);
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                    // get items left there last time
                                     Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
                                     if (treasureInfo.rawFindLootedMessageOverride() != null) {
@@ -292,7 +261,7 @@ public class TreasureListener implements Listener {
                                     }
                                 } else {
                                     //not saved inventory but timer is still running. Should never occur but better be safe than sorry
-                                    nowLooting = Bukkit.createInventory(eInventory.getHolder(), eInventory.getType(), eTitle);
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
 
                                     if (treasureInfo.rawFindFreshMessageOverride() != null) {
                                         plugin.getMessageManager().sendMessage(ePlayer,
@@ -306,23 +275,84 @@ public class TreasureListener implements Listener {
                                     }
                                 }
 
-                                openInventories.put(ePlayer.openInventory(nowLooting), treasureInfo.treasureId());
+                                final InventoryView view = ePlayer.openInventory(nowLooting);
+                                if (view != null) {
+                                    openInventories.computeIfAbsent(treasureInfo.treasureId(), ignored -> new HashSet<>()).add(view);
+                                }
                             });
                         }
-                    } else {
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
-                        treasureOpenEvent.callEvent();
+                    } else { // not globally shared
+                        plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
+                            Inventory nowLooting;
 
-                        switch (treasureOpenEvent.getResult()) {
-                            case DEFAULT -> {
-                                plugin.getMessageManager().sendLang(ePlayer, LangPath.NO_PERMISSION);
-                                // don't open the original block inventory
-                                event.setCancelled(true);
+                            if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
+                                // unlimited treasure
+                                treasureInfo.isUnlimited()) &&
+                                // automatically forget after a given time
+                                !((treasureInfo.timeUntilForget().isPositive()) && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()))) {
+
+                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
+
+                                if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                    plugin.getMessageManager().sendMessage(ePlayer,
+                                        MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                            Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                            Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                        ));
+                                } else {
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                }
+                            } else if (playerLootDetail.unLootedStuff() != null) {
+                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
+
+                                if (treasureInfo.rawFindLootedMessageOverride() != null) {
+                                    plugin.getMessageManager().sendMessage(ePlayer,
+                                        MiniMessage.miniMessage().deserialize(treasureInfo.rawFindLootedMessageOverride(),
+                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                            Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                            Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                        ));
+                                } else {
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_ALREADY_LOOTED);
+                                }
+                            } else {
+                                //not saved inventory but timer is still running. Should never occur but better be safe than sorry
+                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+
+                                if (treasureInfo.rawFindFreshMessageOverride() != null) {
+                                    plugin.getMessageManager().sendMessage(ePlayer,
+                                        MiniMessage.miniMessage().deserialize(treasureInfo.rawFindFreshMessageOverride(),
+                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), ePlayer.displayName()),
+                                            Placeholder.component(PlaceHolderKey.TEXT.getKey(), eTitle),
+                                            Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(LangPath.BOOLEAN_FALSE))
+                                        ));
+                                } else {
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
+                                }
                             }
-                            case ORIGINAL -> {
+
+                            final InventoryView view = ePlayer.openInventory(nowLooting);
+                            if (view != null) {
+                                openInventories.computeIfAbsent(treasureInfo.treasureId(), ignored -> new HashSet<>()).add(view);
                             }
-                            case CANCELED -> event.setCancelled(true);
+                        });
+                    }
+                } else {
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                    treasureOpenEvent.callEvent();
+
+                    switch (treasureOpenEvent.getResult()) {
+                        case DEFAULT -> {
+                            plugin.getMessageManager().sendLang(ePlayer, LangPath.NO_PERMISSION);
+                            // don't open the original block inventory
+                            event.setCancelled(true);
                         }
+                        case ORIGINAL -> {
+                        }
+                        case CANCELED -> event.setCancelled(true);
                     }
                 }
             }
@@ -336,31 +366,28 @@ public class TreasureListener implements Listener {
     @EventHandler
     private void onTreasureBreak(final @NotNull BlockBreakEvent event) {
         if (event.getBlock().getState(false) instanceof TileStateInventoryHolder inventoryHolder) {
-            final @NotNull PersistentDataHolder persistentDataHolder;
             final @Nullable TreasureInfo treasureInfo;
 
             // double chests are wierd.
-            if (inventoryHolder.getInventory().getHolder() instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder leftside) {
-                persistentDataHolder = leftside;
-            } else {
-                persistentDataHolder = inventoryHolder;
-            }
+            if (Utils.getTreasureHolder(inventoryHolder.getInventory().getHolder()) instanceof PersistentDataHolder persistentDataHolder) {
+                treasureInfo = plugin.getTreasureManager().getTreasureInfo(persistentDataHolder);
 
-            treasureInfo = plugin.getTreasureManager().getTreasureInfo(persistentDataHolder);
+                if (treasureInfo != null) {
+                    if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {
+                        event.setCancelled(true);
 
-            if (treasureInfo != null) {
-                if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {
-                    event.setCancelled(true);
-
-                    Player ePlayer = event.getPlayer();
-                    if (ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get())) {
-                        plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success ->
+                        Player ePlayer = event.getPlayer();
+                        if (ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get())) {
+                            plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success ->
                                 plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.NAME.getKey(),
+                                        Utils.getDisplayName((Container) inventoryHolder.getInventory().getHolder())),
                                     Placeholder.component(PlaceHolderKey.BOOL.getKey(),
                                         plugin.getMessageManager().getLang(success ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)))
                             );
-                    } else {
-                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_DENIED);
+                        } else {
+                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_DENIED);
+                        }
                     }
                 }
             }

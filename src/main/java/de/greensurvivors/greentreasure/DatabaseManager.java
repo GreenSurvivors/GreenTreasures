@@ -158,8 +158,8 @@ public class DatabaseManager {
 
             // pre start pool - the first time hasConnection() is called would return false otherwise since the pool needs a second to start after it was invoked
             createTableUser();
-            createTablePlayerData();
             createTableTreasure();
+            createTablePlayerData();
         }
     }
 
@@ -260,15 +260,19 @@ public class DatabaseManager {
             }
 
             createTableTreasure();
+            createTablePlayerData();
 
-            final @NotNull String statementStr = "DELETE FROM " + TREASURE_TABLE +
-                " WHERE " + TREASURE_ID_KEY + " = ?";
+            // first delete all rows with foreign keys, then the rows itself
+            final @NotNull String playerDataStatementStr = "DELETE FROM " + PLAYERDATA_TABLE + " WHERE " + TREASURE_ID_KEY + " = ?";
+            final @NotNull String treasureStatementStr = "DELETE FROM " + TREASURE_TABLE + " WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
+                 final @NotNull PreparedStatement playerDataPreparedStatement = connection.prepareStatement(playerDataStatementStr);
+                 final @NotNull PreparedStatement treasurePreparedStatement = connection.prepareStatement(treasureStatementStr)) {
+                playerDataPreparedStatement.setString(1, treasureId);
+                treasurePreparedStatement.setString(1, treasureId);
 
-                int rowsAffected = preparedStatement.executeUpdate();
+                int rowsAffected = playerDataPreparedStatement.executeUpdate() + treasurePreparedStatement.executeUpdate();
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished delete request for treasure {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
 
                 Bukkit.getScheduler().runTask(plugin, () -> forgetAll(treasureId).thenRun(() -> {
@@ -564,8 +568,8 @@ public class DatabaseManager {
             TREASURE_FORGET_DURATION_KEY + ", " +
             TREASURE_SLOT_CHANCE_KEY + ", " +
             TREASURE_UNLIMITED_KEY + ", " +
-            TREASURE_SHARED_KEY +", " +
-            TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY +", " +
+            TREASURE_SHARED_KEY + ", " +
+            TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ", " +
             TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY +
             " FROM " + TREASURE_TABLE +
             " WHERE " + TREASURE_ID_KEY + " = ?";
@@ -681,9 +685,10 @@ public class DatabaseManager {
                 } else {
                     blob.setBytes(1, ItemStack.serializeItemsAsBytes(lootDetail.unLootedStuff()));
                 }
-                blob.free();
+                preparedStatement.setBlob(4, blob);
 
                 final int rowsAffected = preparedStatement.executeUpdate();
+                blob.free();
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set request for player {} at timestamp {}, on thread {}",
@@ -745,9 +750,10 @@ public class DatabaseManager {
                             items = null;
                         } else {
                             items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
+                            blob.free();
                         }
 
-                        //plugin.getComponentLogger().debug("successfully got amount for get request for player {} to {} amount of times, on thread {}", player.getName(), result, Thread.currentThread().getName());
+                        plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player.getName(), items, Thread.currentThread().getName());
                         Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
                     } else { //player had never opened this treasure
 
@@ -936,7 +942,7 @@ public class DatabaseManager {
             final String statementStr = "CREATE TABLE IF NOT EXISTS " + USER_TABLE + " (" +
                 PID_KEY + " INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, " +
                 NAME + " VARCHAR(16) UNIQUE NOT NULL, " +
-                UUID_KEY + " VARCHAR(36) UNIQUE NOT NULL )";
+                UUID_KEY + " VARCHAR(36) UNIQUE NOT NULL)";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
@@ -954,21 +960,21 @@ public class DatabaseManager {
         createTableUser();
 
         final String statementStr = "CREATE TABLE IF NOT EXISTS " + PLAYERDATA_TABLE + " (" +
-            PID_KEY + " INT UNSIGNED NOT NULL," +
+            PID_KEY + " INT UNSIGNED NOT NULL, " +
             TREASURE_ID_KEY + " VARCHAR(255) NOT NULL, " +
             TREASURE_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
             TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
             // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise
             // but also don't let TREASURE_ID without constrains, else wise a player can infinit entries of the same treasure, not updating them
-            //"PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
-            "FOREIGN KEY (" + TREASURE_ID_KEY + ") REFERENCES " + TREASURE_TABLE + "(" + TREASURE_ID_KEY + "), " +
-            "FOREIGN KEY (" + PID_KEY + ") REFERENCES " + USER_TABLE + "(" + PID_KEY + "))";
+            "PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
+            "FOREIGN KEY (" + PID_KEY + ") REFERENCES " + USER_TABLE + "(" + PID_KEY + "), " +
+            "FOREIGN KEY (" + TREASURE_ID_KEY + ") REFERENCES " + TREASURE_TABLE + "(" + TREASURE_ID_KEY + "))";
 
         try (final @NotNull Connection connection = dataSource.getConnection();
              final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getComponentLogger().error("Could not create quests.", e);
+            plugin.getComponentLogger().error("Could not create table {}.", PLAYERDATA_TABLE, e);
         }
     }
 

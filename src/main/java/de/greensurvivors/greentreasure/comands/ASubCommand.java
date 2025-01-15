@@ -63,8 +63,8 @@ public abstract class ASubCommand {
     public abstract boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args);
 
     /**
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
+     * @param args The arguments passed to the command, including final
+     *             partial argument to be completed
      * @return suggestion of arguments
      */
     public abstract @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args);

@@ -86,12 +86,12 @@ public class ListSubCommand extends ASubCommand {
     }
 
     /**
-     * @param args   The arguments passed to the command, including final
-     *               partial argument to be completed
-     *               /gt list(0) treasures(1) [num - optional](2) - list all treasures
-     *               /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
-     *               /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
-     *               /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
+     * @param args The arguments passed to the command, including final
+     *             partial argument to be completed
+     *             /gt list(0) treasures(1) [num - optional](2) - list all treasures
+     *             /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
+     *             /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
+     *             /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
      * @return suggestion of arguments, filtert by what's already written
      */
     @Override

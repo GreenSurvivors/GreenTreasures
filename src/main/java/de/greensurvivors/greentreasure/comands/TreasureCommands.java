@@ -1,15 +1,14 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang3.StringUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
-import org.bukkit.block.DoubleChest;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.LivingEntity;
@@ -29,7 +28,7 @@ public class TreasureCommands extends Command {
 
     public TreasureCommands(final @NotNull GreenTreasure plugin) {
         super(CMD);
-        super.setAliases(List.of("gt"));
+        super.setAliases(List.of("gt", "tchest", "treasurechest"));
         this.plugin = plugin;
 
         Bukkit.getServer().getCommandMap().register(plugin.getName().toLowerCase(Locale.ENGLISH), this);
@@ -74,12 +73,7 @@ public class TreasureCommands extends Command {
             Block block = livingEntity.getTargetBlockExact(5);
 
             if (block != null && block.getState(false) instanceof Container container) {
-                // double chests are wierd
-                if (container.getInventory().getHolder(false) instanceof DoubleChest doubleChest) {
-                    return (Chest)doubleChest.getLeftSide();
-                }
-
-                return container;
+                return (Container)Utils.getTreasureHolder(container);
             } else {
                 return null;
             }

@@ -17,10 +17,10 @@ public abstract class AListCmdHelper {
     protected final @NotNull Object MUTEX = new Object();
     protected final @NotNull ArrayList<@NotNull Component> componentResult = new ArrayList<>();
     protected final @NotNull GreenTreasure plugin;
+    protected final @NotNull String command;
     private final int pageNow, lastPage;
     private final @NotNull CommandSender commandSender;
     protected int numOfEntriesStillToDo;
-    protected final @NotNull String command;
 
     public AListCmdHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender,
                           int pageNow, int lastPage, int numEntries,

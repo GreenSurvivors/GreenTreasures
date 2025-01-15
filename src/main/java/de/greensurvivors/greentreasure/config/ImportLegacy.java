@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure.config;
 
 import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -10,9 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.Chest;
 import org.bukkit.block.Container;
-import org.bukkit.block.DoubleChest;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -195,10 +194,7 @@ public class ImportLegacy {
                 return null;
             }
 
-            // double chests are wierd.
-            if (container.getInventory().getHolder(false) instanceof DoubleChest doubleChest && doubleChest.getLeftSide() != null) {
-                container = (Chest)doubleChest.getLeftSide();
-            }
+            container = (Container) Utils.getTreasureHolder(container);
 
             @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
             if (treasureId == null) {

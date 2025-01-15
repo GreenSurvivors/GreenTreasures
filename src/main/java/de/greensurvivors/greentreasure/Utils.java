@@ -2,8 +2,11 @@ package de.greensurvivors.greentreasure;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Container;
+import org.bukkit.block.DoubleChest;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -55,7 +58,7 @@ public class Utils {
     private static final Pattern FLOAT_PATTERN = Pattern.compile(fpRegex);
     private static final Pattern INT_PATTERN = Pattern.compile("^[+-]?\\d+$");
 
-    private Utils () {
+    private Utils() {
         throw new RuntimeException("Do not try to instantiate this");
     }
 
@@ -65,7 +68,7 @@ public class Utils {
     }
 
     /// clone every item stack and put it into the new inventory
-    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items){
+    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items) {
         final int inventorySize = inventory.getSize();
         final @NotNull ItemStack[] newContents = new ItemStack[inventorySize];
 
@@ -90,7 +93,7 @@ public class Utils {
 
 
     /// clone every item stack and put it into the new inventory
-    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items, final @Range(from = 0, to = 10000) int slotChance){
+    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items, final @Range(from = 0, to = 10000) int slotChance) {
         final int inventorySize = inventory.getSize();
         final @NotNull ItemStack[] newContents = new ItemStack[inventorySize];
         final @NotNull Random random = ThreadLocalRandom.current();
@@ -98,7 +101,7 @@ public class Utils {
         for (int i = 0, itemsSize = items.size(); i < itemsSize && i < inventorySize; i++) {
             @Nullable ItemStack itemStack = items.get(i);
 
-            if (itemStack == null || itemStack.isEmpty() || 
+            if (itemStack == null || itemStack.isEmpty() ||
                 random.nextInt(0, 10000) > slotChance) {
                 newContents[i] = ItemStack.empty();
             } else {
@@ -113,6 +116,16 @@ public class Utils {
         }
 
         inventory.setContents(newContents);
+    }
+
+    /// double chests are wierd.
+    @Contract("null -> null; !null -> !null")
+    public static @Nullable InventoryHolder getTreasureHolder (final @Nullable InventoryHolder holder) {
+        if (holder instanceof DoubleChest doubleChest && doubleChest.getLeftSide() != null) {
+            return doubleChest.getLeftSide();
+        } else {
+            return holder;
+        }
     }
 
     /**

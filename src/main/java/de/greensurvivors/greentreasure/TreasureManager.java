@@ -7,6 +7,8 @@ import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
@@ -32,6 +34,16 @@ public class TreasureManager {
 
     public @Nullable String getTreasureId(final @NotNull PersistentDataHolder dataHolder) {
         return dataHolder.getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+    }
+
+    public @Nullable String getTreasureId(final @NotNull InventoryView inventoryView) {
+        final @Nullable InventoryHolder holder = inventoryView.getTopInventory().getHolder(false);
+
+        if (Utils.getTreasureHolder(holder) instanceof PersistentDataHolder persistentDataHolder) {
+            return getTreasureId(persistentDataHolder);
+        }
+
+        return null;
     }
 
     public void setTreasureId(final @NotNull PersistentDataHolder dataHolder, final @NotNull String treasureId) {
@@ -71,6 +83,16 @@ public class TreasureManager {
         }
     }
 
+    public @Nullable TreasureInfo getTreasureInfo(final @NotNull InventoryView view) {
+        final @Nullable String treasureId = getTreasureId(view);
+
+        if (treasureId == null) {
+            return null;
+        } else {
+            return treasures.get(treasureId);
+        }
+    }
+
     /**
      * closes all open inventories and clears the internal hashmaps
      * (to repopulate them with updated information)
@@ -93,7 +115,7 @@ public class TreasureManager {
      * Since the access to the TreasureInfo has to be sync, this is a very dangerous method in terms of lag!
      */
     public @NotNull CompletableFuture<@NotNull SequencedMap<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> getNearTreasures(
-                                        final @NotNull Location location, final int radius) {
+        final @NotNull Location location, final int radius) {
 
         final @NotNull Map<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>> infoToNearLocations = new ConcurrentHashMap<>();
         final int maxCx = (location.getBlockX() + radius) >> 4;
@@ -117,18 +139,18 @@ public class TreasureManager {
                 futures.add(
                     location.getWorld().getChunkAtAsync(cx, cz, false).
                         // it's slightly faster to use a Predicate to sort locations out before getting the BlockState
-                        thenApply(chunk -> chunk.getTileEntities(block ->
+                            thenApply(chunk -> chunk.getTileEntities(block ->
                             block.getX() >= minX && block.getX() <= maxX &&
                                 block.getY() >= minY && block.getY() <= maxY &&
                                 block.getZ() >= minZ && block.getZ() <= maxZ, false)).
                         thenAccept(tileEntities -> { // note: we have no guarantee of the ordering of these
-                            for (BlockState tileEntity: tileEntities) {
+                            for (BlockState tileEntity : tileEntities) {
                                 if (tileEntity instanceof Container container) {
                                     final @Nullable TreasureInfo info = getTreasureInfo(container);
 
                                     if (info != null) {
                                         infoToNearLocations.computeIfAbsent(info, i ->
-                                                new ConcurrentSkipListSet <>(locationComparator)).
+                                                new ConcurrentSkipListSet<>(locationComparator)).
                                             add(tileEntity.getLocation());
                                     }
                                 }

@@ -4,7 +4,7 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
+import de.greensurvivors.greentreasure.event.PeekingDoneEvent;
 import de.greensurvivors.greentreasure.language.LangPath;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -118,7 +118,7 @@ public class CommandInventoriesListener implements Listener {
 
             //if the treasure wasn't deleted while the inventory was open call the close event
             if (treasureInfo != null) {
-                new TreasureCloseEvent((Player) event.getPlayer(), treasureInfo).callEvent();
+                new PeekingDoneEvent((Player) event.getPlayer(), treasureInfo, peekedTreasure.playerPeekedUUID()).callEvent();
 
                 peekingTreasures.remove(event.getView());
                 if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {

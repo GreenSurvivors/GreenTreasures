@@ -57,7 +57,7 @@ public class ListNearbyCommand extends ASubCommand {
                         }
 
                         plugin.getTreasureManager().getNearTreasures(entity.getLocation(), Integer.parseInt(args[2])).
-                            thenAccept( nearTreasures -> {
+                            thenAccept(nearTreasures -> {
                                 final int numOfTreasures = nearTreasures.size();
 
                                 if (numOfTreasures > 0) {
@@ -132,7 +132,7 @@ public class ListNearbyCommand extends ASubCommand {
         public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
                 //page will be added by super
-                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " " );
+                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_HEADER,
@@ -154,7 +154,7 @@ public class ListNearbyCommand extends ASubCommand {
                         Component.join(JoinConfiguration.commas(true),
                             entry.getValue().stream().map(location ->
                                 plugin.getMessageManager().formatLocation(location).
-                                    clickEvent(ClickEvent.suggestCommand("tp " + location.getX() + " " + location.getY() + " " + location.getY()))
+                                    clickEvent(ClickEvent.suggestCommand("/tp " + location.getX() + " " + location.getY() + " " + location.getZ()))
                             ).toList()))
                 );
 
