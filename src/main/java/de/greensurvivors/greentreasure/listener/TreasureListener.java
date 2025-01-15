@@ -46,10 +46,10 @@ public class TreasureListener implements Listener {
     }
 
     public void closeInventories(final @NotNull String treasureId) {
-        for (Iterator<Map.Entry<InventoryView, String>> iterator = openInventories.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<InventoryView, String> entry = iterator.next();
+        for (Iterator<Map.Entry<@NotNull InventoryView, @NotNull String>> iterator = openInventories.entrySet().iterator(); iterator.hasNext(); ) {
+            final @NotNull Map.Entry<@NotNull InventoryView, @NotNull String> entry = iterator.next();
 
-            if (entry.getValue() == treasureId) {
+            if (entry.getValue().equals(treasureId)) {
                 entry.getKey().close();
                 iterator.remove();
             }
@@ -60,8 +60,8 @@ public class TreasureListener implements Listener {
      * closes all open inventories to update them
      */
     public void closeAllInventories() {
-        for (Iterator<InventoryView> iterator = openInventories.keySet().iterator(); iterator.hasNext();) {
-            InventoryView view = iterator.next();
+        for (Iterator<@NotNull InventoryView> iterator = openInventories.keySet().iterator(); iterator.hasNext();) {
+            final @NotNull InventoryView view = iterator.next();
             view.close(); // will call inventory close event first before moving to next line
             iterator.remove();
         }
@@ -73,7 +73,7 @@ public class TreasureListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     private void onCloseTreasure(final @NotNull InventoryCloseEvent event) {
         if (event.getPlayer() instanceof Player ePlayer) {
-            Inventory eInventory = event.getInventory();
+            final @NotNull Inventory eInventory = event.getInventory();
 
             final @Nullable String treasureId = openInventories.get(event.getView());
             if (treasureId != null) {
@@ -136,7 +136,7 @@ public class TreasureListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     private void onOpenTreasure(final @NotNull InventoryOpenEvent event) {
         if (event.getPlayer() instanceof Player ePlayer) {
-            Inventory eInventory = event.getInventory();
+            final @NotNull Inventory eInventory = event.getInventory();
 
             final @Nullable PersistentDataHolder dataHolder;
             if (eInventory.getHolder(false) instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder leftDataHolder) {
