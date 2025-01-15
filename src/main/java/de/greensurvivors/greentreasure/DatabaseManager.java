@@ -960,7 +960,7 @@ public class DatabaseManager {
             TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
             // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise
             // but also don't let TREASURE_ID without constrains, else wise a player can infinit entries of the same treasure, not updating them
-            "PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
+            //"PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
             "FOREIGN KEY (" + TREASURE_ID_KEY + ") REFERENCES " + TREASURE_TABLE + "(" + TREASURE_ID_KEY + "), " +
             "FOREIGN KEY (" + PID_KEY + ") REFERENCES " + USER_TABLE + "(" + PID_KEY + "))";
 

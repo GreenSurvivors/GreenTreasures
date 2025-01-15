@@ -302,7 +302,7 @@ public class ImportLegacy {
         }
 
         final @NotNull Location treasureLocation = new Location(world, xNumber.doubleValue(), yNumber.doubleValue(), zNumber.doubleValue());
-        treasureLocation.checkFinite(); // todo don't throw
+        treasureLocation.checkFinite();
 
         return treasureLocation;
     }

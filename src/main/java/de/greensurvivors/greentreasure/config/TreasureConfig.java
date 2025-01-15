@@ -27,6 +27,7 @@ public class TreasureConfig {
      * Load main configurations.
      */
     public void reloadMain() {
+        plugin.reloadConfig();
         loadDatabase();
         loadLanguage();
         loadLegacy();
@@ -64,11 +65,14 @@ public class TreasureConfig {
                 final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
 
                 if (section != null) {
-                    Bukkit.getScheduler().runTask(plugin, () -> plugin.getDatabaseManager().reload(section.getValues(false)));
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        plugin.getDatabaseManager().reload(section.getValues(false));
+                        mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
+                        plugin.saveConfig();
+                    });
+                } else {
+                    plugin.getComponentLogger().error("Could not load database!");
                 }
-
-                mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
-                plugin.saveConfig();
             }
         });
     }

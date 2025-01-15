@@ -63,7 +63,6 @@ public class MessageManager {
     public static @NotNull Component formatTime(final @NotNull Duration duration) {
         StringBuilder timeStr = new StringBuilder();
 
-
         final long days = duration.toDaysPart();
         if (days != 0) { // todo represent more then days
             timeStr.append(days).append("d");
