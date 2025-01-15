@@ -1,5 +1,5 @@
 SQL:
-  password: '1234'
+  password: '{hangeTh!sPas5wordNÖw!'
   database: greentreasure_database
   port: 3306
   host: localhost
