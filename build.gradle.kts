@@ -25,6 +25,9 @@ repositories {
     maven {
         url = uri("https://repo.papermc.io/repository/maven-public/")
     }
+    maven {
+        url = uri("https://maven.enginehub.org/repo/")
+    }
 }
 
 dependencies {
@@ -33,6 +36,7 @@ dependencies {
     compileOnly("com.github.ben-manes.caffeine:caffeine:3.1.8") // caches
     compileOnly("org.yaml:snakeyaml:2.3")
     compileOnly("org.apache.commons:commons-collections4:4.5.0-M3")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.13-SNAPSHOT")
 }
 
 tasks {

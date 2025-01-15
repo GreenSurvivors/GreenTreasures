@@ -17,6 +17,7 @@ public class GreenTreasure extends JavaPlugin {
     private CommandInventoriesListener commandInventoriesListener;
     private MessageManager messageManager;
     private TreasureCommands treasureCommands;
+    private DependencyHelper dependencyHelper;
 
     public GreenTreasure() {
         super();
@@ -43,6 +44,7 @@ public class GreenTreasure extends JavaPlugin {
         treasureListener = new TreasureListener(this);
         commandInventoriesListener = new CommandInventoriesListener(this);
         messageManager = new MessageManager(this);
+        dependencyHelper = new DependencyHelper(this);
     }
 
     @Override
