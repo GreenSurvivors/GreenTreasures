@@ -3,8 +3,8 @@ package de.greensurvivors.greentreasure.language;
 /// Paths of all translatable
 public enum LangPath {
     //actions
-    ACTION_BREAK_CONTAINER_ADMIN("action.break.container.admin"),
-    ACTION_BREAK_CONTAINER_USER("action.break.container.user"),
+    ACTION_BREAK_CONTAINER_SUCCESS("action.break.container.success"),
+    ACTION_BREAK_CONTAINER_DENIED("action.break.container.denied"),
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
     ACTION_FIND_LIMITED("action.find.limited"),
     ACTION_FIND_UNLIMITED("action.find.unlimited"),
@@ -77,7 +77,7 @@ public enum LangPath {
     //
     FORMAT_LOCATION("format.location"),
     NO_PERMISSION("no-permission"),
-    PLUGIN_PREFIX("prefix", "<gold>[GreenTreasure]</gold> "),
+    PLUGIN_PREFIX("prefix", "<gold>[GreenTreasure]</gold>"),
     SET_FORGET_DURATION("cmd.set.forget.duration"),
 
     //

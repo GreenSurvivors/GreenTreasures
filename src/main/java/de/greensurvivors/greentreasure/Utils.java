@@ -9,6 +9,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.regex.Pattern;
@@ -58,10 +59,9 @@ public class Utils {
         throw new RuntimeException("Do not try to instantiate this");
     }
 
+    @SuppressWarnings("DataFlowIssue") // since it is a block, it has a block translation key.
     public static @NotNull Component getDisplayName(final @NotNull Container container) {
-        return container.customName() == null ?
-            Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
-            container.customName();
+        return Objects.requireNonNullElse(container.customName(), Component.translatable(container.getBlock().getType().getBlockTranslationKey()));
     }
 
     /// clone every item stack and put it into the new inventory

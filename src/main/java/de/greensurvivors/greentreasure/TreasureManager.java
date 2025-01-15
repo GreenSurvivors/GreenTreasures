@@ -38,8 +38,18 @@ public class TreasureManager {
         dataHolder.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, treasureId);
     }
 
-    public void removeTreasureId(final @NotNull PersistentDataHolder dataHolder) {
-        dataHolder.getPersistentDataContainer().remove(idKey);
+    public @NotNull CompletableFuture<@NotNull Boolean> deleteTreasure(final @NotNull PersistentDataHolder dataHolder) { // todo this have to get reworked, if multiple treasures with the same id ever get exposed to the user
+        final @Nullable String treasureId = getTreasureId(dataHolder);
+
+        if (treasureId != null) {
+            dataHolder.getPersistentDataContainer().remove(idKey);
+
+            return plugin.getDatabaseManager().deleteTreasure(treasureId).
+                thenCompose(void_ -> plugin.getDatabaseManager().forgetAll(treasureId)).
+                thenApply(void_ -> Boolean.TRUE);
+        } else {
+            return CompletableFuture.completedFuture(false);
+        }
     }
 
     /**

@@ -336,14 +336,17 @@ public class TreasureListener implements Listener {
     @EventHandler
     private void onTreasureBreak(final @NotNull BlockBreakEvent event) {
         if (event.getBlock().getState(false) instanceof TileStateInventoryHolder inventoryHolder) {
+            final @NotNull PersistentDataHolder persistentDataHolder;
             final @Nullable TreasureInfo treasureInfo;
 
             // double chests are wierd.
-            if (inventoryHolder.getInventory().getHolder() instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder persistentDataHolder) {
-                treasureInfo = plugin.getTreasureManager().getTreasureInfo(persistentDataHolder);
+            if (inventoryHolder.getInventory().getHolder() instanceof DoubleChest doubleChest && doubleChest.getLeftSide() instanceof PersistentDataHolder leftside) {
+                persistentDataHolder = leftside;
             } else {
-                treasureInfo = plugin.getTreasureManager().getTreasureInfo(inventoryHolder);
+                persistentDataHolder = inventoryHolder;
             }
+
+            treasureInfo = plugin.getTreasureManager().getTreasureInfo(persistentDataHolder);
 
             if (treasureInfo != null) {
                 if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {
@@ -351,9 +354,13 @@ public class TreasureListener implements Listener {
 
                     Player ePlayer = event.getPlayer();
                     if (ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get())) {
-                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_ADMIN);
+                        plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success ->
+                                plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.BOOL.getKey(),
+                                        plugin.getMessageManager().getLang(success ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)))
+                            );
                     } else {
-                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_USER);
+                        plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_DENIED);
                     }
                 }
             }
