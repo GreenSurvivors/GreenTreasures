@@ -110,7 +110,7 @@ public class TreasureCommands extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String label, @NotNull String[] args) {
+    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String label, @NotNull String @NotNull[] args) {
         if (args.length <= 1) {
             final Set<String> suggestions = new HashSet<>();
 

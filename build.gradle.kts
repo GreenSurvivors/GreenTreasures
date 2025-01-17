@@ -15,13 +15,14 @@ val javaVersion = 21
 paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
 // dependencies
+val worldGuardDependencyVersion by extra("7.0.13-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
+val worldGuardRunVersion by extra("7.0.13-beta-2") // note this is the modrinth version, used in the run task
+val worldEditVersion by extra("HIoAq6RI") // wierd modrinth version id, used to fetch worldEdit for the run task.
 val hikariCPVersion by extra("6.2.1")
 val caffeineVersion by extra("3.1.8")
 val snakeyamlVersion by extra("2.3")
 val commonsCollectionVersion by extra("4.5.0-M3")
-val worldGuardDependencyVersion by extra("7.0.13-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
-val worldGuardRunVersion by extra("7.0.13-beta-2") // note this is the modrinth version, used in the run task
-val worldEditVersion by extra("HIoAq6RI") // wierd modrinth version id, used to fetch worldEdit for the run task.
+val ulidCreatorVersion by extra("5.2.3")
 
 java {
   // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
@@ -42,11 +43,13 @@ repositories {
 
 dependencies {
     paperweight.paperDevBundle("$mcVersion-R0.1-SNAPSHOT")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:$worldGuardDependencyVersion")
+
     compileOnly("com.zaxxer:HikariCP:$hikariCPVersion")
     compileOnly("com.github.ben-manes.caffeine:caffeine:$caffeineVersion") // caches
     compileOnly("org.yaml:snakeyaml:$snakeyamlVersion")
     compileOnly("org.apache.commons:commons-collections4:$commonsCollectionVersion")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:$worldGuardDependencyVersion")
+    compileOnly("com.github.f4b6a3:ulid-creator:$ulidCreatorVersion")
 }
 
 tasks {

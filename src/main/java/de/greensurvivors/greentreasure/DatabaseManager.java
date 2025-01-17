@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure;
 
+import com.github.f4b6a3.ulid.Ulid;
 import com.zaxxer.hikari.HikariDataSource;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
@@ -35,6 +36,7 @@ public class DatabaseManager {
         UUID_KEY = "uuid",
         /// name of player
         NAME = "name",
+        TIMES_LOOTED = "times_looted", // unused for now
         /// treasure identifier
         TREASURE_ID_KEY = "treasureid",
         /// last time a player had changed the treasure
@@ -163,7 +165,7 @@ public class DatabaseManager {
         }
     }
 
-    public @NotNull CompletableFuture<Void> setTreasureContents(final @NotNull String treasureId, final @NotNull List<@NotNull ItemStack> contents) {
+    public @NotNull CompletableFuture<Void> setTreasureContents(final @NotNull Ulid treasureId, final @NotNull List<@NotNull ItemStack> contents) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -182,7 +184,7 @@ public class DatabaseManager {
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
 
                 final @NotNull Blob blob = connection.createBlob();
                 blob.setBytes(1, ItemStack.serializeItemsAsBytes(contents.toArray(new ItemStack[0])));
@@ -250,7 +252,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<Void> deleteTreasure(final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<Void> deleteTreasure(final @NotNull Ulid treasureId) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -269,8 +271,8 @@ public class DatabaseManager {
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement playerDataPreparedStatement = connection.prepareStatement(playerDataStatementStr);
                  final @NotNull PreparedStatement treasurePreparedStatement = connection.prepareStatement(treasureStatementStr)) {
-                playerDataPreparedStatement.setString(1, treasureId);
-                treasurePreparedStatement.setString(1, treasureId);
+                playerDataPreparedStatement.setBytes(1, treasureId.toBytes());
+                treasurePreparedStatement.setBytes(1, treasureId.toBytes());
 
                 int rowsAffected = playerDataPreparedStatement.executeUpdate() + treasurePreparedStatement.executeUpdate();
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished delete request for treasure {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
@@ -296,7 +298,7 @@ public class DatabaseManager {
      * @param slotChance how probable it is for a slot to be in the freshly opened treasure;
      *                   is multiplied by 100 to allow floating points
      */
-    public @NotNull CompletableFuture<Void> setRandom(final @NotNull String treasureId, final @Range(from = 0, to = 10000) Short slotChance) {
+    public @NotNull CompletableFuture<Void> setRandom(final @NotNull Ulid treasureId, final @Range(from = 0, to = 10000) Short slotChance) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -307,16 +309,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_SLOT_CHANCE_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_SLOT_CHANCE_KEY + " = VALUES(" + TREASURE_SLOT_CHANCE_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_SLOT_CHANCE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setShort(2, slotChance);
+                preparedStatement.setShort(1, slotChance);
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -341,7 +340,7 @@ public class DatabaseManager {
      * @param treasureId information to identify a treasure
      * @param isShared   if the Inventory is globally shared across all players
      */
-    public @NotNull CompletableFuture<Void> setShared(final @NotNull String treasureId, final boolean isShared) {
+    public @NotNull CompletableFuture<Void> setShared(final @NotNull Ulid treasureId, final boolean isShared) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -352,16 +351,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_SHARED_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_SHARED_KEY + " = VALUES(" + TREASURE_SHARED_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_SHARED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setBoolean(2, isShared);
+                preparedStatement.setBoolean(1, isShared);
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -386,7 +382,7 @@ public class DatabaseManager {
      * @param treasureId  information to identify a treasure
      * @param isUnLimited if one can loot the treasure as often as one wants
      */
-    public @NotNull CompletableFuture<Void> setUnlimited(final @NotNull String treasureId, final boolean isUnLimited) {
+    public @NotNull CompletableFuture<Void> setUnlimited(final @NotNull Ulid treasureId, final boolean isUnLimited) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -397,16 +393,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_UNLIMITED_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_UNLIMITED_KEY + " = VALUES(" + TREASURE_UNLIMITED_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_UNLIMITED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setBoolean(2, isUnLimited);
+                preparedStatement.setBoolean(1, isUnLimited);
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -432,7 +425,7 @@ public class DatabaseManager {
      * @param forgettingDuration how long a Treasure has to be not looted until it is filled again.
      *                           negative or null values mean the Treasure will never restock.
      */
-    public @NotNull CompletableFuture<Void> setForgetDuration(final @NotNull String treasureId, final @Nullable Duration forgettingDuration) {
+    public @NotNull CompletableFuture<Void> setForgetDuration(final @NotNull Ulid treasureId, final @Nullable Duration forgettingDuration) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -443,16 +436,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_FORGET_DURATION_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_FORGET_DURATION_KEY + " = VALUES(" + TREASURE_FORGET_DURATION_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_FORGET_DURATION_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setLong(2, forgettingDuration == null ? DEFAULT_FORGET_DURATION_MILLIS : forgettingDuration.toMillis());
+                preparedStatement.setLong(1, forgettingDuration == null ? DEFAULT_FORGET_DURATION_MILLIS : forgettingDuration.toMillis());
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -474,7 +464,7 @@ public class DatabaseManager {
     /**
      * @param treasureId information to identify a treasure
      */
-    public @NotNull CompletableFuture<Void> setFindFreshMessageOverride(final @NotNull String treasureId, final @Nullable String findFreshMessageOverride) {
+    public @NotNull CompletableFuture<Void> setFindFreshMessageOverride(final @NotNull Ulid treasureId, final @Nullable String findFreshMessageOverride) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -485,16 +475,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " = VALUES(" + TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setString(2, findFreshMessageOverride);
+                preparedStatement.setString(1, findFreshMessageOverride);
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -502,11 +489,11 @@ public class DatabaseManager {
                     resultFuture.complete(null);
                 });
 
-                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set findFreshMessageOverride request for treasure {} to {}, on thread {}", rowsAffected, treasureId, findFreshMessageOverride, Thread.currentThread().getName());
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set findFreshMessageOverride request for treasure {} to \"{}\", on thread {}", rowsAffected, treasureId, findFreshMessageOverride, Thread.currentThread().getName());
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
-                plugin.getComponentLogger().warn("Could not set treasure findFreshMessageOverride setting for '{}' to {}", treasureId, findFreshMessageOverride, e);
+                plugin.getComponentLogger().warn("Could not set treasure findFreshMessageOverride setting for '{}' to \"{}\"", treasureId, findFreshMessageOverride, e);
             }
         });
 
@@ -516,7 +503,7 @@ public class DatabaseManager {
     /**
      * @param treasureId information to identify a treasure
      */
-    public @NotNull CompletableFuture<Void> setFindLootedMessageOverride(final @NotNull String treasureId, final @Nullable String findLootedMessageOverride) {
+    public @NotNull CompletableFuture<Void> setFindLootedMessageOverride(final @NotNull Ulid treasureId, final @Nullable String findLootedMessageOverride) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -527,16 +514,13 @@ public class DatabaseManager {
 
             createTableTreasure();
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " = VALUES(" + TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + ")";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
+                " SET " + TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
-                preparedStatement.setString(2, findLootedMessageOverride);
+                preparedStatement.setString(1, findLootedMessageOverride);
+                preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -560,7 +544,7 @@ public class DatabaseManager {
      * Like to know if an Event should get canceled, the server has to get stalled until we retrieve the data.
      * So just skip the nonsense and cache the data whenever possible.
      */
-    public @Nullable TreasureInfo loadTreasure(final @NotNull String treasureId) {
+    public @Nullable TreasureInfo loadTreasure(final @NotNull Ulid treasureId) {
         createTableTreasure();
 
         final @NotNull String statementStr = "SELECT " +
@@ -576,7 +560,7 @@ public class DatabaseManager {
 
         try (final @NotNull Connection connection = dataSource.getConnection();
              final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            preparedStatement.setString(1, treasureId);
+            preparedStatement.setBytes(1, treasureId.toBytes());
 
             try (final ResultSet resultSet = preparedStatement.executeQuery()) {
 
@@ -610,8 +594,8 @@ public class DatabaseManager {
         }
     }
 
-    public @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull String>> getTreasureIds() {
-        final @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull String>> resultFuture = new CompletableFuture<>();
+    public @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull Ulid>> getTreasureIds() {
+        final @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull Ulid>> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
             if (!hasConnection()) {
@@ -627,10 +611,10 @@ public class DatabaseManager {
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    final @NotNull SetUniqueList<@NotNull String> resultList = SetUniqueList.setUniqueList(new ArrayList<>());
+                    final @NotNull SetUniqueList<@NotNull Ulid> resultList = SetUniqueList.setUniqueList(new ArrayList<>());
 
                     while (resultSet.next()) {
-                        resultList.add(resultSet.getString(TREASURE_ID_KEY));
+                        resultList.add(Ulid.from(resultSet.getBytes(TREASURE_ID_KEY)));
                     }
 
                     Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(resultList));
@@ -652,7 +636,7 @@ public class DatabaseManager {
      * @param treasureId the treasure id
      * @param lootDetail the new data
      */
-    public @NotNull CompletableFuture<Void> setPlayerData(final @Nullable OfflinePlayer player, final @NotNull String treasureId, final @NotNull PlayerLootDetail lootDetail) {
+    public @NotNull CompletableFuture<Void> setPlayerData(final @Nullable OfflinePlayer player, final @NotNull Ulid treasureId, final @NotNull PlayerLootDetail lootDetail) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -675,7 +659,7 @@ public class DatabaseManager {
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
                 preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
                 preparedStatement.setLong(3, lootDetail.lastChangedTimeStamp());
 
@@ -712,7 +696,7 @@ public class DatabaseManager {
      * @return PlayerLootDetail or null, if getting the data wasn't successfully
      * (like in cases if the player never opened this treasure)
      */
-    public @NotNull CompletableFuture<@Nullable PlayerLootDetail> getPlayerData(final @Nullable OfflinePlayer player, final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<@Nullable PlayerLootDetail> getPlayerData(final @Nullable OfflinePlayer player, final @NotNull Ulid treasureId) {
         final @NotNull CompletableFuture<@Nullable PlayerLootDetail> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -736,7 +720,7 @@ public class DatabaseManager {
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
                 preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
@@ -772,7 +756,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<Void> forgetAll(final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<Void> forgetAll(final @NotNull Ulid treasureId) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -787,7 +771,7 @@ public class DatabaseManager {
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
@@ -803,7 +787,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<Void> forgetPlayer(final @Nullable OfflinePlayer player, final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<Void> forgetPlayer(final @Nullable OfflinePlayer player, final @NotNull Ulid treasureId) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -823,7 +807,7 @@ public class DatabaseManager {
             try (final Connection connection = dataSource.getConnection();
                  final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
 
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
                 preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
@@ -840,7 +824,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<@NotNull Map<UUID, @NotNull PlayerLootDetail>> getAllPlayerData(final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<@NotNull Map<UUID, @NotNull PlayerLootDetail>> getAllPlayerData(final @NotNull Ulid treasureId) {
         final CompletableFuture<Map<UUID, PlayerLootDetail>> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -860,7 +844,7 @@ public class DatabaseManager {
             try (final Connection connection = dataSource.getConnection();
                  final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
 
-                preparedStatement.setString(1, treasureId);
+                preparedStatement.setBytes(1, treasureId.toBytes());
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                     final Map<UUID, PlayerLootDetail> result = new HashMap<>();
@@ -916,7 +900,7 @@ public class DatabaseManager {
     protected void createTableTreasure() {
         if (dataSource != null) {
             final String statementStr = "CREATE TABLE IF NOT EXISTS " + TREASURE_TABLE + " (" +
-                TREASURE_ID_KEY + " VARCHAR(255) PRIMARY KEY, " +
+                TREASURE_ID_KEY + " BINARY(16) PRIMARY KEY, " +
                 TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
                 TREASURE_FORGET_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
                 TREASURE_SLOT_CHANCE_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
@@ -961,9 +945,12 @@ public class DatabaseManager {
 
         final String statementStr = "CREATE TABLE IF NOT EXISTS " + PLAYERDATA_TABLE + " (" +
             PID_KEY + " INT UNSIGNED NOT NULL, " +
-            TREASURE_ID_KEY + " VARCHAR(255) NOT NULL, " +
+            // is BINARY instead of UUID since SQL instances can not be trusted shifting UUIDs around in order to "optimizing" them;
+            // and not be string / char array since byte array is shorter bitwise and therefor faster
+            TREASURE_ID_KEY + " BINARY(16) NOT NULL, " +
             TREASURE_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
             TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
+            TIMES_LOOTED + " INT UNSIGNED DEFAULT 0, " +
             // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise
             // but also don't let TREASURE_ID without constrains, else wise a player can infinit entries of the same treasure, not updating them
             "PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +

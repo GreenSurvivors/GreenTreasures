@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.comands.list;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
@@ -112,14 +113,16 @@ public class ListWhoSubCommand extends ASubCommand {
     }
 
     public class ListCmdWhoHelper extends AListCmdHelper {
-        public ListCmdWhoHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries, @NotNull String treasureId) {
+        public ListCmdWhoHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender,
+                                final int pageNow, final int lastPage, final int numEntries,
+                                final @NotNull Ulid treasureId) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
                 //page will be added by super
                 TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
-                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId),
+                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                 Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow)),
                 Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))
             ));

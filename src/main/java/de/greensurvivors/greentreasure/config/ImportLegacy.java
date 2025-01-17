@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.config;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.Utils;
@@ -40,7 +41,7 @@ public class ImportLegacy {
     private final static @NotNull PathMatcher PATH_MATCHER = FileSystems.getDefault().getPathMatcher("regex:/^.*(?:yml|yaml)$/i");
     private final static @NotNull Pattern ITEM_NUMBER_PATTERN = Pattern.compile("^item(?<number>\\d+)$");
     private final static @NotNull Pattern PLAYER_COORDS_PATTERN = Pattern.compile("^(?<x>[+-]?\\d+)_(?<y>[+-]?\\d+)_(?<z>[+-]?\\d+)$");
-    private final @NotNull Duration DEFAULT_FORGETTING_PERIOD = Duration.ofSeconds(-1);
+    private final static @NotNull Duration DEFAULT_FORGETTING_PERIOD = Duration.ofSeconds(-1);
     private final @NotNull GreenTreasure plugin;
 
     public ImportLegacy(final @NotNull GreenTreasure plugin) {
@@ -102,13 +103,13 @@ public class ImportLegacy {
     /**
      * import legacy treasures
      */
-    private @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull String>> importTreasureData(final @Nullable Path treasurePluginFolder) { // todo import double chests
+    private @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull Ulid>> importTreasureData(final @Nullable Path treasurePluginFolder) { // todo import double chests
         if (treasurePluginFolder == null) {
             return CompletableFuture.failedFuture(new NullPointerException("treasurePluginFolder was null"));
         }
 
         try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
-            final @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull String>> result = new CompletableFuture<>();
+            final @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull Ulid>> result = new CompletableFuture<>();
             forkJoinPool.execute(() -> {
                 synchronized (this) {
                     plugin.getComponentLogger().info("importing Treasures");
@@ -117,7 +118,7 @@ public class ImportLegacy {
 
                     if (Files.isDirectory(treasuresPath)) {
                         try (Stream<Path> treasuresPathStream = Files.walk(treasuresPath)) {
-                            final @NotNull Map<@NotNull Location, @NotNull String> resultMap = new ConcurrentHashMap<>();
+                            final @NotNull Map<@NotNull Location, @NotNull Ulid> resultMap = new ConcurrentHashMap<>();
 
                             treasuresPathStream.
                                 filter(Files::isRegularFile).
@@ -178,7 +179,7 @@ public class ImportLegacy {
                                final @Nullable List<@NotNull ItemStack> rightContents,
                                final @NotNull Map<@NotNull String, @NotNull Object> checkedRootMap,
                                final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap,
-                               final @NotNull Map<@NotNull Location, @NotNull String> resultMap) {
+                               final @NotNull Map<@NotNull Location, @NotNull Ulid> resultMap) {
 
         final @Nullable Location treasureLocation = getLocation(checkedContainerMap, path.toString());
 
@@ -196,9 +197,9 @@ public class ImportLegacy {
 
             container = (Container) Utils.getTreasureHolder(container);
 
-            @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
+            @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
             if (treasureId == null) {
-                treasureId = UUID.randomUUID().toString();
+                treasureId = plugin.getTreasureManager().createNewMonotonicUlid();
 
                 plugin.getTreasureManager().setTreasureId(container, treasureId);
             }
@@ -377,7 +378,7 @@ public class ImportLegacy {
     /**
      * import player data
      */
-    private void importPlayerData(final @NotNull Map<@NotNull Location, @NotNull String> importedTreasureIds, final @NotNull Path treasurePluginFolder) {
+    private void importPlayerData(final @NotNull Map<@NotNull Location, @NotNull Ulid> importedTreasureIds, final @NotNull Path treasurePluginFolder) {
         try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
             forkJoinPool.execute(() -> {
                 synchronized (this) {
@@ -418,9 +419,9 @@ public class ImportLegacy {
                                                         int z = Integer.parseInt(coordsMatcher.group("z"));
 
                                                         if (entry.getValue() instanceof Number timeStampNumber) {
-                                                            @Nullable String treasureId = null;
+                                                            @Nullable Ulid treasureId = null;
 
-                                                            for (Map.Entry<Location, String> treasureIdEntry : importedTreasureIds.entrySet()) {
+                                                            for (Map.Entry<Location, Ulid> treasureIdEntry : importedTreasureIds.entrySet()) {
                                                                 Location locationOfEntry = treasureIdEntry.getKey();
 
                                                                 if (locationOfEntry.getWorld().getUID().equals(world.getUID()) &&
@@ -442,7 +443,7 @@ public class ImportLegacy {
                                                                         return;
                                                                     }
 
-                                                                    final @Nullable String asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
+                                                                    final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
                                                                     if (asyncTreasureId != null) {
                                                                         plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));

@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.comands.list;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
@@ -17,6 +18,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +78,12 @@ public class ListTreasuresSubCommand extends ASubCommand {
 
                     //add the treasure info for the page
                     for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
-                        TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureIds.get(num));
+                        final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureIds.get(num));
+
+                        if (treasureInfo == null) {
+                            plugin.getComponentLogger().debug("skipped listing treasure with id {}, because it was unknown. Probably removed by another thread.", treasureIds.get(num));
+                            continue;
+                        }
 
                         helper.addEntry(treasureInfo, treasureIds.get(num));
                     }
@@ -111,12 +118,12 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))));
         }
 
-        public void addEntry(final @NotNull TreasureInfo treasureInfo, final @NotNull String treasureId) {
+        public void addEntry(final @NotNull TreasureInfo treasureInfo, final @NotNull Ulid treasureId) {
             super.numOfEntriesStillToDo--;
 
             //build treasureInfo
             @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
-                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId),
+                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                 Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((double) treasureInfo.slotChance()) / 100.0d)),
                 Placeholder.component(PlaceHolderKey.SHARED.getKey(), plugin.getMessageManager().getLang(treasureInfo.isShared() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)),
                 Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(treasureInfo.isUnlimited() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))

@@ -2,6 +2,8 @@ package de.greensurvivors.greentreasure;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.f4b6a3.ulid.Ulid;
+import com.github.f4b6a3.ulid.UlidFactory;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
@@ -14,29 +16,66 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.function.Function;
+import java.util.random.RandomGenerator;
+import java.util.random.RandomGeneratorFactory;
 import java.util.stream.Collectors;
 
 public class TreasureManager {
     private final @NotNull GreenTreasure plugin;
     private final @NotNull NamespacedKey idKey;
+    private final @NotNull RandomGenerator randomGenerator;
+    private final @NotNull UlidFactory ulidFactory;
     // list of known treasures with its location and its information
-    private final @NotNull LoadingCache<@NotNull String, @Nullable TreasureInfo> treasures;
+    private final @NotNull LoadingCache<@NotNull Ulid, @Nullable TreasureInfo> treasures;
 
     public TreasureManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "id");
         this.treasures = Caffeine.newBuilder().build(id -> plugin.getDatabaseManager().loadTreasure(id));
+
+        final @NotNull BigInteger maxPeriod = new BigDecimal("1E70").toBigInteger();
+        // Since paperclip doesn't allow access to the classloader of the app,
+        // we may or may not have access to RandomGeneratorFactory.getDefault().
+        // that's why we are filter all available our own.
+        randomGenerator = RandomGeneratorFactory.all().
+            filter(fact -> fact.stateBits() >= 128).
+            // don't go overboard, we don't need the big ones
+                filter(fact -> fact.stateBits() < 384).
+            filter(fact -> fact.period().compareTo(maxPeriod) < 1).
+            // legacy (< java 17) last since they are slow and insecure, except SecureRandom, witch is extra slow
+            min(new BooleanComparator<RandomGeneratorFactory<RandomGenerator>>(fact -> fact.group().equalsIgnoreCase("Legacy")).
+                // prefer hardware accelerated RNGs
+                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isHardware)).
+                // note: the period compairing is inversed, the biggest one will get sorted first!
+                thenComparing((f, g) -> g.period().compareTo(f.period())).
+                // if everything else is satisfied, we may as well prefer a stochastic one
+                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isStochastic)).
+                // last we compare by name, to be consistent between startups, since default ordering isn't guaranteed
+                thenComparing(RandomGeneratorFactory::name)).
+            // fallback if everything fails
+            orElse(RandomGeneratorFactory.of("Random")).
+            create();
+
+        ulidFactory = UlidFactory.newMonotonicInstance(() -> randomGenerator.nextLong());
     }
 
-    public @Nullable String getTreasureId(final @NotNull PersistentDataHolder dataHolder) {
-        return dataHolder.getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+    public @NotNull Ulid createNewMonotonicUlid() {
+        return ulidFactory.create();
     }
 
-    public @Nullable String getTreasureId(final @NotNull InventoryView inventoryView) {
+    public @Nullable Ulid getTreasureId(final @NotNull PersistentDataHolder dataHolder) {
+        final byte[] bytes = dataHolder.getPersistentDataContainer().get(idKey, PersistentDataType.BYTE_ARRAY);
+        return bytes == null ? null : Ulid.from(bytes);
+    }
+
+    public @Nullable Ulid getTreasureId(final @NotNull InventoryView inventoryView) {
         final @Nullable InventoryHolder holder = inventoryView.getTopInventory().getHolder(false);
 
         if (Utils.getTreasureHolder(holder) instanceof PersistentDataHolder persistentDataHolder) {
@@ -46,12 +85,12 @@ public class TreasureManager {
         return null;
     }
 
-    public void setTreasureId(final @NotNull PersistentDataHolder dataHolder, final @NotNull String treasureId) {
-        dataHolder.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, treasureId);
+    public void setTreasureId(final @NotNull PersistentDataHolder dataHolder, final @NotNull Ulid treasureId) {
+        dataHolder.getPersistentDataContainer().set(idKey, PersistentDataType.BYTE_ARRAY, treasureId.toBytes());
     }
 
     public @NotNull CompletableFuture<@NotNull Boolean> deleteTreasure(final @NotNull PersistentDataHolder dataHolder) { // todo this have to get reworked, if multiple treasures with the same id ever get exposed to the user
-        final @Nullable String treasureId = getTreasureId(dataHolder);
+        final @Nullable Ulid treasureId = getTreasureId(dataHolder);
 
         if (treasureId != null) {
             dataHolder.getPersistentDataContainer().remove(idKey);
@@ -69,12 +108,12 @@ public class TreasureManager {
      *
      * @return all known information about the treasure itself
      */
-    public @Nullable TreasureInfo getTreasureInfo(final @NotNull String treasureId) {
+    public @Nullable TreasureInfo getTreasureInfo(final @NotNull Ulid treasureId) {
         return treasures.get(treasureId);
     }
 
     public @Nullable TreasureInfo getTreasureInfo(final @NotNull PersistentDataHolder persistentDataHolder) {
-        final @Nullable String treasureId = getTreasureId(persistentDataHolder);
+        final @Nullable Ulid treasureId = getTreasureId(persistentDataHolder);
 
         if (treasureId == null) {
             return null;
@@ -84,7 +123,7 @@ public class TreasureManager {
     }
 
     public @Nullable TreasureInfo getTreasureInfo(final @NotNull InventoryView view) {
-        final @Nullable String treasureId = getTreasureId(view);
+        final @Nullable Ulid treasureId = getTreasureId(view);
 
         if (treasureId == null) {
             return null;
@@ -102,7 +141,7 @@ public class TreasureManager {
         treasures.cleanUp();
     }
 
-    public void invalidateTreasure(final @NotNull String treasureId) {
+    public void invalidateTreasure(final @NotNull Ulid treasureId) {
         plugin.getTreasureListener().closeInventories(treasureId);
         treasures.invalidate(treasureId);
     }
@@ -167,5 +206,16 @@ public class TreasureManager {
                 map.entrySet().stream().sorted((o1, o2) ->
                         locationComparator.compare(o1.getValue().getFirst(), o2.getValue().first())).
                     collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e1, LinkedHashMap::new)));
+    }
+
+    private record BooleanComparator<T>(Function<T, Boolean> function) implements Comparator<T> {
+        @Override
+        public int compare(T o1, T o2) {
+            if (function.apply(o1)) {
+                return function.apply(o2) ? 0 : -1;
+            } else {
+                return function.apply(o2) ? 1 : 0;
+            }
+        }
     }
 }

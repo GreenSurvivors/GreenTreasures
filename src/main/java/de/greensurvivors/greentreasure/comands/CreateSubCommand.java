@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.comands;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -13,7 +14,10 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
 
 public class CreateSubCommand extends ASubCommand {
 
@@ -49,7 +53,7 @@ public class CreateSubCommand extends ASubCommand {
             if (container != null) {
                 if (container.getInventory().getType().isCreatable()) {
                     if (plugin.getTreasureManager().getTreasureInfo(container) == null) {
-                        final String newTreasureId = UUID.randomUUID().toString();
+                        final @NotNull Ulid newTreasureId = plugin.getTreasureManager().createNewMonotonicUlid();
                         plugin.getTreasureManager().setTreasureId(container, newTreasureId);
 
                         List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();

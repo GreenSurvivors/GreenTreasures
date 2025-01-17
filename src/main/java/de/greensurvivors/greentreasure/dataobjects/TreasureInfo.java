@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.dataobjects;
 
+import com.github.f4b6a3.ulid.Ulid;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ import java.util.List;
  * @param isUnlimited     if the treasure is lootable an unlimited amount of times
  * @param isShared        if the inventory a treasure has is globally shared
  */
-public record TreasureInfo(@NotNull String treasureId, @NotNull List<@Nullable ItemStack> itemLoot,
+public record TreasureInfo(@NotNull Ulid treasureId, @NotNull List<@Nullable ItemStack> itemLoot,
                            @NotNull Duration timeUntilForget,
                            @Range(from = 0, to = 10000) int slotChance,
                            boolean isUnlimited, boolean isShared,

@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.listener;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
@@ -38,7 +39,7 @@ import java.util.stream.Collectors;
 
 public class TreasureListener implements Listener {
     //list of open inventories, needed to have shared treasures and saving the contents of a treasure after the inventory view was closed
-    private final @NotNull Map<@NotNull String, @NotNull Set<@NotNull InventoryView>> openInventories = new HashMap<>();
+    private final @NotNull Map<@NotNull Ulid, @NotNull Set<@NotNull InventoryView>> openInventories = new HashMap<>();
     private final @NotNull GreenTreasure plugin;
 
     public TreasureListener(final @NotNull GreenTreasure plugin) {
@@ -47,12 +48,13 @@ public class TreasureListener implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    public void closeInventories(final @NotNull String treasureId) {
+    public void closeInventories(final @NotNull Ulid treasureId) {
         final @Nullable Collection<@NotNull InventoryView> views = openInventories.remove(treasureId);
 
         if (views != null) {
             views.forEach(InventoryView::close);
         }
+        openInventories.remove(treasureId);
     }
 
     /**
@@ -78,7 +80,7 @@ public class TreasureListener implements Listener {
                 return;
             }
 
-            final @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(event.getView());
+            final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(event.getView());
             if (treasureId != null) {
                 TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
 
@@ -89,6 +91,10 @@ public class TreasureListener implements Listener {
                     final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureId);
                     if (views != null) {
                         views.remove(event.getView());
+
+                        if (views.isEmpty()) {
+                            openInventories.remove(treasureId);
+                        }
                     }
 
                     // everything is fine. The IDE is just confused with the two annotations of the array
@@ -162,7 +168,7 @@ public class TreasureListener implements Listener {
                 }
 
                 if (views != null) {
-                    plugin.getComponentLogger().info("found entry in openInventories.");
+                    plugin.getComponentLogger().info("found entry in openInventories."); // todo remove after debugging done
 
                     if (views.contains(event.getView())) {
                         plugin.getComponentLogger().info("same view!.");
@@ -341,7 +347,7 @@ public class TreasureListener implements Listener {
                         });
                     }
                 } else {
-                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, false);
                     treasureOpenEvent.callEvent();
 
                     switch (treasureOpenEvent.getResult()) {

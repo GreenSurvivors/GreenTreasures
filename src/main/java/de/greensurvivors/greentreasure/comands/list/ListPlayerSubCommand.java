@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.comands.list;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
@@ -155,14 +156,14 @@ public class ListPlayerSubCommand extends ASubCommand {
                 Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))));
         }
 
-        public void addEntry(final String treasureId) {
+        public void addEntry(final Ulid treasureId) {
             plugin.getDatabaseManager().getPlayerData(Bukkit.getOfflinePlayer(uuidToGetListOf), treasureId).thenAccept(playerLootDetail_result -> {
                 synchronized (super.MUTEX) {
                     super.numOfEntriesStillToDo--;
 
                     //build treasureInfo
                     super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_BODY,
-                        Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId),
+                        Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                         Placeholder.component(PlaceHolderKey.TIME.getKey(),
                             (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ?
                                 plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :

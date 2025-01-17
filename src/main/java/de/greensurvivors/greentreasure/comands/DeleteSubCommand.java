@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.comands;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
@@ -49,7 +50,7 @@ public class DeleteSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
 
             if (container != null) {
-                final @Nullable String treasureId = plugin.getTreasureManager().getTreasureId(container);
+                final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
 
                 if (treasureId != null) {
                     plugin.getTreasureManager().deleteTreasure(container).thenRun(() ->

@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure.listener;
 
+import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
@@ -16,6 +17,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -27,7 +29,7 @@ import java.util.Map;
 public class CommandInventoriesListener implements Listener {
     private final @NotNull GreenTreasure plugin;
 
-    private final Map<@NotNull InventoryView, @NotNull String> editingTreasures = new HashMap<>();
+    private final Map<@NotNull InventoryView, @NotNull Ulid> editingTreasures = new HashMap<>();
     private final Map<@NotNull InventoryView, @NotNull PeekedTreasure> peekingTreasures = new HashMap<>();
 
     public CommandInventoriesListener(final @NotNull GreenTreasure plugin) {
@@ -42,7 +44,7 @@ public class CommandInventoriesListener implements Listener {
      *
      * @param editingView the view given back by player.openInventory when /gt edit was called
      */
-    public void addEditingTreasure(final @NotNull InventoryView editingView, final @NotNull String treasureId) {
+    public void addEditingTreasure(final @NotNull InventoryView editingView, final @NotNull Ulid treasureId) {
         editingTreasures.put(editingView, treasureId);
     }
 
@@ -84,7 +86,7 @@ public class CommandInventoriesListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     private void onEditingDone(final @NotNull InventoryCloseEvent event) {
         Inventory eInventory = event.getInventory();
-        String treasureId = editingTreasures.get(event.getView());
+        final @Nullable Ulid treasureId = editingTreasures.get(event.getView());
 
         if (treasureId != null) {
             TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
@@ -112,9 +114,9 @@ public class CommandInventoriesListener implements Listener {
 
         if (peekedTreasure != null) {
             Inventory eInventory = event.getInventory();
-            String treasureId = peekedTreasure.treasureId();
+            final @NotNull Ulid treasureId = peekedTreasure.treasureId();
 
-            TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
+            final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
 
             //if the treasure wasn't deleted while the inventory was open call the close event
             if (treasureInfo != null) {

@@ -65,7 +65,7 @@ public class EditSubCommand extends ASubCommand {
                         final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,
                             Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
 
-                        final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<> ((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), false);
+                        final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
                         final @NotNull Inventory inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
                         Utils.setContents(inventory, treasureInfo.itemLoot());
                         InventoryView view = player.openInventory(inventory);
