@@ -43,7 +43,7 @@ public class SetForgetSubCommand extends ASubCommand {
 
     @Override
     public @NotNull Set<@NotNull String> getAliases() {
-        return Set.of("forget");
+        return Set.of("forget", "forget-time", "reset-period");
     }
 
     @Override

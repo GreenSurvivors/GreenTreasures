@@ -4,6 +4,9 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
@@ -36,6 +39,11 @@ import java.util.zip.ZipInputStream;
  */
 public class MessageManager {
     private static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWM])");
+    public static final @NotNull Style DEFAULT_STYLE = Style.style(). // todo there has to be a better way to force reset to the default style!
+        color(NamedTextColor.WHITE).
+        clickEvent(null).
+        decorations(Set.of(TextDecoration.values()), false).
+        build();
     private final String BUNDLE_NAME = "lang";
     final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
     private final Plugin plugin;
@@ -122,7 +130,7 @@ public class MessageManager {
         try { //try Iso
             return Duration.parse(period);
         } catch (DateTimeParseException e) {
-            plugin.getComponentLogger().warn("Couldn't get time period \"{}\" as duration. Trying to parse manual next.", period, e);
+            plugin.getComponentLogger().debug("Couldn't get time period \"{}\" as duration. Trying to parse manual next.", period, e);
         }
 
         Matcher matcher = DURATION_PATTERN.matcher(period);
@@ -164,7 +172,7 @@ public class MessageManager {
     /**
      * reload language file.
      */
-    public void reload(@NotNull Locale locale) {
+    public void reload(final @NotNull Locale locale) {
         lang = null; // reset last bundle
 
         // save all missing keys
@@ -329,8 +337,8 @@ public class MessageManager {
     /**
      * prepend the message with the plugins prefix before sending it to the audience.
      */
-    public void sendMessage(@NotNull Audience audience, @NotNull Component messages) {
-        audience.sendMessage(langCache.get(LangPath.PLUGIN_PREFIX).appendSpace().append(messages));
+    public void sendMessage(final @NotNull Audience audience, final @NotNull Component messages) {
+        audience.sendMessage(langCache.get(LangPath.PLUGIN_PREFIX).appendSpace().append(messages.applyFallbackStyle(DEFAULT_STYLE)));
     }
 
     /**

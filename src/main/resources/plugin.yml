@@ -14,5 +14,5 @@ libraries:
   - org.apache.commons:commons-collections4:${commonsCollectionVersion}
   - com.zaxxer:HikariCP:${hikariCPVersion}
   - com.github.f4b6a3:ulid-creator:${ulidCreatorVersion}
-description: green treasure, a treasure chest alternative
+description: ${description}
 author: GreensurvivorsTeam

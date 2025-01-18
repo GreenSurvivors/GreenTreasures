@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
+import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -57,17 +58,21 @@ public class SetFindLootedMessageOverrideSubCommand extends ASubCommand {
                 final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                 if (treasureInfo != null) {
+                    final @NotNull Component name = Utils.getDisplayName(container);
+
                     if (args.length > 2) {
                         final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
                         plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name),
                                 Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
                             ));
 
                     } else {
                         plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_REMOVED));
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_REMOVED,
+                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name)));
                     }
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

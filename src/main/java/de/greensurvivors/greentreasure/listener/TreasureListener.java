@@ -163,15 +163,14 @@ public class TreasureListener implements Listener {
             if (treasureInfo != null) {
                 final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureInfo.treasureId());
 
+                // we will cancel this event and open a new inventory, retriggering this event.
+                // ignore them as well as the views created by our commands
                 if (eInventory.getHolder(false) instanceof InventoryHolderWrapper<?>) {
                     return;
                 }
-
+                // everything should get sorted out above, but just to be sure, ignore all already tracked views
                 if (views != null) {
-                    plugin.getComponentLogger().info("found entry in openInventories."); // todo remove after debugging done
-
                     if (views.contains(event.getView())) {
-                        plugin.getComponentLogger().info("same view!.");
                         return;
                     }
                 }
@@ -233,9 +232,11 @@ public class TreasureListener implements Listener {
                             plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
                                 Inventory nowLooting;
 
-                                // automatically forget after a given time
-                                if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) &&
-                                    !(treasureInfo.timeUntilForget().isPositive() && System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp() > treasureInfo.timeUntilForget().toMillis()))) {
+
+                                if ( // never opened or unexpected empty
+                                    (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
+                                    // automatically forget after a given time
+                                    (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
 
                                     nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                                     Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
@@ -291,11 +292,12 @@ public class TreasureListener implements Listener {
                         plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
                             Inventory nowLooting;
 
-                            if (playerLootDetail == null || ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty() ||
+                            if (// never opened before, or unexpected empty
+                                (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
                                 // unlimited treasure
-                                treasureInfo.isUnlimited()) &&
+                                treasureInfo.isUnlimited() ||
                                 // automatically forget after a given time
-                                !((treasureInfo.timeUntilForget().isPositive()) && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()))) {
+                                (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
 
                                 nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                                 Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
