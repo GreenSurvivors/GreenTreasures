@@ -6,13 +6,14 @@ import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
-import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -51,7 +52,7 @@ public class ListWhoSubCommand extends ASubCommand {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            Container container = plugin.getTreasureCommands().getContainer(sender);
+            Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
                 final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
@@ -118,13 +119,13 @@ public class ListWhoSubCommand extends ASubCommand {
                                 final @NotNull Ulid treasureId) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
                 //page will be added by super
-                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
+                MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow)),
-                Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(),pageNow),
+                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)
             ));
         }
 

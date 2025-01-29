@@ -6,12 +6,13 @@ import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
-import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -96,7 +97,7 @@ public class ListPlayerSubCommand extends ASubCommand {
                             helper.addEntry(treasureIds.get(num));
                         }
                     } else {
-                        final @NotNull String cmd = TreasureCommands.CMD + " " + plugin.getTreasureCommands().getCreateSubCmd().getAliases().iterator().next();
+                        final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_PLAYER_EMPTY,
                             Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
@@ -135,7 +136,7 @@ public class ListPlayerSubCommand extends ASubCommand {
         public ListCmdPlayerDetailHelper(final @NotNull GreenTreasure plugin, final CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries, final @NotNull UUID uuidToGetListOf) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
                 //page will be added by super
-                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " " + uuidToGetListOf + " ");
+                MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " " + uuidToGetListOf + " ");
 
             this.uuidToGetListOf = uuidToGetListOf;
 
@@ -152,8 +153,8 @@ public class ListPlayerSubCommand extends ASubCommand {
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_HEADER,
                 Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerDisplay),
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow)),
-                Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))));
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
+                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(),lastPage)));
         }
 
         public void addEntry(final Ulid treasureId) {

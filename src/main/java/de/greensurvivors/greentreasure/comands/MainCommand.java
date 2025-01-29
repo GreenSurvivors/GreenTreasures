@@ -17,16 +17,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class TreasureCommands extends Command {
-    public static final String CMD = "greentresure";
+public class MainCommand extends Command {
+    public static final String CMD = "greentreasure";
 
     private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
     private final @NotNull GreenTreasure plugin;
     private final @NotNull AboutSubCommand aboutSubCommand;
     private final @NotNull CreateSubCommand createSubCommand;
     private final @NotNull ListSubCommand listSubCommand;
+    private final @NotNull DeleteSubCommand deleteSubCommand;
 
-    public TreasureCommands(final @NotNull GreenTreasure plugin) {
+    public MainCommand(final @NotNull GreenTreasure plugin) {
         super(CMD);
         super.setAliases(List.of("gt", "tchest", "treasurechest"));
         this.plugin = plugin;
@@ -37,7 +38,8 @@ public class TreasureCommands extends Command {
         registerSubCommand(aboutSubCommand);
         createSubCommand = new CreateSubCommand(plugin);
         registerSubCommand(createSubCommand);
-        registerSubCommand(new DeleteSubCommand(plugin));
+        deleteSubCommand = new DeleteSubCommand(plugin);
+        registerSubCommand(deleteSubCommand);
         registerSubCommand(new EditSubCommand(plugin));
         registerSubCommand(new ForgetAllSubCommand(plugin));
         registerSubCommand(new ForgetSubCommand(plugin));
@@ -67,7 +69,7 @@ public class TreasureCommands extends Command {
      * @return container or null if the living entity is not looking at a container
      */
     @Nullable
-    public Container getContainer(final @NotNull CommandSender sender) { // todo move
+    public Container getContainer(final @NotNull CommandSender sender) { // todo move and make static
         if (sender instanceof LivingEntity livingEntity) {
             // is the player looking at a container?
             Block block = livingEntity.getTargetBlockExact(5);
@@ -138,5 +140,9 @@ public class TreasureCommands extends Command {
 
     public @NotNull ASubCommand getListSubCmd() {
         return listSubCommand;
+    }
+
+    public @NotNull ASubCommand getDeleteSubCmd() {
+        return deleteSubCommand;
     }
 }

@@ -59,7 +59,7 @@ public class PeekSubCommand extends ASubCommand {
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
             if (sender instanceof Player player) {
-                Container container = plugin.getTreasureCommands().getContainer(sender);
+                Container container = plugin.getMainCommand().getContainer(sender);
 
                 if (container != null) {
                     final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);

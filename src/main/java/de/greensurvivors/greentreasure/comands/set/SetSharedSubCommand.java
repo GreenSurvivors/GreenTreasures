@@ -7,6 +7,7 @@ import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang.BooleanUtils;
 import org.bukkit.block.Container;
@@ -50,19 +51,19 @@ public class SetSharedSubCommand extends ASubCommand {
      */
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            final @Nullable Container container = plugin.getTreasureCommands().getContainer(sender);
+            final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
                 final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
 
                 if (treasureInfo != null) {
                     if (args.length > 2) {
-                        Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
+                        final @Nullable Boolean isShared = BooleanUtils.toBooleanObject(args[2]);
 
-                        if (isUnLimited != null) {
-                            plugin.getDatabaseManager().setShared(treasureInfo.treasureId(), isUnLimited).thenRun(() ->
+                        if (isShared != null) {
+                            plugin.getDatabaseManager().setShared(treasureInfo.treasureId(), isShared).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_SHARED_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.BOOL.getKey(), plugin.getMessageManager().getLang(isUnLimited ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
+                                    Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), isShared)
                                 ));
                         } else {
                             plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_BOOL,

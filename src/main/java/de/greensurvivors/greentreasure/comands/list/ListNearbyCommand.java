@@ -5,7 +5,7 @@ import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
-import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -14,6 +14,7 @@ import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -99,7 +100,7 @@ public class ListNearbyCommand extends ASubCommand {
                                         num++;
                                     }
                                 } else {
-                                    final @NotNull String cmd = TreasureCommands.CMD + " " + plugin.getTreasureCommands().getCreateSubCmd().getAliases().iterator().next();
+                                    final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_NEARBY_TREASURES_EMPTY,
                                         Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
@@ -132,12 +133,12 @@ public class ListNearbyCommand extends ASubCommand {
         public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
                 //page will be added by super
-                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
+                MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_HEADER,
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow)),
-                Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))));
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
+                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
         }
 
         public void addEntry(final Map.Entry<TreasureInfo, SortedSet<Location>> entry) {
@@ -147,9 +148,9 @@ public class ListNearbyCommand extends ASubCommand {
                 //build treasureInfo
                 @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_BODY,
                     Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), entry.getKey().treasureId().toString()),
-                    Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((double) entry.getKey().slotChance()) / 100.0d)),
-                    Placeholder.component(PlaceHolderKey.SHARED.getKey(), plugin.getMessageManager().getLang(entry.getKey().isShared() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)),
-                    Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(entry.getKey().isUnlimited() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)),
+                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) entry.getKey().slotChance()) / 100.0d),
+                    Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), entry.getKey().isShared()),
+                    Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), entry.getKey().isUnlimited()),
                     Placeholder.component(PlaceHolderKey.LOCATION.getKey(),
                         Component.join(JoinConfiguration.commas(true),
                             entry.getValue().stream().map(location ->

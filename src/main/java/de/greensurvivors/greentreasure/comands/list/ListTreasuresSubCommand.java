@@ -6,7 +6,7 @@ import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
-import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -14,6 +14,7 @@ import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -89,7 +90,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
                     }
 
                 } else {
-                    final @NotNull String cmd = TreasureCommands.CMD + " " + plugin.getTreasureCommands().getCreateSubCmd().getAliases().iterator().next();
+                    final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_TREASURES_EMPTY,
                         Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
@@ -110,12 +111,12 @@ public class ListTreasuresSubCommand extends ASubCommand {
     public class ListCmdTreasureHelper extends AListCmdHelper {
         public ListCmdTreasureHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries) {
             super(plugin, commandSender, pageNow, lastPage, numEntries,
-                TreasureCommands.CMD + " " + plugin.getTreasureCommands().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " "); //page will be added by super
+                MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " "); //page will be added by super
 
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_HEADER,
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow)),
-                Placeholder.unparsed(PlaceHolderKey.LAST_PAGE.getKey(), String.valueOf(lastPage))));
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
+                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
         }
 
         public void addEntry(final @NotNull TreasureInfo treasureInfo, final @NotNull Ulid treasureId) {
@@ -124,9 +125,9 @@ public class ListTreasuresSubCommand extends ASubCommand {
             //build treasureInfo
             @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(((double) treasureInfo.slotChance()) / 100.0d)),
-                Placeholder.component(PlaceHolderKey.SHARED.getKey(), plugin.getMessageManager().getLang(treasureInfo.isShared() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE)),
-                Placeholder.component(PlaceHolderKey.UNLIMITED.getKey(), plugin.getMessageManager().getLang(treasureInfo.isUnlimited() ? LangPath.BOOLEAN_TRUE : LangPath.BOOLEAN_FALSE))
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) treasureInfo.slotChance()) / 100.0d),
+                Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), treasureInfo.isShared()),
+                Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited())
             );
 
             if (treasureInfo.timeUntilForget().isPositive()) {

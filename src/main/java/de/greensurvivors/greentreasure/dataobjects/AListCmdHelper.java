@@ -7,7 +7,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,7 +40,7 @@ public abstract class AListCmdHelper {
 
         if (pageNow > 1) {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_BACK,
-                    Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow - 1))).
+                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow - 1)).
                 clickEvent(ClickEvent.runCommand(command + (pageNow - 1))));
         } else {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));
@@ -50,7 +50,7 @@ public abstract class AListCmdHelper {
 
         if (pageNow < lastPage) {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NEXT,
-                    Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), String.valueOf(pageNow + 1))).
+                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow + 1)).
                 clickEvent(ClickEvent.runCommand(command + (pageNow + 1))));
         } else {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));

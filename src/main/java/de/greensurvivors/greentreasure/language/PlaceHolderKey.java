@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
  * placeholder strings used. will be surrounded in Minimassage typical format of <>
  */
 public enum PlaceHolderKey {
-    BOOL("bool"),
     CMD("cmd"),
     LAST_PAGE("last_page"),
     LOCATION("location"),

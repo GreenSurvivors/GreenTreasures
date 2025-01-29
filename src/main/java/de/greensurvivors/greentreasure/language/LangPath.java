@@ -4,6 +4,7 @@ package de.greensurvivors.greentreasure.language;
 public enum LangPath {
     //actions
     ACTION_BREAK_CONTAINER_SUCCESS("action.break.container.success"),
+    ACTION_BREAK_CONTAINER_ERROR("action.break.container.error"),
     ACTION_BREAK_CONTAINER_DENIED("action.break.container.denied"),
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
     ACTION_FIND_LIMITED("action.find.limited"),
@@ -16,9 +17,6 @@ public enum LangPath {
     ARG_NOT_PLAYER("cmd.error.arg.no-such-player"),
     ARG_NOT_TIME("cmd.error.arg.not-time"),
     ARG_UNKNOWN("cmd.error.arg.unknown"),
-
-    BOOLEAN_FALSE("boolean.false"),
-    BOOLEAN_TRUE("boolean.true"),
 
     // commands
     CMD_ABOUT_PLUGIN_DESCRIPTION("cmd.about.description"),

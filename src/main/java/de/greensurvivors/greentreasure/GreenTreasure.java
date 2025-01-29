@@ -1,6 +1,6 @@
 package de.greensurvivors.greentreasure;
 
-import de.greensurvivors.greentreasure.comands.TreasureCommands;
+import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
@@ -16,7 +16,7 @@ public class GreenTreasure extends JavaPlugin {
     private TreasureListener treasureListener;
     private CommandInventoriesListener commandInventoriesListener;
     private MessageManager messageManager;
-    private TreasureCommands treasureCommands;
+    private MainCommand treasureCommands;
     private DependencyHelper dependencyHelper;
 
     public GreenTreasure() {
@@ -40,7 +40,7 @@ public class GreenTreasure extends JavaPlugin {
         configHandler.reloadMain();
 
         // command
-        treasureCommands = new TreasureCommands(this);
+        treasureCommands = new MainCommand(this);
         treasureListener = new TreasureListener(this);
         commandInventoriesListener = new CommandInventoriesListener(this);
         messageManager = new MessageManager(this);
@@ -80,8 +80,7 @@ public class GreenTreasure extends JavaPlugin {
         return treasureListener;
     }
 
-    public TreasureCommands getTreasureCommands() {
+    public MainCommand getMainCommand() {
         return treasureCommands;
     }
-
 }

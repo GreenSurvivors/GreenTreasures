@@ -22,7 +22,7 @@ public class HelpSubCommand extends ASubCommand {
 
     @Override
     protected boolean checkPermission(@NotNull Permissible permissible) {
-        return plugin.getTreasureCommands().getSubCommands().values().stream().anyMatch(sub -> !(sub instanceof HelpSubCommand) && sub.checkPermission(permissible));
+        return plugin.getMainCommand().getSubCommands().values().stream().anyMatch(sub -> !(sub instanceof HelpSubCommand) && sub.checkPermission(permissible));
     }
 
     @Override
@@ -64,7 +64,7 @@ public class HelpSubCommand extends ASubCommand {
         if (args.length == 2) {
             final List<String> suggestions = new ArrayList<>();
 
-            for (Map.Entry<String, ASubCommand> entry : plugin.getTreasureCommands().getSubCommands().entrySet()) {
+            for (Map.Entry<String, ASubCommand> entry : plugin.getMainCommand().getSubCommands().entrySet()) {
                 if (entry.getValue().checkPermission(sender) && StringUtils.startsWithIgnoreCase(entry.getKey(), args[1])) {
                     suggestions.add(entry.getKey());
                 }

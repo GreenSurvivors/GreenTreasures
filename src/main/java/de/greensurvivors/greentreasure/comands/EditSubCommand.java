@@ -55,7 +55,7 @@ public class EditSubCommand extends ASubCommand {
      */
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            Container container = plugin.getTreasureCommands().getContainer(sender);
+            Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
                 if (sender instanceof Player player) {
