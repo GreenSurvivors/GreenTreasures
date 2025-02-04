@@ -80,10 +80,12 @@ public class TreasureConfig {
     private void loadLegacy() {
         final @NotNull FileConfiguration config = plugin.getConfig();
         if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
-            new ImportLegacy(plugin).importLegacyData();
+            Bukkit.getScheduler().runTaskLater(plugin, () -> { // run later to give the database time to connect
+                new ImportLegacy(plugin).importLegacyData();
 
-            config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
-            plugin.saveConfig();
+                config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
+                plugin.saveConfig();
+            }, 1200);
         }
     }
 }

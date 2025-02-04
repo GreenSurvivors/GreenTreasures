@@ -494,7 +494,7 @@ public class ImportLegacy {
                                                                     final @NotNull Block treasureBlock = world.getBlockAt(x, y, z);
 
                                                                     if (!(treasureBlock.getState(false) instanceof Container container)) {
-                                                                        plugin.getComponentLogger().warn("[playerData] Could not load legacy treasure {} because the block at {} is not a container.", path, treasureBlock.getLocation());
+                                                                        plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, treasureBlock.getLocation());
                                                                         return;
                                                                     }
 
