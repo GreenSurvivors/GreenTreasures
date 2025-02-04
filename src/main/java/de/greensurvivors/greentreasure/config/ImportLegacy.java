@@ -84,7 +84,13 @@ public class ImportLegacy {
 
             importTreasureData(treasureChestPath).
                 thenCompose(inventorySizes -> importPlayerData(inventorySizes, treasureChestPath)).
-                thenAccept(success -> plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST + " is done. was success: " + success));
+                thenAccept(success -> {
+                    plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST + " is done. was success: {}", success);
+
+                    if (success) {
+                        plugin.getComponentLogger().info("You may delete the old folder 'plugins/{}' now!", TREASURE_CHEST);
+                    }
+                });
         } else {
             final @NotNull Path treasureChestXPath = pluginPath.resolve(TREASURE_CHEST_X);
 
@@ -93,7 +99,13 @@ public class ImportLegacy {
 
                 importTreasureData(treasureChestXPath).
                     thenCompose(inventorySizes -> importPlayerData(inventorySizes, treasureChestXPath)).
-                    thenRun(() -> plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST_X + " is done"));
+                    thenAccept(success -> {
+                        plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST_X + " is done. was success: {}", success);
+
+                        if (success) {
+                            plugin.getComponentLogger().info("You may delete the old folder 'plugins/{}' now!", TREASURE_CHEST_X);
+                        }
+                    });
             } else {
                 plugin.getComponentLogger().warn("Could not find any legacy treasures.");
             }
@@ -307,13 +319,6 @@ public class ImportLegacy {
                     resultMap.put(treasureLocation, treasureId);
 
                     result.complete(null);
-
-                    // now delete the file
-                    try {
-                        Files.delete(path);
-                    } catch (final @NotNull IOException e) {
-                        plugin.getComponentLogger().warn("Could not delete treasure file {}", path, e);
-                    }
                 });
         });
 
@@ -452,8 +457,6 @@ public class ImportLegacy {
                                         return;
                                     }
 
-                                    final @NotNull AtomicBoolean gotNoErrorThisFile = new AtomicBoolean(true);
-
                                     try (final @NotNull BufferedReader reader = Files.newBufferedReader(path)) {
                                         final @NotNull FileConfiguration playerFile = YamlConfiguration.loadConfiguration(reader);
 
@@ -501,7 +504,7 @@ public class ImportLegacy {
                                                                         plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
                                                                     } else {
                                                                         plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
-                                                                        gotNoErrorThisFile.set(false);
+                                                                        gotNoErrorAnyFile.set(false);
                                                                     }
                                                                 });
                                                             } else {
@@ -510,30 +513,18 @@ public class ImportLegacy {
                                                         }
                                                     } else {
                                                         plugin.getComponentLogger().warn("[playerData] Can't extract coordinates from name: '{}'. Skipping.", entry.getKey());
-                                                        gotNoErrorThisFile.set(false);
+                                                        gotNoErrorAnyFile.set(false);
                                                         continue;
                                                     }
                                                 }
                                             } else {
                                                 plugin.getComponentLogger().warn("Unknown world: {}. Skipping.", worldName);
-                                                gotNoErrorThisFile.set(false);
+                                                gotNoErrorAnyFile.set(false);
                                                 return;
                                             }
                                         }
                                     } catch (IOException e) {
                                         plugin.getComponentLogger().warn("Could not read player info for {}", path, e);
-                                        gotNoErrorThisFile.set(false);
-                                    }
-
-                                    if (gotNoErrorThisFile.get()) {
-                                        try {
-                                            Files.delete(path);
-
-                                            plugin.getComponentLogger().debug("imported player info for {}", path);
-                                        } catch (IOException e) {
-                                            plugin.getComponentLogger().warn("Could not delete player info for {}", path, e);
-                                        }
-                                    } else {
                                         gotNoErrorAnyFile.set(false);
                                     }
                                 });
