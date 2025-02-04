@@ -52,7 +52,7 @@ public class ImportLegacy {
         this.plugin = plugin;
     }
 
-    protected void importLegacyData() {
+    public static void disableLegacyPlugins(){
         final @Nullable Plugin treasureChestPlugin = Bukkit.getPluginManager().getPlugin(TREASURE_CHEST);
 
         if (treasureChestPlugin != null) {
@@ -73,7 +73,9 @@ public class ImportLegacy {
 
             Bukkit.getServer().getCommandMap().getKnownCommands().entrySet().removeIf(s -> StringUtils.startsWithIgnoreCase(s.getKey(), "treasurechestx"));
         }
+    }
 
+    protected void importLegacyData() {
         final @NotNull Path pluginPath = plugin.getDataPath().getParent();
         final @NotNull Path treasureChestPath = pluginPath.resolve(TREASURE_CHEST);
 

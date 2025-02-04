@@ -1,6 +1,7 @@
 package de.greensurvivors.greentreasure;
 
 import de.greensurvivors.greentreasure.comands.MainCommand;
+import de.greensurvivors.greentreasure.config.ImportLegacy;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
@@ -45,6 +46,9 @@ public class GreenTreasure extends JavaPlugin {
         commandInventoriesListener = new CommandInventoriesListener(this);
         messageManager = new MessageManager(this);
         dependencyHelper = new DependencyHelper(this);
+
+        // disable legacy plugins and their commands
+        ImportLegacy.disableLegacyPlugins();
     }
 
     @Override
