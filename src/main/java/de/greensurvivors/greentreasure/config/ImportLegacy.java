@@ -13,6 +13,8 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
+import org.bukkit.command.Command;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -56,7 +58,13 @@ public class ImportLegacy {
         if (treasureChestPlugin != null) {
             Bukkit.getPluginManager().disablePlugin(treasureChestPlugin);
 
-            Bukkit.getServer().getCommandMap().getKnownCommands().entrySet().removeIf(s -> StringUtils.startsWithIgnoreCase(s.getKey(), "treasurechest"));
+            for (Command cmd : Bukkit.getCommandMap().getKnownCommands().values()) {
+                if (cmd instanceof PluginCommand pluginCommand) {
+                    if (pluginCommand.getPlugin().getName().equalsIgnoreCase(treasureChestPlugin.getName())) {
+                        cmd.unregister(Bukkit.getCommandMap());
+                    }
+                }
+            }
         }
 
         final @Nullable Plugin treasureChestXPlugin = Bukkit.getPluginManager().getPlugin(TREASURE_CHEST_X);
