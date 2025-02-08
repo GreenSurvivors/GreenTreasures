@@ -65,14 +65,14 @@ public class SetFindLootedMessageOverrideSubCommand extends ASubCommand {
 
                         plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name),
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name),
                                 Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
                             ));
 
                     } else {
                         plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_REMOVED,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name)));
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name)));
                     }
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

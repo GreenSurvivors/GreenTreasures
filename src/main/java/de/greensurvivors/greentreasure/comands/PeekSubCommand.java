@@ -78,10 +78,10 @@ public class PeekSubCommand extends ASubCommand {
 
                                 if ((playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_SHARED,
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED)));
+                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED)));
 
                                     final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_SHARED,
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
+                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
                                     Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
@@ -89,7 +89,7 @@ public class PeekSubCommand extends ASubCommand {
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
                                 } else {
                                     final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_SHARED,
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
+                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
 
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
@@ -138,12 +138,12 @@ public class PeekSubCommand extends ASubCommand {
 
                                 final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
                                     Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name),
-                                    Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)));
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
                                 final Inventory nowPeeking = Bukkit.createInventory(new InventoryHolderWrapper<>(container, true), container.getInventory().getType(), title);
 
                                 if ((playerLootDetail == null || playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
-                                        Placeholder.component(PlaceHolderKey.NAME.getKey(), name));
+                                        Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name));
 
                                     Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
                                 } else {

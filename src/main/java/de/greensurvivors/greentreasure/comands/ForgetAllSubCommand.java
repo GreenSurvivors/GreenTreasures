@@ -55,7 +55,7 @@ public class ForgetAllSubCommand extends ASubCommand {
                 if (treasureInfo != null) {
                     plugin.getDatabaseManager().forgetAll(treasureInfo.treasureId()).thenRun(() ->
                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_ALL_SUCCESS,
-                            Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container))));
+                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                 }

@@ -12,7 +12,6 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
-import org.slf4j.Logger;
 
 import java.sql.*;
 import java.time.Duration;
@@ -737,7 +736,7 @@ public class DatabaseManager {
                             blob.free();
                         }
 
-                        plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player.getName(), items, Thread.currentThread().getName());
+                        plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player == null ? "!Shared!" : player.getName(), items, Thread.currentThread().getName());
                         Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
                     } else { //player had never opened this treasure
 
@@ -984,20 +983,6 @@ public class DatabaseManager {
 
         } catch (SQLException e) {
             plugin.getComponentLogger().error("Could not add player '{}'.", player.getName(), e);
-        }
-    }
-
-    public static class UncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
-        private final @NotNull Logger logger;
-
-        public UncaughtExceptionHandler(final @NotNull Logger logger) {
-            this.logger = logger;
-        }
-
-        @Override
-        public void uncaughtException(final @NotNull Thread thread, final @NotNull Throwable throwable) {
-            this.logger.error("Caught previously unhandled exception :");
-            this.logger.error(thread.getName(), throwable);
         }
     }
 

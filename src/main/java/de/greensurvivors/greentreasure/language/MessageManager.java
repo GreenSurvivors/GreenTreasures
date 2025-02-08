@@ -38,7 +38,9 @@ import java.util.zip.ZipInputStream;
  * manages all translatable and placeholders used by this plugin.
  */
 public class MessageManager {
-    private static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWM])");
+    // please note: since minutes and months both are identified by m, it is intentional for this pattern to NOT be
+    // case-insensitive!
+    private static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWMyY])");
     public static final @NotNull Style DEFAULT_STYLE = Style.style(). // todo there has to be a better way to force reset to the default style!
         color(NamedTextColor.WHITE).
         clickEvent(null).

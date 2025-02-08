@@ -49,6 +49,7 @@ public class ListWhoSubCommand extends ASubCommand {
         return null;
     }
 
+    // todo alternative to looking at a chest accept a ulid
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
@@ -146,7 +147,7 @@ public class ListWhoSubCommand extends ASubCommand {
             }
 
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_BODY,
-                Placeholder.component(PlaceHolderKey.NAME.getKey(), who == null ? plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED) : who),
+                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), who == null ? plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED) : who),
                 Placeholder.component(PlaceHolderKey.TIME.getKey(),
                     (playerLootDetail.unLootedStuff() == null) ?
                         plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :

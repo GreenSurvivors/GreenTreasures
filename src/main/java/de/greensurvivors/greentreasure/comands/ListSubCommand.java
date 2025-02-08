@@ -17,7 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class ListSubCommand extends ASubCommand {
-    public static final byte ENTRIES_PER_PAGE = 5;
+    public static final byte ENTRIES_PER_PAGE = 10;
     private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
 
     public ListSubCommand(@NotNull GreenTreasure plugin) {

@@ -2,7 +2,6 @@ package de.greensurvivors.greentreasure.comands.set;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
-import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
@@ -10,6 +9,7 @@ import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -59,8 +59,10 @@ public class SetRandomSubCommand extends ASubCommand {
 
                 if (treasureInfo != null) {
                     if (args.length > 2) {
-                        if (Utils.isDouble(args[2])) {
-                            @Range(from = 0, to = 10000) short slotPercentage = (short) (Double.parseDouble(args[2]) * 100);
+                        final @Nullable Number parsedNumber = NumberUtils.createNumber(args[2]);
+
+                        if (parsedNumber != null) {
+                            @Range(from = 0, to = 10000) short slotPercentage = (short) (parsedNumber.doubleValue() * 100);
 
                             slotPercentage = (short) Math.max(Math.min(slotPercentage, 10000), 0);
 

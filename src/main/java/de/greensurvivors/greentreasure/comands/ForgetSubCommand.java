@@ -60,7 +60,7 @@ public class ForgetSubCommand extends ASubCommand {
                     if (treasureInfo.isShared()) {
                         plugin.getDatabaseManager().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_SHARED_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container))));
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
                     }
 
                     final OfflinePlayer playerToForget;
@@ -101,7 +101,7 @@ public class ForgetSubCommand extends ASubCommand {
                             }
 
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_USER_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), Utils.getDisplayName(container)),
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)),
                                 Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerName));
                         });
                     } else {

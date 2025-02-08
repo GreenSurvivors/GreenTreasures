@@ -3,6 +3,7 @@ package de.greensurvivors.greentreasure.config;
 import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.UncaughtExceptionHandler;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import org.apache.commons.io.FilenameUtils;
@@ -31,10 +32,9 @@ import java.io.UncheckedIOException;
 import java.nio.file.*;
 import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -434,8 +434,29 @@ public class ImportLegacy {
     private @NotNull CompletableFuture<@NotNull Boolean> importPlayerData(final @NotNull Map<@NotNull Location, @NotNull Ulid> importedTreasureIds, final @NotNull Path treasurePluginFolder) {
         final @NotNull CompletableFuture<@NotNull Boolean> result = new CompletableFuture<>();
 
-        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
-            forkJoinPool.execute(() -> {
+        final @NotNull AtomicLong count = new AtomicLong(0L);
+        final @NotNull ThreadFactory threadFactory = runnable -> {
+            Thread thread = Executors.defaultThreadFactory().newThread(runnable);
+            Objects.requireNonNull(thread);
+
+            thread.setName(String.format("GreenTreasure ImportLegacy thread - %1$d", count.getAndIncrement()));
+            thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler(plugin.getComponentLogger()));
+
+            return thread;
+        };
+
+        // Mojang api only allows 600 requests / 10 minutes or one per second.
+        // so we throttle our requests to 400 / 10 minutes or one per 1.5 seconds, to give the server some room for players and custom heads.
+        // This wouldn't be necessary, if there was direct API access to the NMS PlayerDataStorage object.
+        // However, the best thing we got is a call in the API server to get ALL OfflinePlayers at once.
+        // and that call is not thread safe.
+        // So that would be a very bad idea to use.
+        // Also for future reference: UserCache also ins't an alternative data source, since that would boil down to
+        // the UserCache.json, where every user in there may expire after a month.
+        // I looked it up, the server basically does not delete any entries there but, at the same time they have an expiration date,
+        // and after that date they might very well get deleted in the future.
+        try (final @NotNull ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2, threadFactory)) {
+            scheduledThreadPoolExecutor.schedule(() -> {
                 synchronized (this) {
                     plugin.getComponentLogger().info("importing PlayerData");
 
@@ -450,7 +471,7 @@ public class ImportLegacy {
                                 filter(path -> PATH_MATCHER.matches(path.getFileName())).
                                 forEach(path -> {
                                     final @NotNull String playerName = FilenameUtils.removeExtension(path.getFileName().toString());
-                                    final @NotNull OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
+                                    final @Nullable OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
 
                                     if (!offlinePlayer.hasPlayedBefore()) {
                                         plugin.getComponentLogger().warn("Player '{}' has never played before. Skipping.", playerName);
@@ -541,7 +562,7 @@ public class ImportLegacy {
                         result.complete(Boolean.FALSE);
                     }
                 }
-            });
+            }, 1500, TimeUnit.MILLISECONDS);
         }
 
         return result;

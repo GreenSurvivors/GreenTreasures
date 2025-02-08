@@ -124,7 +124,7 @@ public class ListNearbyCommand extends ASubCommand {
     }
 
     @Override
-    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) { // todo suggest a distance
         return List.of();
     }
 

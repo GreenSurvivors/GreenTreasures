@@ -65,14 +65,14 @@ public class SetFindFreshMessageOverrideSubCommand extends ASubCommand {
 
                         plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name),
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name),
                                 Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
                             ));
 
                     } else {
                         plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_REMOVED,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(), name)));
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name)));
                     }
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

@@ -60,7 +60,7 @@ public class CreateSubCommand extends ASubCommand {
 
                         plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.NAME.getKey(),
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
                                     container.customName() == null ?
                                         Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
                                         container.customName()
