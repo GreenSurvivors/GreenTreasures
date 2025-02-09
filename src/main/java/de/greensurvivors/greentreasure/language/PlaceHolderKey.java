@@ -20,7 +20,9 @@ public enum PlaceHolderKey {
     WORLD("world"),
     X("x"),
     Y("y"),
-    Z("z");
+    Z("z"),
+    PERCENT("percent"),
+    MAX("max");
 
     private final @NotNull String key;
 

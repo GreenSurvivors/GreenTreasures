@@ -57,7 +57,7 @@ public class ListNearbyCommand extends ASubCommand {
                             return false;
                         }
 
-                        plugin.getTreasureManager().getNearTreasures(entity.getLocation(), Integer.parseInt(args[2])).
+                        plugin.getTreasureManager().getNearTreasures(entity.getLocation(), Math.abs(Integer.parseInt(args[2])), sender).
                             thenAccept(nearTreasures -> {
                                 final int numOfTreasures = nearTreasures.size();
 

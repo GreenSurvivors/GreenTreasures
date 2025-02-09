@@ -63,6 +63,7 @@ public enum LangPath {
     CMD_SET_RANDOM_SUCCESS("cmd.set.random.success"),
     CMD_SET_SHARED_SUCCESS("cmd.set.shared.success"),
     CMD_SET_UNLIMITED_SUCCESS("cmd.set.unlimited.success"),
+    CMD_SET_FORGET_DURATION_SUCCESS("cmd.set.forget.duration.success"),
 
     //
     CMD_USAGE("cmd.usage"),
@@ -76,7 +77,7 @@ public enum LangPath {
     FORMAT_LOCATION("format.location"),
     NO_PERMISSION("no-permission"),
     PLUGIN_PREFIX("prefix", "<gold>[GreenTreasure]</gold>"),
-    SET_FORGET_DURATION("cmd.set.forget.duration"),
+    CHUNK_PROCESS_WORK("chunk-process.work"),
 
     //
     TREASURE_TITLE_EDIT("treasure.title.edit"),

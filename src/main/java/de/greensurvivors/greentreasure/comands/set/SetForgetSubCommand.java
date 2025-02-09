@@ -90,7 +90,7 @@ public class SetForgetSubCommand extends ASubCommand {
                             final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
 
                             plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), forgetDuration).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.SET_FORGET_DURATION,
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
                         }
                     } else {
