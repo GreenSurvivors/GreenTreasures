@@ -57,6 +57,7 @@ public class CreateSubCommand extends ASubCommand {
                         plugin.getTreasureManager().setTreasureId(container, newTreasureId);
 
                         List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
+                        container.update(true, false);
 
                         plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,

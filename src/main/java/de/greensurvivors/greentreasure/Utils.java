@@ -3,6 +3,7 @@ package de.greensurvivors.greentreasure;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Container;
 import org.bukkit.block.DoubleChest;
+import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
@@ -83,8 +84,11 @@ public class Utils {
     /// double chests are wierd.
     @Contract("null -> null; !null -> !null")
     public static @Nullable InventoryHolder getTreasureHolder (final @Nullable InventoryHolder holder) {
-        if (holder instanceof DoubleChest doubleChest && doubleChest.getLeftSide() != null) {
-            return doubleChest.getLeftSide();
+        if (holder == null) {
+            return null;
+        } else if (holder.getInventory() instanceof DoubleChestInventory doubleChestInventory &&
+            ((DoubleChest)doubleChestInventory.getHolder(false)).getLeftSide(false) instanceof InventoryHolder leftSide) {
+            return leftSide;
         } else {
             return holder;
         }

@@ -382,12 +382,12 @@ public class TreasureListener implements Listener {
                                 if (success) {
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_SUCCESS,
                                         Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                            Utils.getDisplayName((Container) inventoryHolder.getInventory().getHolder())));
+                                            Utils.getDisplayName((Container) persistentDataHolder)));
                                 } else {
                                     final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_ERROR,
                                         Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                            Utils.getDisplayName((Container) inventoryHolder.getInventory().getHolder())),
+                                            Utils.getDisplayName((Container) persistentDataHolder)),
                                         Placeholder.component(PlaceHolderKey.CMD.getKey(),
                                             Component.text().
                                                 content(command).
