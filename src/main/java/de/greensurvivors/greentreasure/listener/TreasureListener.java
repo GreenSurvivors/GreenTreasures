@@ -26,10 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
@@ -213,9 +210,14 @@ public class TreasureListener implements Listener {
 
                         if (inventoryView != null && !treasureInfo.isUnlimited()) {
                             ePlayer.openInventory(inventoryView.getTopInventory());
-
                         } else if (treasureInfo.isUnlimited()) {
-                            Inventory nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                            final @NotNull Inventory nowLooting;
+
+                            if (eInventory.getType() == InventoryType.CHEST) {
+                                nowLooting = Bukkit.createInventory(owner, eInventory.getSize(), eTitle);
+                            } else {
+                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                            }
                             Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                             ePlayer.openInventory(nowLooting);
@@ -233,15 +235,18 @@ public class TreasureListener implements Listener {
                         } else {
                             //load global treasure async
                             plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
-                                Inventory nowLooting;
-
+                                final @NotNull Inventory nowLooting;
 
                                 if ( // never opened or unexpected empty
                                     (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
                                     // automatically forget after a given time
                                     (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
 
-                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                    if (eInventory.getType() == InventoryType.CHEST) {
+                                        nowLooting = Bukkit.createInventory(owner, eInventory.getSize(), eTitle);
+                                    } else {
+                                        nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                    }
                                     Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                     if (treasureInfo.rawFindFreshMessageOverride() != null) {
@@ -255,7 +260,11 @@ public class TreasureListener implements Listener {
                                         plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                     }
                                 } else {
-                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                    if (eInventory.getType() == InventoryType.CHEST) {
+                                        nowLooting = Bukkit.createInventory(owner, eInventory.getSize(), eTitle);
+                                    } else {
+                                        nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                    }
                                     // get items left there last time
                                     Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
@@ -279,7 +288,7 @@ public class TreasureListener implements Listener {
                         }
                     } else { // not globally shared
                         plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
-                            Inventory nowLooting;
+                            final @NotNull Inventory nowLooting;
 
                             if (// never opened before, or unexpected empty
                                 (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
@@ -288,7 +297,11 @@ public class TreasureListener implements Listener {
                                 // automatically forget after a given time
                                 (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.lastChangedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
 
-                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                if (eInventory.getType() == InventoryType.CHEST) {
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getSize(), eTitle);
+                                } else {
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                }
                                 Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
 
                                 if (treasureInfo.rawFindFreshMessageOverride() != null) {
@@ -302,7 +315,11 @@ public class TreasureListener implements Listener {
                                     plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LIMITED);
                                 }
                             } else {
-                                nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                if (eInventory.getType() == InventoryType.CHEST) {
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getSize(), eTitle);
+                                } else {
+                                    nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
+                                }
                                 Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
                                 if (treasureInfo.rawFindLootedMessageOverride() != null) {
