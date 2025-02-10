@@ -110,7 +110,7 @@ public class CommandInventoriesListener implements Listener {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     private void onPeekingDone(final @NotNull InventoryCloseEvent event) {
-        PeekedTreasure peekedTreasure = peekingTreasures.get(event.getView());
+        final @NotNull PeekedTreasure peekedTreasure = peekingTreasures.remove(event.getView());
 
         if (peekedTreasure != null) {
             Inventory eInventory = event.getInventory();
@@ -122,13 +122,12 @@ public class CommandInventoriesListener implements Listener {
             if (treasureInfo != null) {
                 new PeekingDoneEvent((Player) event.getPlayer(), treasureInfo, peekedTreasure.playerPeekedUUID()).callEvent();
 
-                peekingTreasures.remove(event.getView());
                 if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
                     plugin.getDatabaseManager().setPlayerData(null, treasureId,
-                        new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                        new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
                 } else {
                     plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
-                        new PlayerLootDetail(peekedTreasure.timeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                        new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
                 }
             }
         }

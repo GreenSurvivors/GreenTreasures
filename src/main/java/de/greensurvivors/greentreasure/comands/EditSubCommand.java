@@ -13,6 +13,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
@@ -66,7 +67,14 @@ public class EditSubCommand extends ASubCommand {
                             Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
 
                         final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
-                        final @NotNull Inventory inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
+
+                        final @NotNull Inventory inventory;
+                        if (container.getInventory().getType() == InventoryType.CHEST) {
+                            inventory = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
+                        } else {
+                            inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
+                        }
+
                         Utils.setContents(inventory, treasureInfo.itemLoot());
                         InventoryView view = player.openInventory(inventory);
 
