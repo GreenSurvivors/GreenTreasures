@@ -22,15 +22,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.random.RandomGenerator;
-import java.util.random.RandomGeneratorFactory;
 import java.util.stream.Collectors;
 
 public class TreasureManager {
@@ -49,7 +44,6 @@ public class TreasureManager {
 
     private final @NotNull GreenTreasure plugin;
     private final @NotNull NamespacedKey idKey;
-    private final @NotNull RandomGenerator randomGenerator;
     private final @NotNull UlidFactory ulidFactory;
     // list of known treasures with its location and its information
     private final @NotNull LoadingCache<@NotNull Ulid, @Nullable TreasureInfo> treasures;
@@ -61,30 +55,8 @@ public class TreasureManager {
         this.idKey = new NamespacedKey(plugin, "id");
         this.treasures = Caffeine.newBuilder().build(id -> plugin.getDatabaseManager().loadTreasure(id));
 
-        final @NotNull BigInteger maxPeriod = new BigDecimal("1E70").toBigInteger();
-        // Since paperclip doesn't allow access to the classloader of the app,
-        // we may or may not have access to RandomGeneratorFactory.getDefault().
-        // that's why we are filter all available our own.
-        randomGenerator = RandomGeneratorFactory.all().
-            filter(fact -> fact.stateBits() >= 128).
-            // don't go overboard, we don't need the big ones
-            filter(fact -> fact.stateBits() < 384).
-            filter(fact -> fact.period().compareTo(maxPeriod) < 1).
-            // use legacy (< java 17) last since they are slow and insecure, except SecureRandom, witch is extra slow, only if we really have to
-            min(new BooleanComparator<RandomGeneratorFactory<RandomGenerator>>(fact -> fact.group().equalsIgnoreCase("Legacy")).
-                // prefer hardware accelerated RNGs
-                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isHardware)).
-                // note: the period comparing is inverse, the biggest one will get sorted first!
-                thenComparing((f, g) -> g.period().compareTo(f.period())).
-                // if everything else is satisfied, we may as well prefer a stochastic one
-                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isStochastic)).
-                // last we compare by name, to be consistent between startups, since default ordering isn't guaranteed
-                thenComparing(RandomGeneratorFactory::name)).
-            // fallback if everything fails
-            orElse(RandomGeneratorFactory.of("Random")).
-            create();
 
-        ulidFactory = UlidFactory.newMonotonicInstance(() -> randomGenerator.nextLong());
+        ulidFactory = UlidFactory.newMonotonicInstance(() -> Utils.RANDOM_GENERATOR.nextLong());
         chunkLoadingMap = new HashMap<>();
 
         // requesting all nearby chunks at the same time works fine for the intended case of small radii,
@@ -325,17 +297,6 @@ public class TreasureManager {
                 }
             }
         });
-    }
-
-    private record BooleanComparator<T>(@NotNull Function<T, Boolean> function) implements Comparator<T> {
-        @Override
-        public int compare(T o1, T o2) {
-            if (function.apply(o1)) {
-                return function.apply(o2) ? 0 : -1;
-            } else {
-                return function.apply(o2) ? 1 : 0;
-            }
-        }
     }
 
     private record ChunkLoadInfo(int chunkX, int chunkZ, @NotNull Set<@NotNull ChunkConsumer> chunkConsumers) {

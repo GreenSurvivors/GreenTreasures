@@ -125,7 +125,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
             //build treasureInfo
             @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) treasureInfo.slotChance()) / 100.0d),
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) treasureInfo.nonEmptyPermyriad()) / 100.0d),
                 Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), treasureInfo.isShared()),
                 Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited())
             );

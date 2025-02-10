@@ -34,7 +34,7 @@ public class SetRandomSubCommand extends ASubCommand {
 
     @Override
     public @NotNull Set<@NotNull String> getAliases() {
-        return Set.of("random", "slotchance");
+        return Set.of("random", "nonemptypermyriad");
     }
 
     @Override
@@ -44,8 +44,8 @@ public class SetRandomSubCommand extends ASubCommand {
     }
 
     /**
-     * sets how probable it is for an inventory slot to be lootable
-     * /gt set(0) random(1) <slotChance>(2)
+     * sets how many permyriad of the non-empty items should be in contained in a freshly generated treasure
+     * /gt set(0) random(1) <nonEmptyPermyriad>(2)
      *
      * @param sender sender of this command
      * @param args   given arguments
@@ -62,12 +62,12 @@ public class SetRandomSubCommand extends ASubCommand {
                         final @Nullable Number parsedNumber = NumberUtils.createNumber(args[2]);
 
                         if (parsedNumber != null) {
-                            @Range(from = 0, to = 10000) short slotPercentage = (short) (parsedNumber.doubleValue() * 100);
+                            @Range(from = 0, to = 10000) short nonEmptyPermyriad = (short) (parsedNumber.doubleValue() * 100);
 
-                            slotPercentage = (short) Math.max(Math.min(slotPercentage, 10000), 0);
+                            nonEmptyPermyriad = (short) Math.max(Math.min(nonEmptyPermyriad, 10000), 0);
 
-                            int finalSlotPercentage = slotPercentage;
-                            plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), slotPercentage).thenRun(() ->
+                            int finalSlotPercentage = nonEmptyPermyriad;
+                            plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
                                     Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((float) finalSlotPercentage) / 100.0f)));
                         } else {

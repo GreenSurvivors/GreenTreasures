@@ -218,7 +218,7 @@ public class TreasureListener implements Listener {
                             } else {
                                 nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                             }
-                            Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                            Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
                             ePlayer.openInventory(nowLooting);
 
@@ -247,7 +247,7 @@ public class TreasureListener implements Listener {
                                     } else {
                                         nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                                     }
-                                    Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                                    Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
                                     if (treasureInfo.rawFindFreshMessageOverride() != null) {
                                         plugin.getMessageManager().sendMessage(ePlayer,
@@ -302,7 +302,7 @@ public class TreasureListener implements Listener {
                                 } else {
                                     nowLooting = Bukkit.createInventory(owner, eInventory.getType(), eTitle);
                                 }
-                                Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                                Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
                                 if (treasureInfo.rawFindFreshMessageOverride() != null) {
                                     plugin.getMessageManager().sendMessage(ePlayer,

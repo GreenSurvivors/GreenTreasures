@@ -84,7 +84,7 @@ public class PeekSubCommand extends ASubCommand {
                                         Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
                                     nowPeeking = Bukkit.createInventory(container, container.getInventory().getType(), title);
 
-                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
                                 } else {
@@ -145,7 +145,7 @@ public class PeekSubCommand extends ASubCommand {
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
                                         Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name));
 
-                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.slotChance());
+                                    Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
                                 } else {
                                     Utils.setContents(nowPeeking, playerLootDetail.unLootedStuff());
                                 }

@@ -144,7 +144,6 @@ public class MessageManager {
                 String typ = matcher.group("unit");
                 duration = switch (typ) { // from periodPattern
                     case "t", "T" -> duration.plusMillis(50L * num); // ticks
-                    case "ms", "MS", "mS", "Ms" -> duration.plusMillis(num);
                     case "s", "S" -> duration.plusSeconds(num);
                     case "m" -> duration.plusMinutes(num);
                     case "h", "H" -> duration.plusHours(num);

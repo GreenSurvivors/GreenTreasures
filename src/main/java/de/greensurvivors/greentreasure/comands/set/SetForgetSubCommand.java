@@ -29,8 +29,7 @@ public class SetForgetSubCommand extends ASubCommand {
         SUFFIX_HOUR = "h",
         SUFFIX_MINUTE = "m",
         SUFFIX_SECOND = "s",
-        SUFFIX_TICK = "t",
-        SUFFIX_MILLISECOND = "ms";
+        SUFFIX_TICK = "t";
 
     public SetForgetSubCommand(@NotNull GreenTreasure plugin) {
         super(plugin);
@@ -111,7 +110,7 @@ public class SetForgetSubCommand extends ASubCommand {
 
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length > 2) {
-            return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK, SUFFIX_MILLISECOND);
+            return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK);
         }
 
         return new ArrayList<>();

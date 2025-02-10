@@ -148,7 +148,7 @@ public class ListNearbyCommand extends ASubCommand {
                 //build treasureInfo
                 @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_BODY,
                     Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), entry.getKey().treasureId().toString()),
-                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) entry.getKey().slotChance()) / 100.0d),
+                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) entry.getKey().nonEmptyPermyriad()) / 100.0d),
                     Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), entry.getKey().isShared()),
                     Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), entry.getKey().isUnlimited()),
                     Placeholder.component(PlaceHolderKey.LOCATION.getKey(),

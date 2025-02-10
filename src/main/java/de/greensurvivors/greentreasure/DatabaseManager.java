@@ -43,7 +43,7 @@ public class DatabaseManager {
         /// the items of this treasure, the player data table as well as the treasure table have the same column name
         TREASURE_CONTENT_KEY = "content",
         TREASURE_FORGET_DURATION_KEY = "forgetduration",
-        TREASURE_SLOT_CHANCE_KEY = "slotchance",
+        TREASURE_NON_EMPTY_PERMYRIAD_KEY = "nonEmptyPermyriad",
         TREASURE_UNLIMITED_KEY = "unlimited",
         TREASURE_SHARED_KEY = "shared",
         TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY = "findfreshmessageoverride",
@@ -294,10 +294,10 @@ public class DatabaseManager {
      * set the random slot chance
      *
      * @param treasureId information to identify a treasure
-     * @param slotChance how probable it is for a slot to be in the freshly opened treasure;
-     *                   is multiplied by 100 to allow floating points
+     * @param nonEmptyPermyriad how many permyrid (percent, but with a max value of 10 000, just to not deal with floating point problems)
+     *                          should contain an item in the freshly opened treasure;
      */
-    public @NotNull CompletableFuture<Void> setRandom(final @NotNull Ulid treasureId, final @Range(from = 0, to = 10000) Short slotChance) {
+    public @NotNull CompletableFuture<Void> setRandom(final @NotNull Ulid treasureId, final @Range(from = 0, to = 10000) Short nonEmptyPermyriad) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -309,11 +309,11 @@ public class DatabaseManager {
             createTableTreasure();
 
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_SLOT_CHANCE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
+                " SET " + TREASURE_NON_EMPTY_PERMYRIAD_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setShort(1, slotChance);
+                preparedStatement.setShort(1, nonEmptyPermyriad);
                 preparedStatement.setBytes(2, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
@@ -322,11 +322,11 @@ public class DatabaseManager {
                     resultFuture.complete(null);
                 });
 
-                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set slot chance request for treasure {} to {}, on thread {}", rowsAffected, treasureId, slotChance / 100.0D, Thread.currentThread().getName());
+                plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set slot chance request for treasure {} to {}, on thread {}", rowsAffected, treasureId, nonEmptyPermyriad / 100.0D, Thread.currentThread().getName());
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
-                plugin.getComponentLogger().warn("Could not set treasure slot chance for '{}' to {}", treasureId, slotChance / 100.0D, e);
+                plugin.getComponentLogger().warn("Could not set treasure slot chance for '{}' to {}", treasureId, nonEmptyPermyriad / 100.0D, e);
             }
         });
 
@@ -549,7 +549,7 @@ public class DatabaseManager {
         final @NotNull String statementStr = "SELECT " +
             TREASURE_CONTENT_KEY + ", " +
             TREASURE_FORGET_DURATION_KEY + ", " +
-            TREASURE_SLOT_CHANCE_KEY + ", " +
+            TREASURE_NON_EMPTY_PERMYRIAD_KEY + ", " +
             TREASURE_UNLIMITED_KEY + ", " +
             TREASURE_SHARED_KEY + ", " +
             TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ", " +
@@ -566,7 +566,7 @@ public class DatabaseManager {
                 if (resultSet.next()) {
                     final @NotNull Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
                     final long forgetDurationMillis = resultSet.getLong(TREASURE_FORGET_DURATION_KEY);
-                    final short slotChance = resultSet.getShort(TREASURE_SLOT_CHANCE_KEY);
+                    final short nonEmptyPermyriad = resultSet.getShort(TREASURE_NON_EMPTY_PERMYRIAD_KEY);
                     final boolean isUnlimited = resultSet.getBoolean(TREASURE_UNLIMITED_KEY);
                     final boolean isShared = resultSet.getBoolean(TREASURE_SHARED_KEY);
                     final @Nullable String findFreshMessageOverride = resultSet.getString(TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY);
@@ -580,7 +580,7 @@ public class DatabaseManager {
                     final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
                     blob.free();
 
-                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), slotChance, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
+                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), nonEmptyPermyriad, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
                 } else { // this treasure was deleted / never created
                     plugin.getComponentLogger().debug("got no answer for get request for treasure info {}, on thread {}", treasureId, Thread.currentThread().getName());
                     return null;
@@ -902,7 +902,7 @@ public class DatabaseManager {
                 TREASURE_ID_KEY + " BINARY(16) PRIMARY KEY, " +
                 TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
                 TREASURE_FORGET_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
-                TREASURE_SLOT_CHANCE_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
+                TREASURE_NON_EMPTY_PERMYRIAD_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
                 TREASURE_UNLIMITED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_UNLIMITED + ", " +
                 TREASURE_SHARED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_SHARED + ", " +
                 TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " TEXT, " + // test is nullable with the default being null
