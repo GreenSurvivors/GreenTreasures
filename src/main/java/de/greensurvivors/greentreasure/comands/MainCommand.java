@@ -75,7 +75,7 @@ public class MainCommand extends Command {
             Block block = livingEntity.getTargetBlockExact(5);
 
             if (block != null && block.getState(false) instanceof Container container) {
-                return (Container)Utils.getTreasureHolder(container);
+                return (Container) Utils.getTreasureHolder(container);
             } else {
                 return null;
             }
@@ -112,7 +112,7 @@ public class MainCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String label, @NotNull String @NotNull[] args) {
+    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String label, @NotNull String @NotNull [] args) {
         if (args.length <= 1) {
             final Set<String> suggestions = new HashSet<>();
 

@@ -5,14 +5,23 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-public class  InventoryHolderWrapper <T extends InventoryHolder & PersistentDataHolder> implements InventoryHolder, PersistentDataHolder {
+public class InventoryHolderWrapper<T extends InventoryHolder & PersistentDataHolder> implements InventoryHolder, PersistentDataHolder {
     private final @NotNull T holder;
     private final boolean perCommand;
+    private final @Nullable Long fistLootedTimeStamp;
 
-    public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand){
+    public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand) {
         this.holder = holder;
         this.perCommand = perCommand;
+        this.fistLootedTimeStamp = null;
+    }
+
+    public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand, final @Nullable Long fistLootedTimeStamp) {
+        this.holder = holder;
+        this.perCommand = perCommand;
+        this.fistLootedTimeStamp = fistLootedTimeStamp;
     }
 
     @Override
@@ -27,6 +36,10 @@ public class  InventoryHolderWrapper <T extends InventoryHolder & PersistentData
 
     public boolean isPerCommand() {
         return perCommand;
+    }
+
+    public @Nullable Long getFistLootedTimeStamp() {
+        return fistLootedTimeStamp;
     }
 }
 

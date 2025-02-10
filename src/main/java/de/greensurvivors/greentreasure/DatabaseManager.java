@@ -39,11 +39,12 @@ public class DatabaseManager {
         /// treasure identifier
         TREASURE_ID_KEY = "treasureid",
         /// last time a player had changed the treasure
-        TREASURE_TIMESTAMP_KEY = "timestamp",
+        TREASURE_LAST_TIMESTAMP_KEY = "timestamplast",
+        TREASURE_FIRST_TIMESTAMP_KEY = "timestampfirst",
         /// the items of this treasure, the player data table as well as the treasure table have the same column name
         TREASURE_CONTENT_KEY = "content",
         TREASURE_FORGET_DURATION_KEY = "forgetduration",
-        TREASURE_NON_EMPTY_PERMYRIAD_KEY = "nonEmptyPermyriad",
+        TREASURE_NON_EMPTY_PERMYRIAD_KEY = "nonemptypermyriad",
         TREASURE_UNLIMITED_KEY = "unlimited",
         TREASURE_SHARED_KEY = "shared",
         TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY = "findfreshmessageoverride",
@@ -293,7 +294,7 @@ public class DatabaseManager {
     /**
      * set the random slot chance
      *
-     * @param treasureId information to identify a treasure
+     * @param treasureId        information to identify a treasure
      * @param nonEmptyPermyriad how many permyrid (percent, but with a max value of 10 000, just to not deal with floating point problems)
      *                          should contain an item in the freshly opened treasure;
      */
@@ -648,19 +649,28 @@ public class DatabaseManager {
             addPlayer(player == null ? SHARED_PROFILE : player);
 
             final @NotNull String statementStr =
-                "INSERT INTO " + PLAYERDATA_TABLE + " (" + TREASURE_ID_KEY + ", " + PID_KEY + ", " + TREASURE_TIMESTAMP_KEY + ", " + TREASURE_CONTENT_KEY + ") VALUES (" +
-                    "?, " +
-                    "(SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?), " +
-                    "?, " +
-                    "?) ON DUPLICATE KEY UPDATE " +
-                    TREASURE_TIMESTAMP_KEY + " = VALUES(" + TREASURE_TIMESTAMP_KEY + "), " +
+                "INSERT INTO " + PLAYERDATA_TABLE + " (" +
+                        TREASURE_ID_KEY + ", " +
+                        PID_KEY + ", " +
+                        TREASURE_FIRST_TIMESTAMP_KEY + ", " +
+                        TREASURE_LAST_TIMESTAMP_KEY + ", " +
+                        TREASURE_CONTENT_KEY + ") " +
+                    "VALUES (" +
+                        "?, " +
+                        "(SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?), " +
+                        "?, " +
+                        "?, " +
+                        "?) ON DUPLICATE KEY UPDATE " +
+                    TREASURE_FIRST_TIMESTAMP_KEY + " = VALUES(" + TREASURE_FIRST_TIMESTAMP_KEY + "), " +
+                    TREASURE_LAST_TIMESTAMP_KEY + " = VALUES(" + TREASURE_LAST_TIMESTAMP_KEY + "), " +
                     TREASURE_CONTENT_KEY + " = VALUES(" + TREASURE_CONTENT_KEY + ")";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
                 preparedStatement.setBytes(1, treasureId.toBytes());
                 preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
-                preparedStatement.setLong(3, lootDetail.lastChangedTimeStamp());
+                preparedStatement.setLong(3, lootDetail.firstLootedTimeStamp());
+                preparedStatement.setLong(4, lootDetail.lastChangedTimeStamp());
 
                 final @NotNull Blob blob = connection.createBlob();
                 if (lootDetail.unLootedStuff() == null) {
@@ -668,7 +678,7 @@ public class DatabaseManager {
                 } else {
                     blob.setBytes(1, ItemStack.serializeItemsAsBytes(lootDetail.unLootedStuff()));
                 }
-                preparedStatement.setBlob(4, blob);
+                preparedStatement.setBlob(5, blob);
 
                 final int rowsAffected = preparedStatement.executeUpdate();
                 blob.free();
@@ -708,14 +718,15 @@ public class DatabaseManager {
             addPlayer(player == null ? SHARED_PROFILE : player);
 
             final @NotNull String statementStr =
-
-                "SELECT p." + TREASURE_TIMESTAMP_KEY + ", COALESCE(p." + TREASURE_CONTENT_KEY + ", t." + TREASURE_CONTENT_KEY + ") AS " + TREASURE_CONTENT_KEY +
-                    " FROM " + PLAYERDATA_TABLE + " AS p" +
-                    " JOIN " + USER_TABLE + " AS u" +
-                    " ON p." + PID_KEY + " = u." + PID_KEY +
-                    " LEFT JOIN " + TREASURE_TABLE + " AS t" +
-                    " ON p." + TREASURE_ID_KEY + " = t." + TREASURE_ID_KEY +
-                    " WHERE p." + TREASURE_ID_KEY + " = ? AND u." + UUID_KEY + " = ?";
+                "SELECT p." + TREASURE_LAST_TIMESTAMP_KEY + "," +
+                    " p." + TREASURE_FIRST_TIMESTAMP_KEY + "," +
+                    " COALESCE(p." + TREASURE_CONTENT_KEY + ", t." + TREASURE_CONTENT_KEY + ") AS " + TREASURE_CONTENT_KEY +
+                        " FROM " + PLAYERDATA_TABLE + " AS p" +
+                        " JOIN " + USER_TABLE + " AS u" +
+                        " ON p." + PID_KEY + " = u." + PID_KEY +
+                        " LEFT JOIN " + TREASURE_TABLE + " AS t" +
+                        " ON p." + TREASURE_ID_KEY + " = t." + TREASURE_ID_KEY +
+                        " WHERE p." + TREASURE_ID_KEY + " = ? AND u." + UUID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
@@ -724,7 +735,8 @@ public class DatabaseManager {
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
-                        long timeStamp = resultSet.getLong(TREASURE_TIMESTAMP_KEY);
+                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
+                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
 
                         //get list from string
                         final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
@@ -737,7 +749,7 @@ public class DatabaseManager {
                         }
 
                         plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player == null ? "!Shared!" : player.getName(), items, Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(timeStamp, items)));
+                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items)));
                     } else { //player had never opened this treasure
 
                         plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}",
@@ -835,10 +847,13 @@ public class DatabaseManager {
             createTablePlayerData();
 
             final String statementStr =
-                "SELECT u." + UUID_KEY + ", t." + TREASURE_TIMESTAMP_KEY + ", t." + TREASURE_CONTENT_KEY +
-                    " FROM " + PLAYERDATA_TABLE + " AS t" +
-                    " JOIN " + USER_TABLE + " AS u ON t." + PID_KEY + " = u." + PID_KEY +
-                    " WHERE t." + TREASURE_ID_KEY + " = ?";
+                "SELECT u." + UUID_KEY + "," +
+                    " t." + TREASURE_FIRST_TIMESTAMP_KEY + "," +
+                    " t." + TREASURE_LAST_TIMESTAMP_KEY + "," +
+                    " t." + TREASURE_CONTENT_KEY +
+                        " FROM " + PLAYERDATA_TABLE + " AS t" +
+                        " JOIN " + USER_TABLE + " AS u ON t." + PID_KEY + " = u." + PID_KEY +
+                        " WHERE t." + TREASURE_ID_KEY + " = ?";
 
             try (final Connection connection = dataSource.getConnection();
                  final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
@@ -850,7 +865,8 @@ public class DatabaseManager {
 
                     while (resultSet.next()) {
                         final UUID playerUUID = UUID.fromString(resultSet.getString(UUID_KEY));
-                        final long timeStamp = resultSet.getLong(TREASURE_TIMESTAMP_KEY);
+                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
+                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
 
                         //get list from string
                         final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
@@ -862,7 +878,7 @@ public class DatabaseManager {
                             blob.free();
                         }
 
-                        result.put(playerUUID, new PlayerLootDetail(timeStamp, items));
+                        result.put(playerUUID, new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items));
                     }
 
                     Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
@@ -947,7 +963,8 @@ public class DatabaseManager {
             // is BINARY instead of UUID since SQL instances can not be trusted shifting UUIDs around in order to "optimizing" them;
             // and not be string / char array since byte array is shorter bitwise and therefor faster
             TREASURE_ID_KEY + " BINARY(16) NOT NULL, " +
-            TREASURE_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
+            TREASURE_FIRST_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
+            TREASURE_LAST_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
             TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
             TIMES_LOOTED + " INT UNSIGNED DEFAULT 0, " +
             // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise

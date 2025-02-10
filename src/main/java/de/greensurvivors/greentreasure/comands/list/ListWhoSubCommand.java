@@ -125,7 +125,7 @@ public class ListWhoSubCommand extends ASubCommand {
             // header
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(),pageNow),
+                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
                 Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)
             ));
         }

@@ -52,7 +52,7 @@ public class ImportLegacy {
         this.plugin = plugin;
     }
 
-    public static void disableLegacyPlugins(){
+    public static void disableLegacyPlugins() {
         final @Nullable Plugin treasureChestPlugin = Bukkit.getPluginManager().getPlugin(TREASURE_CHEST);
 
         if (treasureChestPlugin != null) {
@@ -151,7 +151,7 @@ public class ImportLegacy {
 
                                         if (!(configMap.get("location") instanceof Map<?, ?> rootMap)) { // no I don't know why root is called location either
                                             plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file was empty.", path);
-                                            return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path +" because it's file was empty."));
+                                            return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path + " because it's file was empty."));
                                         }
 
                                         final @NotNull Map<@NotNull String, @NotNull Object> checkedRootMap = validateMap(rootMap);
@@ -266,20 +266,20 @@ public class ImportLegacy {
                     } else {
                         return CompletableFuture.completedFuture(null);
                     }
-                }).thenCompose( voidz -> {
+                }).thenCompose(voidz -> {
                     if (checkedRootMap.get("shared") instanceof Boolean shared) {
                         return databaseManager.setShared(treasureId, shared);
                     } else {
                         return CompletableFuture.completedFuture(null);
                     }
-                }).thenCompose( voidz -> {
+                }).thenCompose(voidz -> {
                     if (!contents.isEmpty() && checkedRootMap.get("random") instanceof Number randomNumber) {
                         final double randomChance = randomNumber.longValue() == 0 ? 100.00 : randomNumber.doubleValue() / ((double) contents.size());
                         return databaseManager.setRandom(treasureId, (short) (randomChance * 100));
                     } else {
                         return CompletableFuture.completedFuture(null);
                     }
-                }).thenCompose( voidz -> {
+                }).thenCompose(voidz -> {
                     if (checkedRootMap.get("forget-time") instanceof Number forgetTimeNumber) {
                         Duration forget_time = Duration.ofMillis(forgetTimeNumber.longValue());
                         if (forget_time.isZero()) {

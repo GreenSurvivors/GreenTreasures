@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
-public class PeekingDoneEvent extends TreasureCloseEvent{
+public class PeekingDoneEvent extends TreasureCloseEvent {
     private final static HandlerList handlers = new HandlerList();
     private final @Nullable UUID peekedUUID;
 

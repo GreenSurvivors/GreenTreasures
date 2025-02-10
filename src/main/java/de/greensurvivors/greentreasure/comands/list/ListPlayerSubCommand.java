@@ -154,7 +154,7 @@ public class ListPlayerSubCommand extends ASubCommand {
             super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_HEADER,
                 Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerDisplay),
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
-                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(),lastPage)));
+                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
         }
 
         public void addEntry(final Ulid treasureId) {

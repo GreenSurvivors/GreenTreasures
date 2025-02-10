@@ -100,13 +100,13 @@ public class Utils {
             Collections.shuffle(itemsToSlot, RANDOM_GENERATOR);
 
             final int amountOfItemsNeeded = Math.round(nonEmptyPermyriad * itemsToSlot.size() / 10000f);
-            for (int i = 0; i < amountOfItemsNeeded ; i++) {
+            for (int i = 0; i < amountOfItemsNeeded; i++) {
                 final @NotNull ItemToSlot itemToSlot = itemsToSlot.get(i);
 
                 newContents[itemToSlot.slot] = itemToSlot.itemStack.clone();
             }
         } else {
-            for (int i = 0 ; i < maxSize; i++) {
+            for (int i = 0; i < maxSize; i++) {
                 final @Nullable ItemStack itemStack = items.get(i);
 
                 newContents[i] = itemStack == null ? ItemStack.empty() : itemStack.clone();
@@ -126,11 +126,11 @@ public class Utils {
 
     /// double chests are wierd.
     @Contract("null -> null; !null -> !null")
-    public static @Nullable InventoryHolder getTreasureHolder (final @Nullable InventoryHolder holder) {
+    public static @Nullable InventoryHolder getTreasureHolder(final @Nullable InventoryHolder holder) {
         if (holder == null) {
             return null;
         } else if (holder.getInventory() instanceof DoubleChestInventory doubleChestInventory &&
-            ((DoubleChest)doubleChestInventory.getHolder(false)).getLeftSide(false) instanceof InventoryHolder leftSide) {
+            ((DoubleChest) doubleChestInventory.getHolder(false)).getLeftSide(false) instanceof InventoryHolder leftSide) {
             return leftSide;
         } else {
             return holder;
@@ -166,6 +166,6 @@ public class Utils {
         }
     }
 
-    private record ItemToSlot(@NotNull ItemStack itemStack, int slot){
+    private record ItemToSlot(@NotNull ItemStack itemStack, int slot) {
     }
 }

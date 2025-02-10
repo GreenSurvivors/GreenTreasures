@@ -212,7 +212,7 @@ public class TreasureManager {
 
         final @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo> map2 = chunkLoadingMap.
             // todo, the openHashMap will not retain any order. In some situations that might be irrelevant,
-            //  but this will mean
+            //  but this will mean, that the loading order is pretty unpredictable
             computeIfAbsent(world.getName(), ignored -> new Long2ObjectOpenHashMap<>());
         // atomic int not because of concurrent access, but because java lambdas are stupid.
         final @NotNull AtomicInteger chunksStillToLoad = new AtomicInteger(0);

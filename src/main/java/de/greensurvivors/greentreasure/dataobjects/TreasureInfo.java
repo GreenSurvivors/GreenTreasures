@@ -12,11 +12,11 @@ import java.util.List;
 /**
  * the information a treasure has
  *
- * @param itemLoot        the inventory with its loot items
- * @param timeUntilForget the time period the treasure has to be not opened until it restocks
- * @param nonEmptyPermyriad      the chance a slot has to appear when opening the treasure for the fist time
- * @param isUnlimited     if the treasure is lootable an unlimited amount of times
- * @param isShared        if the inventory a treasure has is globally shared
+ * @param itemLoot          the inventory with its loot items
+ * @param timeUntilForget   the time period the treasure has to be not opened until it restocks
+ * @param nonEmptyPermyriad the chance a slot has to appear when opening the treasure for the fist time
+ * @param isUnlimited       if the treasure is lootable an unlimited amount of times
+ * @param isShared          if the inventory a treasure has is globally shared
  */
 public record TreasureInfo(@NotNull Ulid treasureId, @NotNull List<@Nullable ItemStack> itemLoot,
                            @NotNull Duration timeUntilForget,
