@@ -78,7 +78,7 @@ public class Utils {
         inventory.setContents(newContents);
     }
 
-
+    // for everyone wondering: Permyriad is like percent but for 10000
     /// clone every item stack and put it into the new inventory
     public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items, final @Range(from = 0, to = 10000) int nonEmptyPermyriad) {
         final int inventorySize = inventory.getSize();

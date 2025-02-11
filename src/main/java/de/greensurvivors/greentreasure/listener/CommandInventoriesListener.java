@@ -4,7 +4,6 @@ import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.PeekingDoneEvent;
 import de.greensurvivors.greentreasure.language.LangPath;
 import org.bukkit.Bukkit;
@@ -89,19 +88,19 @@ public class CommandInventoriesListener implements Listener {
         final @Nullable Ulid treasureId = editingTreasures.get(event.getView());
 
         if (treasureId != null) {
-            TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
+            plugin.getTreasureManager().getTreasureInfo(treasureId).thenAccept(treasureInfo -> {
+                //if the treasure wasn't deleted while the inventory was open
+                if (treasureInfo != null) {
+                    editingTreasures.remove(event.getView());
 
-            //if the treasure wasn't deleted while the inventory was open
-            if (treasureInfo != null) {
-                editingTreasures.remove(event.getView());
-
-                // the IDE is confused with two annotations
-                //noinspection NullableProblems
-                plugin.getDatabaseManager().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
-                    thenRun(() -> plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ACTION_TREASURE_EDITED));
-            } else {
-                plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ERROR_UNKNOWN);
-            }
+                    // the IDE is confused with two annotations
+                    //noinspection NullableProblems
+                    plugin.getDatabaseManager().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
+                        thenRun(() -> plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ACTION_TREASURE_EDITED));
+                } else {
+                    plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ERROR_UNKNOWN);
+                }
+            });
         }
     }
 
@@ -116,20 +115,20 @@ public class CommandInventoriesListener implements Listener {
             Inventory eInventory = event.getInventory();
             final @NotNull Ulid treasureId = peekedTreasure.treasureId();
 
-            final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureId);
+            plugin.getTreasureManager().getTreasureInfo(treasureId).thenAccept(treasureInfo -> {
+                //if the treasure wasn't deleted while the inventory was open call the close event
+                if (treasureInfo != null) {
+                    new PeekingDoneEvent((Player) event.getPlayer(), treasureInfo, peekedTreasure.playerPeekedUUID()).callEvent();
 
-            //if the treasure wasn't deleted while the inventory was open call the close event
-            if (treasureInfo != null) {
-                new PeekingDoneEvent((Player) event.getPlayer(), treasureInfo, peekedTreasure.playerPeekedUUID()).callEvent();
-
-                if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
-                    plugin.getDatabaseManager().setPlayerData(null, treasureId,
-                        new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
-                } else {
-                    plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
-                        new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                    if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
+                        plugin.getDatabaseManager().setPlayerData(null, treasureId,
+                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                    } else {
+                        plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
+                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                    }
                 }
-            }
+            });
         }
     }
 }

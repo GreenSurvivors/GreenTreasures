@@ -3,7 +3,6 @@ package de.greensurvivors.greentreasure.comands.set;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
@@ -63,41 +62,41 @@ public class SetForgetSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        if (args.length > 2) {
+                            @NotNull Duration forgetDuration = Duration.ZERO;
 
-                if (treasureInfo != null) {
-                    if (args.length > 2) {
-                        @NotNull Duration forgetDuration = Duration.ZERO;
+                            for (int i = 2; i < args.length; i++) {
+                                final @Nullable Duration temp = plugin.getMessageManager().parseDuration(args[i]);
 
-                        for (int i = 2; i < args.length; i++) {
-                            final @Nullable Duration temp = plugin.getMessageManager().parseDuration(args[i]);
-
-                            if (temp != null) {
-                                forgetDuration = forgetDuration.plus(temp);
-                            } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_TIME,
-                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[i]));
-                                return false;
+                                if (temp != null) {
+                                    forgetDuration = forgetDuration.plus(temp);
+                                } else {
+                                    plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_TIME,
+                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[i]));
+                                    return;
+                                }
                             }
-                        }
 
-                        if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
-                            plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
-                            );
+                            if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
+                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null).thenRun(() ->
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
+                                );
+                            } else {
+                                final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
+
+                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), forgetDuration).thenRun(() ->
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_SUCCESS,
+                                        Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
+                            }
                         } else {
-                            final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
-
-                            plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), forgetDuration).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

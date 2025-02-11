@@ -4,7 +4,6 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -55,28 +54,28 @@ public class SetFindFreshMessageOverrideSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        final @NotNull Component name = Utils.getDisplayName(container);
 
-                if (treasureInfo != null) {
-                    final @NotNull Component name = Utils.getDisplayName(container);
+                        if (args.length > 2) {
+                            final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-                    if (args.length > 2) {
-                        final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                            plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name),
+                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
+                                ));
 
-                        plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name),
-                                Placeholder.component(PlaceHolderKey.TEXT.getKey(), MiniMessage.miniMessage().deserialize(newMessage))
-                            ));
-
+                        } else {
+                            plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_REMOVED,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name)));
+                        }
                     } else {
-                        plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_REMOVED,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), name)));
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

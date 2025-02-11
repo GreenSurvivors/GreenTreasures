@@ -4,7 +4,6 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -20,7 +19,6 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,33 +58,33 @@ public class EditSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (sender instanceof Player player) {
-                    final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                    plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                        if (treasureInfo != null) {
+                            final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
 
-                    if (treasureInfo != null) {
-                        final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,
-                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                            final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
-                        final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
+                            final @NotNull Inventory inventory;
+                            if (container.getInventory().getType() == InventoryType.CHEST) {
+                                inventory = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
+                            } else {
+                                inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
+                            }
 
-                        final @NotNull Inventory inventory;
-                        if (container.getInventory().getType() == InventoryType.CHEST) {
-                            inventory = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
+                            Utils.setContents(inventory, treasureInfo.itemLoot());
+                            InventoryView view = player.openInventory(inventory);
+
+                            if (view != null) {
+                                plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
+                            } else {
+                                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
+                                plugin.getComponentLogger().warn("Could not open Inventory {} for Player {}", inventory, player);
+                            }
                         } else {
-                            inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                         }
-
-                        Utils.setContents(inventory, treasureInfo.itemLoot());
-                        InventoryView view = player.openInventory(inventory);
-
-                        if (view != null) {
-                            plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
-                        } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
-                            plugin.getComponentLogger().warn("Could not open Inventory {} for Player {}", inventory, player);
-                        }
-                    } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                    }
+                    });
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
                 }

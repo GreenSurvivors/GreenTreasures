@@ -3,7 +3,6 @@ package de.greensurvivors.greentreasure.comands.set;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -54,30 +53,28 @@ public class SetUnlimitedSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        if (args.length > 2) {
+                            Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
 
-                if (treasureInfo != null) {
-                    if (args.length > 2) {
-                        Boolean isUnLimited = BooleanUtils.toBooleanObject(args[2]);
+                            if (isUnLimited != null) {
+                                plugin.getDatabaseManager().setUnlimited(treasureInfo.treasureId(), isUnLimited).thenRun(() ->
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_UNLIMITED_SUCCESS,
+                                        Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), isUnLimited)
+                                    ));
 
-                        if (isUnLimited != null) {
-                            plugin.getDatabaseManager().setUnlimited(treasureInfo.treasureId(), isUnLimited).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_UNLIMITED_SUCCESS,
-                                    Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), isUnLimited)
-                                ));
-
+                            } else {
+                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_BOOL,
+                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                            }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_BOOL,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
-                            return false;
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
-                        return false;
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

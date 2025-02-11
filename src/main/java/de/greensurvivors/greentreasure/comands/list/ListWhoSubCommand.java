@@ -9,7 +9,6 @@ import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -56,49 +55,49 @@ public class ListWhoSubCommand extends ASubCommand {
             Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        plugin.getDatabaseManager().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {
+                            final int numOfPlayers = playerLootDetailMap.size();
 
-                if (treasureInfo != null) {
-                    plugin.getDatabaseManager().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {
-                        final int numOfPlayers = playerLootDetailMap.size();
+                            if (numOfPlayers > 0) {
+                                final int numPages = (int) Math.ceil((double) numOfPlayers / (double) ListSubCommand.ENTRIES_PER_PAGE);
 
-                        if (numOfPlayers > 0) {
-                            final int numPages = (int) Math.ceil((double) numOfPlayers / (double) ListSubCommand.ENTRIES_PER_PAGE);
-
-                            final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
-                            if (args.length >= 3) {
-                                if (Utils.isInt(args[2])) {
-                                    //limit page to how many exits
-                                    pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                                final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                                if (args.length >= 3) {
+                                    if (Utils.isInt(args[2])) {
+                                        //limit page to how many exits
+                                        pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                                    } else {
+                                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
+                                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                                        return;
+                                    }
                                 } else {
-                                    plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
-                                    return;
+                                    pageNow = 1;
                                 }
+
+                                //maximum of players out of all this page can display
+                                final int MAX_PLAYERS_THIS_PAGE = Math.min(numOfPlayers, pageNow * ListSubCommand.ENTRIES_PER_PAGE);
+                                //maximum of entries this page can display
+                                final int NUM_ENTRIES = MAX_PLAYERS_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
+
+                                final ListCmdWhoHelper helper = new ListCmdWhoHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES, treasureInfo.treasureId());
+
+                                final List<UUID> uuids = new ArrayList<>(playerLootDetailMap.keySet());
+                                //add the player info for the page
+                                for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_PLAYERS_THIS_PAGE; num++) {
+                                    helper.addEntry(uuids.get(num), playerLootDetailMap.get(uuids.get(num)));
+                                }
+
                             } else {
-                                pageNow = 1;
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_WHO_EMPTY);
                             }
-
-                            //maximum of players out of all this page can display
-                            final int MAX_PLAYERS_THIS_PAGE = Math.min(numOfPlayers, pageNow * ListSubCommand.ENTRIES_PER_PAGE);
-                            //maximum of entries this page can display
-                            final int NUM_ENTRIES = MAX_PLAYERS_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
-
-                            final ListCmdWhoHelper helper = new ListCmdWhoHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES, treasureInfo.treasureId());
-
-                            final List<UUID> uuids = new ArrayList<>(playerLootDetailMap.keySet());
-                            //add the player info for the page
-                            for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_PLAYERS_THIS_PAGE; num++) {
-                                helper.addEntry(uuids.get(num), playerLootDetailMap.get(uuids.get(num)));
-                            }
-
-                        } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_WHO_EMPTY);
-                        }
-                    });
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                        });
+                    } else {
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                    }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

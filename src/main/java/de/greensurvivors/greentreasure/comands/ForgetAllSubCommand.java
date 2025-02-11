@@ -3,7 +3,6 @@ package de.greensurvivors.greentreasure.comands;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -12,7 +11,6 @@ import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,15 +48,15 @@ public class ForgetAllSubCommand extends ASubCommand {
             Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
-
-                if (treasureInfo != null) {
-                    plugin.getDatabaseManager().forgetAll(treasureInfo.treasureId()).thenRun(() ->
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_ALL_SUCCESS,
-                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        plugin.getDatabaseManager().forgetAll(treasureInfo.treasureId()).thenRun(() ->
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_ALL_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
+                    } else {
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                    }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

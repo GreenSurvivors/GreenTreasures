@@ -539,12 +539,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    /**
-     * The reason why this method is NOT async is that certain actions in this plugin can't just wait around for a CompletableFuture to complete.
-     * Like to know if an Event should get canceled, the server has to get stalled until we retrieve the data.
-     * So just skip the nonsense and cache the data whenever possible.
-     */
-    public @Nullable TreasureInfo loadTreasure(final @NotNull Ulid treasureId) {
+    public @Nullable TreasureInfo loadTreasureUrgently(final @NotNull Ulid treasureId) {
         createTableTreasure();
 
         final @NotNull String statementStr = "SELECT " +
@@ -592,6 +587,22 @@ public class DatabaseManager {
 
             return null;
         }
+    }
+
+    public @NotNull CompletableFuture<@Nullable TreasureInfo> loadTreasure(final @NotNull Ulid treasureId) {
+        final @NotNull CompletableFuture<@Nullable TreasureInfo> resultFuture = new CompletableFuture<>();
+
+        asyncExecutor.execute(() -> {
+            if (!hasConnection()) {
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
+                return;
+            }
+
+            final @Nullable TreasureInfo result = loadTreasureUrgently(treasureId);
+            Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
+        });
+
+        return resultFuture;
     }
 
     public @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull Ulid>> getTreasureIds() {

@@ -3,7 +3,6 @@ package de.greensurvivors.greentreasure.comands.set;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -55,35 +54,31 @@ public class SetRandomSubCommand extends ASubCommand {
             final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        if (args.length > 2) {
+                            final @Nullable Number parsedNumber = NumberUtils.createNumber(args[2]);
 
-                if (treasureInfo != null) {
-                    if (args.length > 2) {
-                        final @Nullable Number parsedNumber = NumberUtils.createNumber(args[2]);
+                            if (parsedNumber != null) {
+                                @Range(from = 0, to = 10000) short nonEmptyPermyriad = (short) (parsedNumber.doubleValue() * 100);
 
-                        if (parsedNumber != null) {
-                            @Range(from = 0, to = 10000) short nonEmptyPermyriad = (short) (parsedNumber.doubleValue() * 100);
+                                nonEmptyPermyriad = (short) Math.max(Math.min(nonEmptyPermyriad, 10000), 0);
 
-                            nonEmptyPermyriad = (short) Math.max(Math.min(nonEmptyPermyriad, 10000), 0);
-
-                            int finalSlotPercentage = nonEmptyPermyriad;
-                            plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
-                                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((float) finalSlotPercentage) / 100.0f)));
+                                int finalSlotPercentage = nonEmptyPermyriad;
+                                plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
+                                        Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((float) finalSlotPercentage) / 100.0f)));
+                            } else {
+                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
+                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                            }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
-
-                            return false;
+                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
-
-                        return false;
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }

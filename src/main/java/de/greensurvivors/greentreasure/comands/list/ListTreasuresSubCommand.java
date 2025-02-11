@@ -19,7 +19,6 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,14 +78,16 @@ public class ListTreasuresSubCommand extends ASubCommand {
 
                     //add the treasure info for the page
                     for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
-                        final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(treasureIds.get(num));
+                        final int finalNum = num;
 
-                        if (treasureInfo == null) {
-                            plugin.getComponentLogger().debug("skipped listing treasure with id {}, because it was unknown. Probably removed by another thread.", treasureIds.get(num));
-                            continue;
-                        }
+                        plugin.getTreasureManager().getTreasureInfo(treasureIds.get(num)).thenAccept(treasureInfo -> {
+                            if (treasureInfo == null) {
+                                plugin.getComponentLogger().debug("skipped listing treasure with id {}, because it was unknown. Probably removed by another thread.", treasureIds.get(finalNum));
+                                return;
+                            }
 
-                        helper.addEntry(treasureInfo, treasureIds.get(num));
+                            helper.addEntry(treasureInfo, treasureIds.get(finalNum));
+                        });
                     }
 
                 } else {

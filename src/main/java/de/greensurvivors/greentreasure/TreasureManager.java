@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure;
 
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.f4b6a3.ulid.Ulid;
@@ -13,19 +14,24 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.bukkit.*;
+import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class TreasureManager {
@@ -46,18 +52,17 @@ public class TreasureManager {
     private final @NotNull NamespacedKey idKey;
     private final @NotNull UlidFactory ulidFactory;
     // list of known treasures with its location and its information
-    private final @NotNull LoadingCache<@NotNull Ulid, @Nullable TreasureInfo> treasures;
+    private final @NotNull AsyncLoadingCache<@NotNull Ulid, @Nullable TreasureInfo> treasures;
 
-    private final @NotNull Map<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>> chunkLoadingMap;
+    private final @NotNull Map<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>> worldChunkLoadingMap;
 
     public TreasureManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "id");
-        this.treasures = Caffeine.newBuilder().build(id -> plugin.getDatabaseManager().loadTreasure(id));
-
+        this.treasures = Caffeine.newBuilder().buildAsync((id, executor) -> plugin.getDatabaseManager().loadTreasure(id));
 
         ulidFactory = UlidFactory.newMonotonicInstance(() -> Utils.RANDOM_GENERATOR.nextLong());
-        chunkLoadingMap = new HashMap<>();
+        worldChunkLoadingMap = new HashMap<>();
 
         // requesting all nearby chunks at the same time works fine for the intended case of small radii,
         // however, if the user does something stupid, the server will eat up all the ram and die, or worse will hang itself
@@ -65,9 +70,9 @@ public class TreasureManager {
         // One optimisation I did make, was that every time the same chunk gets requested, the request will get bundled and complete
         // at the same time as every other request for that very chunk.
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            if (!chunkLoadingMap.isEmpty()) {
+            if (!worldChunkLoadingMap.isEmpty()) {
                 int i = 0;
-                Iterator<Map.Entry<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>>> worldIterator = chunkLoadingMap.entrySet().iterator();
+                Iterator<Map.Entry<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>>> worldIterator = worldChunkLoadingMap.entrySet().iterator();
 
                 while (worldIterator.hasNext() && i < CHUNKS_TO_LOAD_PARALLEL) {
                     final @NotNull Map.Entry<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>> entry = worldIterator.next();
@@ -94,7 +99,7 @@ public class TreasureManager {
 
                         entry.getValue().values().forEach(chunkLoadInfo ->
                             chunkLoadInfo.chunkConsumers.forEach(chunkConsumer ->
-                                chunkConsumer.chunkDoneFuture.complete(null)));
+                                chunkConsumer.chunkDoneFuture.completeExceptionally(new NotLoadedException(NotLoadedException.Type.WORLD))));
                         entry.getValue().clear();
 
                         worldIterator.remove();
@@ -146,42 +151,93 @@ public class TreasureManager {
      *
      * @return all known information about the treasure itself
      */
-    public @Nullable TreasureInfo getTreasureInfo(final @NotNull Ulid treasureId) {
+    public @NotNull CompletableFuture<@Nullable TreasureInfo> getTreasureInfo(final @NotNull Ulid treasureId) {
         return treasures.get(treasureId);
     }
 
-    public @Nullable TreasureInfo getTreasureInfo(final @NotNull PersistentDataHolder persistentDataHolder) {
-        final @Nullable Ulid treasureId = getTreasureId(persistentDataHolder);
-
+    /**
+     * fetches the treasureInfo NOW use {@link #getTreasureInfo(Ulid)} whenever possible
+     * for some hot regions in this plugin we need the info now to deal with the current event, so the server can end the current tick.
+     * But uncached {@link  TreasureInfo} is slow to fetch, since access the Database.
+     * Well so what? just use the methods returning a {@link CompletableFuture} and call {@link CompletableFuture#join()}, right?
+     * WRONG! The DatabaseHandler would catch the Data async and in order to resync it would call {@link  org.bukkit.scheduler.BukkitScheduler#runTask(Plugin, Runnable)},
+     * completing the Future next tick.
+     * And we would have successfully deadlocked ourselves, where the current Servertick would have to wait for the next one in order to complete...
+     * <br></>
+     * So I'm warning you again, just use this methode if you really have to and can't wait a tick or two!
+     * That's why I didn't add any of the convenience methods like {@link #getTreasureInfo(PersistentDataHolder)} and {@link #getTreasureId(InventoryView)}
+     **/
+    @Contract(value = "null -> null")
+    public @Nullable TreasureInfo getTreasureInfoUrgently(final @Nullable Ulid treasureId) {
         if (treasureId == null) {
             return null;
         } else {
-            return treasures.get(treasureId);
+            final @Nullable TreasureInfo treasureInfo = treasures.synchronous().getIfPresent(treasureId);
+
+            if (treasureInfo == null) {
+                return plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
+            } else  {
+                treasures.put(treasureId, CompletableFuture.completedFuture(treasureInfo));
+
+                return treasureInfo;
+            }
         }
     }
 
-    public @Nullable TreasureInfo getTreasureInfo(final @NotNull InventoryView view) {
+    public @NotNull CompletableFuture<@Nullable TreasureInfo> getTreasureInfo(final @NotNull PersistentDataHolder persistentDataHolder) {
+        final @Nullable Ulid treasureId = getTreasureId(persistentDataHolder);
+
+        if (treasureId == null) {
+            return CompletableFuture.completedFuture(null);
+        } else {
+            return getTreasureInfo(treasureId);
+        }
+    }
+
+    public @NotNull CompletableFuture<@Nullable TreasureInfo> getTreasureInfo(final @NotNull InventoryView view) {
         final @Nullable Ulid treasureId = getTreasureId(view);
 
         if (treasureId == null) {
-            return null;
+            return CompletableFuture.completedFuture(null);
         } else {
-            return treasures.get(treasureId);
+            return getTreasureInfo(treasureId);
         }
     }
 
     /**
+     * TODO
      * closes all open inventories and clears the internal hashmaps
      * (to repopulate them with updated information)
      */
     public void clearTreasures() {
-        treasures.invalidateAll();
-        treasures.cleanUp();
+        LoadingCache<@NotNull Ulid, @Nullable TreasureInfo> syncView = treasures.synchronous();
+
+        syncView.invalidateAll();
+        syncView.cleanUp();
     }
 
     public void invalidateTreasure(final @NotNull Ulid treasureId) {
         plugin.getTreasureListener().closeInventories(treasureId);
-        treasures.invalidate(treasureId);
+
+        if (treasures.getIfPresent(treasureId) != null) {
+            treasures.synchronous().invalidate(treasureId);
+        }
+    }
+
+    public <ResultType> void registerForChunkParsing (final @NotNull String worldName, final int chunkX, final int chunkZ,
+                                         final @NotNull Predicate<? super Block> blockPredicate,
+                                         @NotNull Function< @NotNull Collection<@NotNull BlockState>, ResultType> tileEntityConsumer,
+                                         @NotNull CompletableFuture<ResultType> chunkDoneFuture) {
+        final long chunkKey = Chunk.getChunkKey(chunkX, chunkZ);
+
+        final @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo> chunkLoadingMap = worldChunkLoadingMap.
+            // todo, the openHashMap will not retain any order. In some situations that might be irrelevant,
+            //  but this will mean, that the loading order is pretty unpredictable
+                computeIfAbsent(worldName, ignored -> new Long2ObjectOpenHashMap<>());
+
+        chunkLoadingMap.putIfAbsent(chunkKey, new ChunkLoadInfo(chunkX, chunkZ, new HashSet<>()));
+
+        chunkLoadingMap.get(chunkKey).chunkConsumers.add(new ChunkConsumer<>(blockPredicate, tileEntityConsumer, chunkDoneFuture));
     }
 
     /**
@@ -210,27 +266,38 @@ public class TreasureManager {
         // this list keeps track of all CompletableFutures needed to complete the search
         final @NotNull List<@NotNull CompletableFuture<Void>> futuresToComplete = new ArrayList<>();
 
-        final @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo> map2 = chunkLoadingMap.
-            // todo, the openHashMap will not retain any order. In some situations that might be irrelevant,
-            //  but this will mean, that the loading order is pretty unpredictable
-            computeIfAbsent(world.getName(), ignored -> new Long2ObjectOpenHashMap<>());
         // atomic int not because of concurrent access, but because java lambdas are stupid.
         final @NotNull AtomicInteger chunksStillToLoad = new AtomicInteger(0);
         final @NotNull AtomicInteger totalChunksToLoad = new AtomicInteger(0);
 
         for (int cx = (startLocation.getBlockX() - radius) >> 4; cx <= maxCx; cx++) {
             for (int cz = (startLocation.getBlockZ() - radius) >> 4; cz <= maxCz; cz++) {
-                final long chunkKey = Chunk.getChunkKey(cx, cz);
-                map2.putIfAbsent(chunkKey, new ChunkLoadInfo(cx, cz, new HashSet<>()));
                 chunksStillToLoad.getAndIncrement();
                 totalChunksToLoad.getAndIncrement();
 
                 final @NotNull CompletableFuture<Void> chunkDoneFuture = new CompletableFuture<>();
-                map2.get(chunkKey).chunkConsumers.add(
-                    new ChunkConsumer(minX, maxX, minY, maxY, minZ, maxZ,
-                        (treasureInfo, treasureLocation) ->
-                            infoToNearLocations.computeIfAbsent(treasureInfo, i ->
-                                new TreeSet<>(LOCATION_COMPARATOR)).add(treasureLocation), chunkDoneFuture)
+                registerForChunkParsing(
+                    world.getName(), cx, cz,
+                    block ->
+                        block.getX() >= minX && block.getX() <= maxX &&
+                        block.getY() >= minY && block.getY() <= maxY &&
+                        block.getZ() >= minZ && block.getZ() <= maxZ,
+                    tileEntities -> {
+                        for (BlockState tileEntity : tileEntities) { // note: we have no guarantee of the ordering of these
+                            if (tileEntity instanceof Container container) {
+                                getTreasureInfo(container).thenAccept(treasureInfo -> {
+                                    if (treasureInfo != null) {
+                                        infoToNearLocations.computeIfAbsent(treasureInfo, i ->
+                                            new ConcurrentSkipListSet<>(LOCATION_COMPARATOR)).add(tileEntity.getLocation());
+                                    }
+                                });
+                            }
+                        }
+
+                        // we don't need a return value
+                        return null;
+                    },
+                    chunkDoneFuture
                 );
 
                 // inform the user about the current process.
@@ -269,41 +336,47 @@ public class TreasureManager {
     private void parseChunk(final @NotNull World world, final @NotNull ChunkLoadInfo chunkLoadInfo) {
         world.getChunkAtAsync(chunkLoadInfo.chunkX, chunkLoadInfo.chunkZ, false, chunk -> {
             if (chunk == null) { // chunk was not generated yet. I don't expect treasures there!
-                for (final @NotNull ChunkConsumer chunkConsumer : chunkLoadInfo.chunkConsumers) {
-                    chunkConsumer.chunkDoneFuture.complete(null);
+                for (final @NotNull ChunkConsumer<?> chunkConsumer : chunkLoadInfo.chunkConsumers) {
+                    chunkConsumer.chunkDoneFuture.completeExceptionally(new NotLoadedException(NotLoadedException.Type.CHUNK, "Chunk was not generated yet."));
                 }
             } else {
                 for (final @NotNull ChunkConsumer chunkConsumer : chunkLoadInfo.chunkConsumers) {
-
-                    // it's slightly faster to use a Predicate to sort locations out before getting the BlockState
-                    final @NotNull Collection<@NotNull BlockState> tileEntities = chunk.getTileEntities(block ->
-                            block.getX() >= chunkConsumer.minX && block.getX() <= chunkConsumer.maxX &&
-                                block.getY() >= chunkConsumer.minY && block.getY() <= chunkConsumer.maxY &&
-                                block.getZ() >= chunkConsumer.minZ && block.getZ() <= chunkConsumer.maxZ,
-                        false
-                    );
-
-                    for (BlockState tileEntity : tileEntities) { // note: we have no guarantee of the ordering of these
-                        if (tileEntity instanceof Container container) {
-                            final @Nullable TreasureInfo info = getTreasureInfo(container);
-
-                            if (info != null) {
-                                chunkConsumer.treasureConsumer.accept(info, tileEntity.getLocation());
-                            }
-                        }
-                    }
-
-                    chunkConsumer.chunkDoneFuture.complete(null);
+                    chunkConsumer.chunkDoneFuture.complete(
+                        // it's slightly faster to use a Predicate to sort locations out before getting the BlockState
+                        chunkConsumer.tileEntityTransformer.apply(chunk.getTileEntities(chunkConsumer.blockPredicate, false)));
                 }
             }
         });
     }
 
-    private record ChunkLoadInfo(int chunkX, int chunkZ, @NotNull Set<@NotNull ChunkConsumer> chunkConsumers) {
+    public static class NotLoadedException extends Exception {
+        private final @NotNull Type type;
+
+        public NotLoadedException(final @NotNull Type type) {
+            super();
+            this.type = type;
+        }
+
+        public NotLoadedException(final @NotNull Type type, final @NotNull String message) {
+            super(message);
+            this.type = type;
+        }
+
+        public @NotNull Type getType() {
+            return type;
+        }
+
+        public enum Type {
+            WORLD,
+            CHUNK
+        }
     }
 
-    private record ChunkConsumer(double minX, double maxX, double minY, double maxY, double minZ, double maxZ,
-                                 @NotNull BiConsumer<@NotNull TreasureInfo, @NotNull Location> treasureConsumer,
-                                 @NotNull CompletableFuture<Void> chunkDoneFuture) {
+    private record ChunkLoadInfo(int chunkX, int chunkZ, @NotNull Set<@NotNull ChunkConsumer<?>> chunkConsumers) {
+    }
+
+    private  record ChunkConsumer<ResultType>(@NotNull Predicate<? super Block> blockPredicate,
+                                 @NotNull Function<@NotNull Collection<@NotNull BlockState>, ResultType> tileEntityTransformer,
+                                 @NotNull CompletableFuture<ResultType> chunkDoneFuture) {
     }
 }

@@ -3,7 +3,6 @@ package de.greensurvivors.greentreasure.comands;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
@@ -54,64 +53,64 @@ public class ForgetSubCommand extends ASubCommand {
             Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
-                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfo(container);
-
-                if (treasureInfo != null) {
-                    if (treasureInfo.isShared()) {
-                        plugin.getDatabaseManager().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_SHARED_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
-                    }
-
-                    final OfflinePlayer playerToForget;
-                    if (args.length >= 2) {
-                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                        if (offlinePlayer.hasPlayedBefore()) {
-                            playerToForget = offlinePlayer;
-                        } else {
-                            try {
-                                playerToForget = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
-                            } catch (IllegalArgumentException ignored) {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
-                                return false;
-                            }
+                plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                    if (treasureInfo != null) {
+                        if (treasureInfo.isShared()) {
+                            plugin.getDatabaseManager().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_SHARED_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
                         }
-                    } else {
-                        if (sender instanceof OfflinePlayer offlinePlayer) {
-                            playerToForget = offlinePlayer;
-                        } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
-                            return true;
-                        }
-                    }
 
-                    if (playerToForget.hasPlayedBefore()) {
-                        plugin.getDatabaseManager().forgetPlayer(playerToForget, treasureInfo.treasureId()).thenRun(() -> {
-                            final @NotNull Component playerName;
-                            final @Nullable Player player = playerToForget.getPlayer();
-                            if (player != null) {
-                                playerName = player.displayName();
+                        final OfflinePlayer playerToForget;
+                        if (args.length >= 2) {
+                            OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
+                            if (offlinePlayer.hasPlayedBefore()) {
+                                playerToForget = offlinePlayer;
                             } else {
-                                if (playerToForget.getName() != null) {
-                                    playerName = Component.text(playerToForget.getName());
-                                } else {
-                                    playerName = Component.text(playerToForget.getUniqueId().toString());
+                                try {
+                                    playerToForget = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
+                                } catch (IllegalArgumentException ignored) {
+                                    plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
+                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                    return;
                                 }
                             }
+                        } else {
+                            if (sender instanceof OfflinePlayer offlinePlayer) {
+                                playerToForget = offlinePlayer;
+                            } else {
+                                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                                return;
+                            }
+                        }
 
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_USER_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)),
-                                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerName));
-                        });
+                        if (playerToForget.hasPlayedBefore()) {
+                            plugin.getDatabaseManager().forgetPlayer(playerToForget, treasureInfo.treasureId()).thenRun(() -> {
+                                final @NotNull Component playerName;
+                                final @Nullable Player player = playerToForget.getPlayer();
+                                if (player != null) {
+                                    playerName = player.displayName();
+                                } else {
+                                    if (playerToForget.getName() != null) {
+                                        playerName = Component.text(playerToForget.getName());
+                                    } else {
+                                        playerName = Component.text(playerToForget.getUniqueId().toString());
+                                    }
+                                }
+
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_USER_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)),
+                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerName));
+                            });
+                        } else {
+                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
+                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                            return;
+                        }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
-                        return false;
+                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
-                } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
-                }
+                });
             } else {
                 plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
