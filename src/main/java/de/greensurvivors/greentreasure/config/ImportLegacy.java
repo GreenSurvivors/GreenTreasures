@@ -12,7 +12,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
-import org.bukkit.block.Block;
 import org.bukkit.block.Container;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
@@ -21,6 +20,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.Yaml;
@@ -83,12 +83,14 @@ public class ImportLegacy {
             plugin.getComponentLogger().info("starting import legacy process from " + TREASURE_CHEST);
 
             importTreasureData(treasureChestPath).
-                thenCompose(inventorySizes -> importPlayerData(inventorySizes, treasureChestPath)).
+                thenComposeAsync(importedTreasures -> importPlayerData(importedTreasures, treasureChestPath)).
                 thenAccept(success -> {
                     plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST + " is done. was success: {}", success);
 
                     if (success) {
                         plugin.getComponentLogger().info("You may delete the old folder 'plugins/{}' now!", TREASURE_CHEST);
+                    } else {
+                        plugin.getComponentLogger().info("There where some problems when importing all legacy data. You have to manually check the logs, in order to decide if deleting the old folder 'plugins/{}' is safe!", TREASURE_CHEST);
                     }
                 });
         } else {
@@ -98,12 +100,14 @@ public class ImportLegacy {
                 plugin.getComponentLogger().info("starting import legacy process from " + TREASURE_CHEST_X);
 
                 importTreasureData(treasureChestXPath).
-                    thenCompose(inventorySizes -> importPlayerData(inventorySizes, treasureChestXPath)).
+                    thenComposeAsync(importedTreasures -> importPlayerData(importedTreasures, treasureChestXPath)).
                     thenAccept(success -> {
                         plugin.getComponentLogger().info("importing legacy process from " + TREASURE_CHEST_X + " is done. was success: {}", success);
 
                         if (success) {
                             plugin.getComponentLogger().info("You may delete the old folder 'plugins/{}' now!", TREASURE_CHEST_X);
+                        } else {
+                            plugin.getComponentLogger().info("There where some problems when importing all legacy data. You have to manually check the logs, in order to decide if deleting the old folder 'plugins/{}' is safe!", TREASURE_CHEST_X);
                         }
                     });
             } else {
@@ -128,82 +132,82 @@ public class ImportLegacy {
      * import legacy treasures
      */
     private @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull Ulid>> importTreasureData(final @NotNull Path treasurePluginFolder) { // todo import double chests
-        try (final ForkJoinPool forkJoinPool = ForkJoinPool.commonPool()) {
-            final @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull Ulid>> result = new CompletableFuture<>();
-            forkJoinPool.execute(() -> {
-                synchronized (this) {
-                    plugin.getComponentLogger().info("importing Treasures");
 
-                    final @NotNull Path treasuresPath = treasurePluginFolder.resolve("treasure");
+        final @NotNull CompletableFuture<@NotNull Map<@NotNull Location, @NotNull Ulid>> result = new CompletableFuture<>();
+        // the common fork join pool doesn't need closing
+        //noinspection resource
+        ForkJoinPool.commonPool().execute(() -> {
+            synchronized (this) {
+                plugin.getComponentLogger().info("importing Treasures");
 
-                    if (Files.isDirectory(treasuresPath)) {
-                        try (Stream<Path> treasuresPathStream = Files.walk(treasuresPath)) {
-                            final @NotNull Map<@NotNull Location, @NotNull Ulid> resultMap = new ConcurrentHashMap<>();
+                final @NotNull Path treasuresPath = treasurePluginFolder.resolve("treasure");
 
-                            final @NotNull CompletableFuture<?>[] futures = treasuresPathStream.
-                                filter(Files::isRegularFile).
-                                filter(PATH_MATCHER::matches).
-                                map(path -> {
-                                    plugin.getComponentLogger().debug("trying to import treasure with path: {}", path);
+                if (Files.isDirectory(treasuresPath)) {
+                    try (Stream<Path> treasuresPathStream = Files.walk(treasuresPath)) {
+                        final @NotNull Map<@NotNull Location, @NotNull Ulid> resultMap = new ConcurrentHashMap<>();
 
-                                    try (final @NotNull BufferedReader reader = Files.newBufferedReader(path)) {
-                                        final @NotNull Map<@NotNull String, ? extends @NotNull Object> configMap = new Yaml().load(reader);
+                        final @NotNull CompletableFuture<?>[] futures = treasuresPathStream.
+                            filter(Files::isRegularFile).
+                            filter(PATH_MATCHER::matches).
+                            map(path -> {
+                                plugin.getComponentLogger().debug("trying to import treasure with path: {}", path);
 
-                                        if (!(configMap.get("location") instanceof Map<?, ?> rootMap)) { // no I don't know why root is called location either
-                                            plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file was empty.", path);
-                                            return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path + " because it's file was empty."));
-                                        }
+                                try (final @NotNull BufferedReader reader = Files.newBufferedReader(path)) {
+                                    final @NotNull Map<@NotNull String, ? extends @NotNull Object> configMap = new Yaml().load(reader);
 
-                                        final @NotNull Map<@NotNull String, @NotNull Object> checkedRootMap = validateMap(rootMap);
-
-                                        if (!(checkedRootMap.get("container") instanceof Map<?, ?> containerMap)) {// invalid next path
-                                            plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file does not contain an container.", path);
-                                            return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path + " because it's file does not contain an container."));
-                                        }
-
-                                        final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap = validateMap(containerMap);
-
-                                        if (checkedContainerMap.get("right-side") instanceof Map<?, ?> rightMap && checkedContainerMap.get("left-side") instanceof Map<?, ?> leftMap) {
-                                            final @NotNull Map<@NotNull String, @NotNull Object> checkedRightMap = validateMap(rightMap);
-                                            final @NotNull Map<@NotNull String, @NotNull Object> checkedLeftMap = validateMap(leftMap);
-
-                                            return mainContainer(path, getTreasureContents(path.toString(), checkedRightMap), checkedRootMap, checkedLeftMap, resultMap);
-
-                                        } else if (checkedContainerMap.containsKey("coords")) {
-                                            return mainContainer(path, null, checkedRootMap, checkedContainerMap, resultMap);
-                                        } else {
-                                            plugin.getComponentLogger().warn("could not read contents of legacy treasure path {}", path);
-
-                                            return CompletableFuture.failedFuture(new InvalidObjectException("could not read contents of legacy treasure path " + path));
-                                        }
-
-                                    } catch (final @NotNull IOException e) {
-                                        plugin.getComponentLogger().warn("could not read legacy treasure path {}", path, e);
-
-                                        return CompletableFuture.failedFuture(e);
+                                    if (!(configMap.get("location") instanceof Map<?, ?> rootMap)) { // no I don't know why root is called location either
+                                        plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file was empty.", path);
+                                        return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path + " because it's file was empty."));
                                     }
-                                }).
-                                // since CompletableFuture#allOf fails as soon as the first future fails, just mute all exceptions and wait for all completions
-                                map(f -> f.exceptionally(e -> null)).
-                                toArray(CompletableFuture[]::new);
 
+                                    final @NotNull Map<@NotNull String, @NotNull Object> checkedRootMap = validateMap(rootMap);
 
-                            CompletableFuture.allOf(futures).whenComplete((voidz, ex) -> result.complete(resultMap));
-                        } catch (IOException e) {
-                            plugin.getComponentLogger().warn("Could not load legacy treasures!", e);
+                                    if (!(checkedRootMap.get("container") instanceof Map<?, ?> containerMap)) {// invalid next path
+                                        plugin.getComponentLogger().warn("Could not load legacy treasure {} because it's file does not contain an container.", path);
+                                        return CompletableFuture.failedFuture(new InvalidObjectException("Could not load legacy treasure " + path + " because it's file does not contain an container."));
+                                    }
 
-                            result.completeExceptionally(e);
-                        }
-                    } else {
-                        plugin.getComponentLogger().warn("Could not load legacy treasures!");
+                                    final @NotNull Map<@NotNull String, @NotNull Object> checkedContainerMap = validateMap(containerMap);
 
-                        result.completeExceptionally(new InvalidPathException(treasuresPath.toString(), "is not a dictionary!"));
+                                    if (checkedContainerMap.get("right-side") instanceof Map<?, ?> rightMap && checkedContainerMap.get("left-side") instanceof Map<?, ?> leftMap) {
+                                        final @NotNull Map<@NotNull String, @NotNull Object> checkedRightMap = validateMap(rightMap);
+                                        final @NotNull Map<@NotNull String, @NotNull Object> checkedLeftMap = validateMap(leftMap);
+
+                                        return mainContainer(path, getTreasureContents(path.toString(), checkedRightMap), checkedRootMap, checkedLeftMap, resultMap);
+
+                                    } else if (checkedContainerMap.containsKey("coords")) {
+                                        return mainContainer(path, null, checkedRootMap, checkedContainerMap, resultMap);
+                                    } else {
+                                        plugin.getComponentLogger().warn("could not read contents of legacy treasure path {}", path);
+
+                                        return CompletableFuture.failedFuture(new InvalidObjectException("could not read contents of legacy treasure path " + path));
+                                    }
+
+                                } catch (final @NotNull IOException e) {
+                                    plugin.getComponentLogger().warn("could not read legacy treasure path {}", path, e);
+
+                                    return CompletableFuture.failedFuture(e);
+                                }
+                            }).
+                            // since CompletableFuture#allOf fails as soon as the first future fails, just mute all exceptions and wait for all completions
+                            map(f -> f.exceptionally(e -> null)).
+                            toArray(CompletableFuture[]::new);
+
+                        CompletableFuture.allOf(futures).whenComplete((voidz, ex) -> result.complete(resultMap));
+                    } catch (IOException e) {
+                        plugin.getComponentLogger().warn("Could not load legacy treasures!", e);
+
+                        result.completeExceptionally(e);
                     }
-                }
-            });
+                } else {
+                    plugin.getComponentLogger().warn("Could not load legacy treasures!");
 
-            return result;
-        }
+                    result.completeExceptionally(new InvalidPathException(treasuresPath.toString(), "is not a dictionary!"));
+                }
+            }
+        });
+
+        return result;
     }
 
     private @NotNull CompletableFuture<Void> mainContainer(final @NotNull Path path,
@@ -219,29 +223,42 @@ public class ImportLegacy {
             return CompletableFuture.failedFuture(new InvalidObjectException("Could not read treasure location"));
         }
 
-        treasureLocation.getWorld().getChunkAtAsync(treasureLocation).thenApply(chunk -> {
-            plugin.getComponentLogger().debug("chunk loaded");
-            final @NotNull Block treasureBlock = treasureLocation.getBlock();
+        final @NotNull CompletableFuture<@Nullable Ulid> doneFeature = new CompletableFuture<>();
 
-            if (!(treasureBlock.getState(false) instanceof Container container)) {
-                plugin.getComponentLogger().warn("Could not load legacy treasure {} because the block at {} is not a container.", path, treasureLocation);
-                final @NotNull InvalidObjectException exception = new InvalidObjectException("Block at location " + treasureLocation + " is not a container!");
+        plugin.getTreasureManager().registerForChunkParsing(
+            treasureLocation.getWorld().getName(), treasureLocation.getBlockX() >> 4, treasureLocation.getBlockZ() >> 4,
+            block -> block.getLocation().distanceSquared(treasureLocation) < 0.25,
+            tileEntities -> {
+                if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
+                    plugin.getComponentLogger().warn("Could not load legacy treasure {} because the block at {} is not a container.", path, treasureLocation);
 
-                result.completeExceptionally(exception);
-                throw new UncheckedIOException(exception);
+                    result.completeExceptionally(new InvalidObjectException("Block at location " + treasureLocation + " is not a container!"));
+                    return null;
+                }
+
+                container = (Container) Utils.getTreasureHolder(container);
+
+                @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
+                if (treasureId == null) {
+                    treasureId = plugin.getTreasureManager().createNewMonotonicUlid();
+
+                    plugin.getTreasureManager().setTreasureId(container, treasureId);
+                }
+
+                return treasureId;
+            },
+            doneFeature
+        );
+
+
+        doneFeature.whenCompleteAsync((treasureId, throwable) -> {
+            if (throwable != null || treasureId == null) {
+                plugin.getComponentLogger().debug("Could not load legacy treasure at {}", treasureLocation, throwable);
+
+                result.complete(null);
+                return;
             }
 
-            container = (Container) Utils.getTreasureHolder(container);
-
-            @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
-            if (treasureId == null) {
-                treasureId = plugin.getTreasureManager().createNewMonotonicUlid();
-
-                plugin.getTreasureManager().setTreasureId(container, treasureId);
-            }
-
-            return treasureId;
-        }).thenAccept(treasureId -> {
             final @Nullable List<@NotNull ItemStack> contents = getTreasureContents(path.toString(), checkedContainerMap);
 
             if (contents == null) {
@@ -447,15 +464,18 @@ public class ImportLegacy {
 
         // Mojang api only allows 600 requests / 10 minutes or one per second.
         // so we throttle our requests to 400 / 10 minutes or one per 1.5 seconds, to give the server some room for players and custom heads.
-        // This wouldn't be necessary, if there was direct API access to the NMS PlayerDataStorage object.
-        // However, the best thing we got is a call in the API server to get ALL OfflinePlayers at once.
+        // This wouldn't be necessary, if there was direct API access to the NMS PlayerDataStorage object, since we don't import unknown players anyway.
+        // However, the best thing we got, is a call in the API server to get ALL OfflinePlayers at once.
         // and that call is not thread safe.
         // So that would be a very bad idea to use.
         // Also for future reference: UserCache also ins't an alternative data source, since that would boil down to
         // the UserCache.json, where every user in there may expire after a month.
         // I looked it up, the server basically does not delete any entries there but, at the same time they have an expiration date,
         // and after that date they might very well get deleted in the future.
-        try (final @NotNull ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2, threadFactory)) {
+
+        // Also, don't use autocloseable, it will stupidly block the mainthread!
+        final @NotNull ScheduledThreadPoolExecutor scheduledThreadPoolExecutor = new ScheduledThreadPoolExecutor(2, threadFactory);
+        try {
             scheduledThreadPoolExecutor.schedule(() -> {
                 synchronized (this) {
                     plugin.getComponentLogger().info("importing PlayerData");
@@ -470,6 +490,7 @@ public class ImportLegacy {
                                 filter(Files::isRegularFile).
                                 filter(path -> PATH_MATCHER.matches(path.getFileName())).
                                 forEach(path -> {
+
                                     final @NotNull String playerName = FilenameUtils.removeExtension(path.getFileName().toString());
                                     final @Nullable OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerName);
 
@@ -490,9 +511,9 @@ public class ImportLegacy {
                                                     final @NotNull Matcher coordsMatcher = PLAYER_COORDS_PATTERN.matcher(entry.getKey());
 
                                                     if (coordsMatcher.matches()) {
-                                                        int x = Integer.parseInt(coordsMatcher.group("x"));
-                                                        int y = Integer.parseInt(coordsMatcher.group("y"));
-                                                        int z = Integer.parseInt(coordsMatcher.group("z"));
+                                                        final int x = Integer.parseInt(coordsMatcher.group("x"));
+                                                        final int y = Integer.parseInt(coordsMatcher.group("y"));
+                                                        final int z = Integer.parseInt(coordsMatcher.group("z"));
 
                                                         if (entry.getValue() instanceof Number timeStampNumber) {
                                                             @Nullable Ulid treasureId = null;
@@ -511,22 +532,38 @@ public class ImportLegacy {
                                                             }
 
                                                             if (treasureId == null) {
-                                                                world.getChunkAtAsync(x >> 4, z >> 4, false).thenAccept(chunk -> {
-                                                                    final @NotNull Block treasureBlock = world.getBlockAt(x, y, z);
+                                                                CompletableFuture<Void> future = new CompletableFuture<>();
 
-                                                                    if (!(treasureBlock.getState(false) instanceof Container container)) {
-                                                                        plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, treasureBlock.getLocation());
-                                                                        return;
-                                                                    }
+                                                                plugin.getTreasureManager().registerForChunkParsing(
+                                                                    world.getName(), x >> 4, z >> 4,
+                                                                    block ->
+                                                                        NumberConversions.square(x - block.getX()) +
+                                                                        NumberConversions.square(y - block.getY()) +
+                                                                        NumberConversions.square(z - block.getZ()) < 0.25,
+                                                                    tileEntities -> {
+                                                                        if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
+                                                                            plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, new Location(world, x, y, z));
+                                                                            gotNoErrorAnyFile.set(false);
+                                                                            return null;
+                                                                        }
 
-                                                                    final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
+                                                                        final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
-                                                                    if (asyncTreasureId != null) {
-                                                                        plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
-                                                                    } else {
-                                                                        plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
-                                                                        gotNoErrorAnyFile.set(false);
-                                                                    }
+                                                                        if (asyncTreasureId != null) {
+                                                                            plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
+                                                                        } else {
+                                                                            plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
+                                                                            gotNoErrorAnyFile.set(false);
+                                                                        }
+
+                                                                        return null;
+                                                                    },
+                                                                    future
+                                                                );
+
+                                                                future.exceptionally(throwable -> {
+                                                                    gotNoErrorAnyFile.set(false);
+                                                                    return null;
                                                                 });
                                                             } else {
                                                                 plugin.getDatabaseManager().setPlayerData(offlinePlayer, treasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
@@ -563,6 +600,8 @@ public class ImportLegacy {
                     }
                 }
             }, 1500, TimeUnit.MILLISECONDS);
+        } finally {
+            scheduledThreadPoolExecutor.shutdown();
         }
 
         return result;

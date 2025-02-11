@@ -85,7 +85,7 @@ public class TreasureConfig {
 
                 config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
                 plugin.saveConfig();
-            }, 1200);
+            }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
         }
     }
 }
