@@ -8,26 +8,29 @@ import org.bukkit.event.block.BlockEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * called if a player trys to break a treasure Block.
+ * called if a player tries to break a treasure Block.
  * canceling this event means the original block break event gets NOT canceled.
  */
 public class TreasureBreakEvent extends BlockEvent implements Cancellable {
-    private static final HandlerList handlers = new HandlerList();
-    private final Player player;
+    private static final @NotNull HandlerList handlers = new HandlerList();
+    private final @NotNull Player player;
     private boolean cancel;
 
     /**
-     *
-     * @param theBlock the treasure block a player trys to break
-     * @param player the player in action
+     * @param theBlock the treasure block a player tries to break
+     * @param player   the player in action
      */
-    public TreasureBreakEvent(@NotNull Block theBlock, @NotNull Player player) {
+    public TreasureBreakEvent(final @NotNull Block theBlock, final @NotNull Player player) {
         super(theBlock);
         this.player = player;
     }
 
     @Override
     public @NotNull HandlerList getHandlers() {
+        return handlers;
+    }
+
+    public static @NotNull HandlerList getHandlerList() {
         return handlers;
     }
 

@@ -103,3 +103,6 @@ buildNumber.properties
 build/
 target
 run/
+
+# docker test database
+/data/

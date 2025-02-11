@@ -1,16 +1,18 @@
 main: de.greensurvivors.greentreasure.GreenTreasure
 name: GreenTreasure
-version: 0.0.6
-api-version: 1.19
-author: Bergtiger, Feuerreiter
+api-version: "${mcVersion}"
+version: ${version}
+load: POSTWORLD
 softdepend:
   - TreasureChest
   - TreasureChestX
-
-commands:
-  greentresure:
-    aliases:
-      - gt
-      - gchest
-      - gtreasure
-    description: All green treasure commands.
+  - WorldGuard
+libraries:
+  - org.apache.commons:commons-lang3:3.13.0
+  - com.github.ben-manes.caffeine:caffeine:${caffeineVersion}
+  - org.yaml:snakeyaml:${snakeyamlVersion}
+  - org.apache.commons:commons-collections4:${commonsCollectionVersion}
+  - com.zaxxer:HikariCP:${hikariCPVersion}
+  - com.github.f4b6a3:ulid-creator:${ulidCreatorVersion}
+description: ${description}
+author: GreensurvivorsTeam
