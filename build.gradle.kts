@@ -15,12 +15,12 @@ paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArt
 
 // dependencies
 val worldGuardDependencyVersion by extra("7.0.13-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
-val worldGuardRunVersion by extra("7.0.13-beta-2") // note this is the modrinth version, used in the run task
-val worldEditVersion by extra("HIoAq6RI") // wierd modrinth version id, used to fetch worldEdit for the run task.
+val worldGuardRunVersion by extra("7.0.13") // note this is the modrinth version, used in the run task
+val worldEditVersion by extra("4jRlujfz") // wierd modrinth version id, used to fetch worldEdit for the run task.
 val hikariCPVersion by extra("6.2.1")
-val caffeineVersion by extra("3.1.8")
-val snakeyamlVersion by extra("2.3")
-val commonsCollectionVersion by extra("4.5.0-M3")
+val caffeineVersion by extra("3.2.0")
+val snakeyamlVersion by extra("2.4")
+val commonsCollectionsVersion by extra("4.5.0-M3")
 val ulidCreatorVersion by extra("5.2.3")
 
 java {

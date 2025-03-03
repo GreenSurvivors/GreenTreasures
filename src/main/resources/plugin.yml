@@ -8,10 +8,9 @@ softdepend:
   - TreasureChestX
   - WorldGuard
 libraries:
-  - org.apache.commons:commons-lang3:3.13.0
   - com.github.ben-manes.caffeine:caffeine:${caffeineVersion}
   - org.yaml:snakeyaml:${snakeyamlVersion}
-  - org.apache.commons:commons-collections4:${commonsCollectionVersion}
+  - org.apache.commons:commons-collections4:${commonsCollectionsVersion}
   - com.zaxxer:HikariCP:${hikariCPVersion}
   - com.github.f4b6a3:ulid-creator:${ulidCreatorVersion}
 description: ${description}
