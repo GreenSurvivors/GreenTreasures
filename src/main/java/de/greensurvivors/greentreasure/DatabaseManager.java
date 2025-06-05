@@ -18,6 +18,7 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.regex.Pattern;
 
 public class DatabaseManager {
     private final static @NotNull String
@@ -62,6 +63,8 @@ public class DatabaseManager {
     private static final @NotNull OfflinePlayer
         // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
         SHARED_PROFILE = Bukkit.getOfflinePlayer("@SHARED");
+    /// there is no specific missing table exception. Our best guess is to use this pattern.
+    private static final @NotNull Pattern MISSING_TABLE_PATTERN = Pattern.compile("Table '.*?' doesn't exist$");
     private final @NotNull GreenTreasure plugin;
     /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
     private final @NotNull Executor asyncExecutor;
@@ -174,8 +177,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
                 TREASURE_ID_KEY + ", " +
                 TREASURE_CONTENT_KEY + ") " +
@@ -202,6 +203,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure contents for '{}'", treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -216,8 +221,6 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            createTableTreasure();
 
             final @NotNull String statementStr =
                 "SELECT " + TREASURE_CONTENT_KEY +
@@ -246,6 +249,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not get treasure data for treasure id '{}'", treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -260,9 +267,6 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            createTableTreasure();
-            createTablePlayerData();
 
             // first delete all rows with foreign keys, then the rows itself
             final @NotNull String playerDataStatementStr = "DELETE FROM " + PLAYERDATA_TABLE + " WHERE " + TREASURE_ID_KEY + " = ?";
@@ -285,6 +289,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not delete treasure with id '{}'", treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -307,8 +315,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_NON_EMPTY_PERMYRIAD_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
@@ -328,6 +334,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure slot chance for '{}' to {}", treasureId, nonEmptyPermyriad / 100.0D, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -349,8 +359,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_SHARED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
@@ -370,6 +378,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure shared setting for '{}' to {}", treasureId, isShared, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -391,8 +403,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_UNLIMITED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
@@ -412,6 +422,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure unlimited setting for '{}' to {}", treasureId, isUnLimited, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -434,8 +448,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_FORGET_DURATION_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
 
@@ -455,6 +467,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure forget duration for '{}' to {}", treasureId, forgettingDuration, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -472,8 +488,6 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            createTableTreasure();
 
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
@@ -494,6 +508,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure findFreshMessageOverride setting for '{}' to \"{}\"", treasureId, findFreshMessageOverride, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -511,8 +529,6 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            createTableTreasure();
 
             final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
                 " SET " + TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
@@ -533,6 +549,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure findLootedMessageOverride setting for '{}' to {}", treasureId, findLootedMessageOverride, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -540,8 +560,6 @@ public class DatabaseManager {
     }
 
     public @Nullable TreasureInfo loadTreasureUrgently(final @NotNull Ulid treasureId) {
-        createTableTreasure();
-
         final @NotNull String statementStr = "SELECT " +
             TREASURE_CONTENT_KEY + ", " +
             TREASURE_FORGET_DURATION_KEY + ", " +
@@ -583,6 +601,10 @@ public class DatabaseManager {
                 }
             }
         } catch (SQLException e) {
+            if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+            }
+
             plugin.getComponentLogger().warn("Could not get treasure data for treasure id '{}'", treasureId, e);
 
             return null;
@@ -614,8 +636,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTableTreasure();
-
             final @NotNull String statementStr = "SELECT " + TREASURE_ID_KEY + " FROM " + TREASURE_TABLE;
 
             try (final @NotNull Connection connection = dataSource.getConnection();
@@ -634,6 +654,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set treasure ids", e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -656,7 +680,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTablePlayerData();
             addPlayer(player == null ? SHARED_PROFILE : player);
 
             final @NotNull String statementStr =
@@ -702,6 +725,10 @@ public class DatabaseManager {
 
                 plugin.getComponentLogger().warn("Could not set player loot data for '{}' at timestamp '{}' for '{}'",
                     treasureId, lootDetail.lastChangedTimeStamp(), player == null ? SHARED_PROFILE.getName() : player.getName(), e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -725,7 +752,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTablePlayerData();
             addPlayer(player == null ? SHARED_PROFILE : player);
 
             final @NotNull String statementStr =
@@ -772,6 +798,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
                 plugin.getComponentLogger().warn("Could not get treasure identifier '{}' player loot detail for '{}'", treasureId, player == null ? SHARED_PROFILE.getName() : player.getName(), e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -787,8 +817,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTablePlayerData();
-
             final @NotNull String statementStr = "DELETE FROM " + PLAYERDATA_TABLE + " WHERE  " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
@@ -803,6 +831,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not forgetAll treasure data for '{}'", treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -818,7 +850,6 @@ public class DatabaseManager {
                 return;
             }
 
-            createTablePlayerData();
             addPlayer(player == null ? SHARED_PROFILE : player);
 
             final String statementStr =
@@ -840,6 +871,10 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not forget player loot detail for '{}' with treasure '{}'", player == null ? SHARED_PROFILE.getName() : player.getName(), treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -854,8 +889,6 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            createTablePlayerData();
 
             final String statementStr =
                 "SELECT u." + UUID_KEY + "," +
@@ -896,7 +929,12 @@ public class DatabaseManager {
                 }
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(Collections.emptyMap()));
+
                 plugin.getComponentLogger().warn("Could not retrieve all player data for treasure '{}'", treasureId, e);
+
+                if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                    Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+                }
             }
         });
 
@@ -967,8 +1005,6 @@ public class DatabaseManager {
      * Contains all player looted treasures
      */
     private void createTablePlayerData() {
-        createTableUser();
-
         final String statementStr = "CREATE TABLE IF NOT EXISTS " + PLAYERDATA_TABLE + " (" +
             PID_KEY + " INT UNSIGNED NOT NULL, " +
             // is BINARY instead of UUID since SQL instances can not be trusted shifting UUIDs around in order to "optimizing" them;
@@ -988,6 +1024,10 @@ public class DatabaseManager {
              final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
             preparedStatement.executeUpdate();
         } catch (SQLException e) {
+            if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
+                Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
+            }
+
             plugin.getComponentLogger().error("Could not create table {}.", PLAYERDATA_TABLE, e);
         }
     }
@@ -996,8 +1036,6 @@ public class DatabaseManager {
      * Tries to add a player into the player table
      */
     protected void addPlayer(final @NotNull OfflinePlayer player) {
-        createTableUser();
-
         final String statementStr =
             "INSERT INTO " + USER_TABLE + " " +
                 "(" + NAME + ", " + UUID_KEY + ") VALUES (?, ?) " +
