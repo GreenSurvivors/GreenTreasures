@@ -52,23 +52,25 @@ public class CreateSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (container.getInventory().getType().isCreatable()) {
-                    if (plugin.getTreasureManager().getTreasureInfo(container) == null) {
-                        final @NotNull Ulid newTreasureId = plugin.getTreasureManager().createNewMonotonicUlid();
-                        plugin.getTreasureManager().setTreasureId(container, newTreasureId);
+                    plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo  -> {
+                        if (treasureInfo == null) {
+                            final @NotNull Ulid newTreasureId = plugin.getTreasureManager().createNewMonotonicUlid();
+                            plugin.getTreasureManager().setTreasureId(container, newTreasureId);
 
-                        List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
-                        container.update(true, false);
+                            List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
+                            container.update(true, false);
 
-                        plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                    container.customName() == null ?
-                                        Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
-                                        container.customName()
-                                )));
-                    } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_ALREADY_TREASURE);
-                    }
+                            plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
+                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                        container.customName() == null ?
+                                            Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
+                                            container.customName()
+                                    )));
+                        } else {
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_ALREADY_TREASURE);
+                        }
+                    });
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_INVALID_CONTAINER);
                 }

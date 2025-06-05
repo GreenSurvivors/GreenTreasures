@@ -79,7 +79,7 @@ public class DependencyHelper {
                         final @NotNull RegionQuery query = container.createQuery();
 
                         if (!query.testState(BukkitAdapter.adapt(block.getLocation()), null, overrideProtection)) {
-                            if (plugin.getTreasureManager().getTreasureInfo(persistentDataHolder) != null) {
+                            if (plugin.getTreasureManager().getTreasureInfo(persistentDataHolder).join() != null) {
                                 // allow the interaction of this block
                                 event.setAllowed(true);
                             }

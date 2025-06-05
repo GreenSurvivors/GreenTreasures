@@ -1,6 +1,6 @@
 plugins {
     `java-library`
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.14"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
     id("xyz.jpenilla.run-paper") version "2.3.1"
 }
 
@@ -14,17 +14,17 @@ val javaVersion = 21
 paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
 // dependencies
-val worldGuardDependencyVersion by extra("7.0.13-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
+val worldGuardDependencyVersion by extra("7.0.14-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
 val worldGuardRunVersion by extra("7.0.13") // note this is the modrinth version, used in the run task
-val worldEditVersion by extra("4jRlujfz") // wierd modrinth version id, used to fetch worldEdit for the run task.
-val hikariCPVersion by extra("6.2.1")
+val worldEditVersion by extra("txgouwkE") // wierd modrinth version id, used to fetch worldEdit for the run task.
+val hikariCPVersion by extra("6.3.0")
 val caffeineVersion by extra("3.2.0")
 val snakeyamlVersion by extra("2.4")
-val commonsCollectionsVersion by extra("4.5.0-M3")
+val commonsCollectionsVersion by extra("4.5.0")
 val ulidCreatorVersion by extra("5.2.3")
 
 java {
-  // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
+    // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
     toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
 }
 
@@ -47,7 +47,7 @@ dependencies {
     compileOnly("com.zaxxer:HikariCP:$hikariCPVersion")
     compileOnly("com.github.ben-manes.caffeine:caffeine:$caffeineVersion") // caches
     compileOnly("org.yaml:snakeyaml:$snakeyamlVersion")
-    compileOnly("org.apache.commons:commons-collections4:$commonsCollectionVersion")
+    compileOnly("org.apache.commons:commons-collections4:$commonsCollectionsVersion")
     compileOnly("com.github.f4b6a3:ulid-creator:$ulidCreatorVersion")
 }
 
@@ -57,13 +57,13 @@ tasks {
 
         expand(project.properties)
     }
-  compileJava {
-    options.encoding = Charsets.UTF_8.name() // We want UTF-8 for everything
+    compileJava {
+        options.encoding = Charsets.UTF_8.name() // We want UTF-8 for everything
 
-    // Set the release flag. This configures what version bytecode the compiler will emit, as well as what JDK APIs are usable.
-    // See https://openjdk.java.net/jeps/247 for more information.
-      options.release.set(javaVersion)
-  }
+        // Set the release flag. This configures what version bytecode the compiler will emit, as well as what JDK APIs are usable.
+        // See https://openjdk.java.net/jeps/247 for more information.
+        options.release.set(javaVersion)
+    }
 
     runServer {
         downloadPlugins {
