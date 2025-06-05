@@ -93,7 +93,7 @@ public class CommandInventoriesListener implements Listener {
 
                     // the IDE is confused with two annotations
                     //noinspection NullableProblems
-                    plugin.getDatabaseManager().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
+                    plugin.getDataAccessor().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
                         thenRun(() -> plugin.getMessageManager().sendPrefixed(event.getPlayer(), LangKey.ACTION_TREASURE_EDITED));
                 } else {
                     plugin.getMessageManager().sendPrefixed(event.getPlayer(), LangKey.ERROR_UNKNOWN);
@@ -124,10 +124,10 @@ public class CommandInventoriesListener implements Listener {
                         .toList();
 
                     if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
-                        plugin.getDatabaseManager().setPlayerData(null, treasureId,
+                        plugin.getDataAccessor().setPlayerData(null, treasureId,
                             new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), list));
                     } else {
-                        plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
+                        plugin.getDataAccessor().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
                             new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), list));
                     }
                 }

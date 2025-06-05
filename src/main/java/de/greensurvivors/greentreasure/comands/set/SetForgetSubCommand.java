@@ -107,19 +107,19 @@ public class SetForgetSubCommand extends ASubCommand {
                             }
 
                             if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
-                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), start, null).thenRun(() ->
+                                plugin.getDataAccessor().setForgetDuration(treasureInfo.treasureId(), start, null).thenRun(() ->
                                     plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FORGET_REMOVE_DURATION)
                                 ); // todo this technically also sets unlocks
                             } else {
                                 final @NotNull Component formattedDuration = MessageManager.formatDuration(forgetDuration);
 
                                 if (start == null) {
-                                    plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null, forgetDuration).thenRun(() ->
+                                    plugin.getDataAccessor().setForgetDuration(treasureInfo.treasureId(), null, forgetDuration).thenRun(() ->
                                         plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FORGET_DURATION_SUCCESS.create(
                                             PlaceHolder.TIME.component(formattedDuration))));
                                 } else {
                                     final Instant finalStart = start; // thanks java
-                                    plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), start, forgetDuration).thenRun(() ->
+                                    plugin.getDataAccessor().setForgetDuration(treasureInfo.treasureId(), start, forgetDuration).thenRun(() ->
                                         plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FORGET_DURATION_INSTANT_SUCCESS.create(
                                             PlaceHolder.TIME.component(formattedDuration),
                                             PlaceHolder.START.temporal(finalStart))));

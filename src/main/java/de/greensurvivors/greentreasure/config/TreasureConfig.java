@@ -34,8 +34,8 @@ public class TreasureConfig {
         final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
 
         if (section != null) {
-            plugin.getDatabaseManager().reload(section.getValues(false));
-            mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
+            plugin.getDataAccessor().reload(section.getValues(false));
+            mainCfg.set(CONFIG_KEY_SQL, plugin.getDataAccessor().serializeDatabaseConnectionConfig());
         } else {
             plugin.getComponentLogger().error("Could not load database!");
         }
@@ -49,7 +49,7 @@ public class TreasureConfig {
                 } else {
                     plugin.getComponentLogger().warn("Could not import legacy data, since a import process is already running!");
                 }
-            }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
+            }, plugin.getDataAccessor().hasConnection() ? 20 : 300);
         }
 
         @Nullable BreakBehavior newBehavior = null;

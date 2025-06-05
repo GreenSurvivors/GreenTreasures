@@ -2,6 +2,7 @@ package de.greensurvivors.greentreasure;
 
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.data.DataAccessor;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.legacy.LegacyDataImporter;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
@@ -14,7 +15,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
 public class GreenTreasure extends JavaPlugin {
-    private final @NotNull DatabaseManager databaseManager;
+    private final @NotNull DataAccessor dataAccessor;
     private final @NotNull TreasureManager treasureManager;
     private final @NotNull MessageManager messageManager;
     private final @NotNull TreasureConfig configHandler;
@@ -26,7 +27,7 @@ public class GreenTreasure extends JavaPlugin {
     private @MonotonicNonNull LegacyDataImporter legacyDataImporter = null;
 
     public GreenTreasure() {
-        databaseManager = new DatabaseManager(this);
+        dataAccessor = new DataAccessor(this);
         treasureManager = new TreasureManager(this);
         messageManager = new MessageManager(getPluginMeta().namespace(), getComponentLogger(), getDataPath());
         configHandler = new TreasureConfig(this);
@@ -75,7 +76,7 @@ public class GreenTreasure extends JavaPlugin {
         commandInventoriesListener.clearInventories();
 
         treasureManager.clearTreasures();
-        databaseManager.closeConnection();
+        dataAccessor.closeConnection();
     }
 
     public void reload() {
@@ -84,8 +85,8 @@ public class GreenTreasure extends JavaPlugin {
         commandInventoriesListener.clearInventories();
     }
 
-    public @NotNull DatabaseManager getDatabaseManager() {
-        return databaseManager;
+    public @NotNull DataAccessor getDataAccessor() {
+        return dataAccessor;
     }
 
     public @NotNull TreasureConfig getConfigHandler() {

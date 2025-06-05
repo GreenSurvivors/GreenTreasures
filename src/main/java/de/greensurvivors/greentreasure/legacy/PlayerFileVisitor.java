@@ -133,7 +133,7 @@ class PlayerFileVisitor extends ALegacyFileVisitor {
                                                         final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
                                                         if (asyncTreasureId != null) {
-                                                            plugin.getDatabaseManager()
+                                                            plugin.getDataAccessor()
                                                                 .setPlayerData(
                                                                     plugin.getServer().getOfflinePlayer(uuid),
                                                                     asyncTreasureId,

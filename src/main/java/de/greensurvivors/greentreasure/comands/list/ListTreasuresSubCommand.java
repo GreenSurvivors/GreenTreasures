@@ -7,7 +7,6 @@ import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
-import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangKey;
@@ -49,7 +48,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
             final Audience audience = DynamicPlayerAudience.fromAudience(sender);
-            plugin.getDatabaseManager().getTreasureIds().thenAccept(treasureIds -> {
+            plugin.getDataAccessor().getTreasureIds().thenAccept(treasureIds -> {
                 final int numOfTreasures = treasureIds.size();
 
                 if (numOfTreasures > 0) {

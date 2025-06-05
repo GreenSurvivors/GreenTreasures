@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.event;
 
 import com.github.f4b6a3.ulid.Ulid;
-import de.greensurvivors.greentreasure.DatabaseManager;
+import de.greensurvivors.greentreasure.data.DataAccessor;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
@@ -15,7 +15,7 @@ import org.jetbrains.annotations.NotNull;
  * <br>
  * Note: this Event doesn't include PlayerLootDetail, since it's loaded async,
  * and therefore we couldn't cancel the open-Inventory-event afterward.
- * If you need the info, you have to call {@link DatabaseManager#getPlayerData(OfflinePlayer, Ulid)} yourself.
+ * If you need the info, you have to call {@link DataAccessor#getPlayerData(OfflinePlayer, Ulid)} yourself.
  * <br>
  * Note: an event happens even if the Treasure isn't unlocked yet.
  * use {@link TreasureInfo#isUnlocked()} to check this case!

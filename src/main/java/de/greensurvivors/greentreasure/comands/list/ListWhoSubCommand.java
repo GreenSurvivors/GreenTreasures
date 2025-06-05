@@ -7,7 +7,6 @@ import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
-import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.language.LangKey;
@@ -60,7 +59,7 @@ public class ListWhoSubCommand extends ASubCommand {
 
                 plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                     if (treasureInfo != null) {
-                        plugin.getDatabaseManager().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {
+                        plugin.getDataAccessor().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {
                             final int numOfPlayers = playerLootDetailMap.size();
 
                             if (numOfPlayers > 0) {

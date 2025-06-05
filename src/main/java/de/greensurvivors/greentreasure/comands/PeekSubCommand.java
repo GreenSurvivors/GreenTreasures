@@ -72,7 +72,7 @@ public class PeekSubCommand extends ASubCommand {
 
                             if (treasureInfo.isShared()) {
                                 //load shared treasure
-                                plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
+                                plugin.getDataAccessor().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
                                     final @NotNull Inventory nowPeeking;
                                     final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
@@ -135,7 +135,7 @@ public class PeekSubCommand extends ASubCommand {
                                     playerToPeek = player;
                                 }
 
-                                plugin.getDatabaseManager().getPlayerData(playerToPeek, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
+                                plugin.getDataAccessor().getPlayerData(playerToPeek, treasureInfo.treasureId()).thenAccept(playerLootDetail -> {
                                     final @NotNull Component name;
                                     if (playerToPeek.isOnline()) {
                                         name = playerToPeek.getPlayer().displayName();

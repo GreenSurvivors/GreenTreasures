@@ -106,7 +106,7 @@ public class TreasureListener implements Listener {
 
                         // shut up, if a stack is null it will get mapped to an empty stack instead
                         //noinspection NullableProblems
-                        plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
+                        plugin.getDataAccessor().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
                             new PlayerLootDetail(
                                 wrapper.getFistLootedInstant(),
                                 Instant.now(),
@@ -225,11 +225,11 @@ public class TreasureListener implements Listener {
                                 handleTreasureOpen(player, treasureInfo, eInventory, eTitle, null);
                             } else {
                                 //load global treasure async
-                                plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                                plugin.getDataAccessor().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
                                     handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
                             }
                         } else { // not globally shared
-                            plugin.getDatabaseManager().getPlayerData(player, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                            plugin.getDataAccessor().getPlayerData(player, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
                                 handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
                         }
                     } else {
@@ -250,7 +250,6 @@ public class TreasureListener implements Listener {
                             }
                             case CANCELED -> event.setCancelled(true);
                         }
-
                     }
                 } else {
                     TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, false);

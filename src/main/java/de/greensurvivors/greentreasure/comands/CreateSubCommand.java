@@ -56,7 +56,7 @@ public class CreateSubCommand extends ASubCommand {
                             List<ItemStack> itemStacks = Arrays.stream(container.getInventory().getContents()).toList();
                             container.update(true, false);
 
-                            plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
+                            plugin.getDataAccessor().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CREATE_SUCCESS.create(
                                     PlaceHolder.TREASURE_ID.component(
                                         Objects.requireNonNullElseGet(

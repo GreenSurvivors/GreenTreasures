@@ -59,14 +59,14 @@ public class SetFindFreshMessageOverrideSubCommand extends ASubCommand {
                         if (args.length > 2) {
                             final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-                            plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
+                            plugin.getDataAccessor().setFindFreshMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_SUCCESS.create(
                                     PlaceHolder.TREASURE_ID.component(name),
                                     PlaceHolder.TEXT.component(MiniMessage.miniMessage().deserialize(newMessage))
                                 )));
 
                         } else {
-                            plugin.getDatabaseManager().setFindFreshMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
+                            plugin.getDataAccessor().setFindFreshMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FIND_FRESH_MESSAGE_OVERRIDE_REMOVED.create(
                                     PlaceHolder.TREASURE_ID.component(name))));
                         }

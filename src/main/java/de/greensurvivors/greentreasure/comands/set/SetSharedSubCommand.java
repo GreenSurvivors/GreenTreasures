@@ -56,7 +56,7 @@ public class SetSharedSubCommand extends ASubCommand {
                             final @Nullable Boolean isShared = BooleanUtils.toBooleanObject(args[2]);
 
                             if (isShared != null) {
-                                plugin.getDatabaseManager().setShared(treasureInfo.treasureId(), isShared).thenRun(() ->
+                                plugin.getDataAccessor().setShared(treasureInfo.treasureId(), isShared).thenRun(() ->
                                     plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_SHARED_SUCCESS.create(
                                         PlaceHolder.SHARED.boolChoice(isShared)
                                     )));

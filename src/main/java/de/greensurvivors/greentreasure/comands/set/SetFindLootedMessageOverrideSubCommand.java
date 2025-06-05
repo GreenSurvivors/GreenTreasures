@@ -59,14 +59,14 @@ public class SetFindLootedMessageOverrideSubCommand extends ASubCommand {
                         if (args.length > 2) {
                             final @NotNull String newMessage = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-                            plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
+                            plugin.getDataAccessor().setFindLootedMessageOverride(treasureInfo.treasureId(), newMessage).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_SUCCESS.create(
                                     PlaceHolder.TREASURE_ID.component(name),
                                     PlaceHolder.TEXT.component(MiniMessage.miniMessage().deserialize(newMessage))
                                 )));
 
                         } else {
-                            plugin.getDatabaseManager().setFindLootedMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
+                            plugin.getDataAccessor().setFindLootedMessageOverride(treasureInfo.treasureId(), null).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_FIND_LOOTED_MESSAGE_OVERRIDE_REMOVED.create(
                                     PlaceHolder.TREASURE_ID.component(name))));
                         }

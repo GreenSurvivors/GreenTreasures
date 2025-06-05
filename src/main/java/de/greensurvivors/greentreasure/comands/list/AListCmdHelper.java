@@ -1,4 +1,4 @@
-package de.greensurvivors.greentreasure.dataobjects;
+package de.greensurvivors.greentreasure.comands.list;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.language.LangKey;

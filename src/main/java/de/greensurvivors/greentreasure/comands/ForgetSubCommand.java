@@ -55,7 +55,7 @@ public class ForgetSubCommand extends ASubCommand {
                 plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                     if (treasureInfo != null) {
                         if (treasureInfo.isShared()) {
-                            plugin.getDatabaseManager().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
+                            plugin.getDataAccessor().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
                                 plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_FORGET_SHARED_SUCCESS.create(
                                     PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)))));
                         }
@@ -84,7 +84,7 @@ public class ForgetSubCommand extends ASubCommand {
                         }
 
                         if (playerToForget.hasPlayedBefore()) {
-                            plugin.getDatabaseManager().forgetPlayer(playerToForget, treasureInfo.treasureId()).thenRun(() -> {
+                            plugin.getDataAccessor().forgetPlayer(playerToForget, treasureInfo.treasureId()).thenRun(() -> {
                                 final @NotNull Component playerName;
                                 final @Nullable Player player = playerToForget.getPlayer();
                                 if (player != null) {

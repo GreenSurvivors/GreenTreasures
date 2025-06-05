@@ -1,9 +1,9 @@
 package de.greensurvivors.greentreasure.legacy;
 
 import com.github.f4b6a3.ulid.Ulid;
-import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.data.DataAccessor;
 import de.greensurvivors.greentreasure.legacy.data.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -186,7 +186,7 @@ class TreasureFileVisitor extends ALegacyFileVisitor {
             }
 
             final @NotNull AtomicBoolean isUnlimited = new AtomicBoolean(false);
-            final @NotNull DatabaseManager databaseManager = plugin.getDatabaseManager();
+            final @NotNull DataAccessor databaseManager = plugin.getDataAccessor();
             databaseManager.setTreasureContents(treasureId, contents).thenComposeAsync(voidz -> {
                 final @Nullable Boolean unlimited = Scalars.BOOLEAN.tryDeserialize(rootNode.node("unlimited").rawScalar());
                 if (unlimited != null) {

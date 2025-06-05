@@ -49,7 +49,7 @@ public class ForgetAllSubCommand extends ASubCommand {
             if (container != null) {
                 plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                     if (treasureInfo != null) {
-                        plugin.getDatabaseManager().forgetAll(treasureInfo.treasureId()).thenRun(() ->
+                        plugin.getDataAccessor().forgetAll(treasureInfo.treasureId()).thenRun(() ->
                             plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_FORGET_ALL_SUCCESS.create(
                                 PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)))));
                     } else {

@@ -7,7 +7,6 @@ import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
-import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.language.LangKey;
 import de.greensurvivors.greentreasure.language.PlaceHolder;
@@ -65,7 +64,7 @@ public class ListPlayerSubCommand extends ASubCommand {
 
                 final @NotNull Audience audience = DynamicPlayerAudience.fromAudience(sender);
 
-                plugin.getDatabaseManager().getTreasureIds().thenAccept(treasureIds -> {
+                plugin.getDataAccessor().getTreasureIds().thenAccept(treasureIds -> {
                     final int numOfTreasures = treasureIds.size();
 
                     if (numOfTreasures > 0) {
@@ -158,7 +157,7 @@ public class ListPlayerSubCommand extends ASubCommand {
         }
 
         public void addEntry(final Ulid treasureId) {
-            plugin.getDatabaseManager().getPlayerData(Bukkit.getOfflinePlayer(uuidToGetListOf), treasureId).thenAccept(playerLootDetail_result -> {
+            plugin.getDataAccessor().getPlayerData(Bukkit.getOfflinePlayer(uuidToGetListOf), treasureId).thenAccept(playerLootDetail_result -> {
                 synchronized (MUTEX) {
                     numOfEntriesStillToDo--;
 

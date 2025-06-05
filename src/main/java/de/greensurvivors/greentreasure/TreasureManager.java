@@ -28,7 +28,7 @@ public class TreasureManager {
     public TreasureManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "id");
-        this.treasures = Caffeine.newBuilder().buildAsync((id, _) -> plugin.getDatabaseManager().loadTreasure(id));
+        this.treasures = Caffeine.newBuilder().buildAsync((id, _) -> plugin.getDataAccessor().loadTreasure(id));
 
         ulidFactory = UlidFactory.newMonotonicInstance(() -> Utils.RANDOM_GENERATOR.nextLong());
     }
@@ -74,7 +74,7 @@ public class TreasureManager {
         if (treasureId != null) {
             dataHolder.getPersistentDataContainer().remove(idKey);
 
-            return plugin.getDatabaseManager().
+            return plugin.getDataAccessor().
                 deleteTreasure(treasureId).
                 thenApply(_ -> Boolean.TRUE);
         } else {
@@ -111,7 +111,7 @@ public class TreasureManager {
             final @Nullable TreasureInfo treasureInfo = treasures.synchronous().getIfPresent(treasureId);
 
             if (treasureInfo == null) {
-                final @Nullable TreasureInfo loadTreasureUrgently = plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
+                final @Nullable TreasureInfo loadTreasureUrgently = plugin.getDataAccessor().loadTreasureUrgently(treasureId);
                 treasures.put(treasureId, CompletableFuture.completedFuture(loadTreasureUrgently));
 
                 return loadTreasureUrgently;

@@ -62,7 +62,7 @@ public class SetRandomSubCommand extends ASubCommand {
                                 nonEmptyPermyriad = (short) Math.clamp(nonEmptyPermyriad, 0, 10000);
 
                                 int finalSlotPercentage = nonEmptyPermyriad;
-                                plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
+                                plugin.getDataAccessor().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
                                     plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_RANDOM_SUCCESS.create(
                                         PlaceHolder.NUMBER.numeric(((float) finalSlotPercentage) / 100.0f))));
                             } else {
