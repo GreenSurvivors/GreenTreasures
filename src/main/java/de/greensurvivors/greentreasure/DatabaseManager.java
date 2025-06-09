@@ -977,7 +977,7 @@ public class DatabaseManager {
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
-                plugin.getComponentLogger().error("Could not create player data table.", e);
+                plugin.getComponentLogger().error("Could not create treasure data table.", e);
             }
         }
     }

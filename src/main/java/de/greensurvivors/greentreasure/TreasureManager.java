@@ -175,10 +175,11 @@ public class TreasureManager {
             final @Nullable TreasureInfo treasureInfo = treasures.synchronous().getIfPresent(treasureId);
 
             if (treasureInfo == null) {
-                return plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
-            } else  {
-                treasures.put(treasureId, CompletableFuture.completedFuture(treasureInfo));
+                final TreasureInfo loadTreasureUrgently = plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
+                treasures.put(treasureId, CompletableFuture.completedFuture(loadTreasureUrgently));
 
+                return loadTreasureUrgently;
+            } else  {
                 return treasureInfo;
             }
         }
