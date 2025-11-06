@@ -1,11 +1,11 @@
 plugins {
     `java-library`
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.17"
-    id("xyz.jpenilla.run-paper") version "2.3.1"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
+    id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 group = "de.greensurvivors"
-version = "0.4.0-SNAPSHOT"
+version = "0.4.1-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
 val mcVersion by extra("1.21.4")
 val javaVersion = 21
@@ -16,10 +16,10 @@ paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArt
 // dependencies
 val worldGuardDependencyVersion by extra("7.0.14-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
 val worldGuardRunVersion by extra("7.0.13") // note this is the modrinth version, used in the run task
-val worldEditVersion by extra("txgouwkE") // wierd modrinth version id, used to fetch worldEdit for the run task.
-val hikariCPVersion by extra("6.3.0")
-val caffeineVersion by extra("3.2.0")
-val snakeyamlVersion by extra("2.4")
+val worldEditVersion by extra("3ISh7ADm") // wierd modrinth version id, used to fetch worldEdit for the run task.
+val hikariCPVersion by extra("7.0.2")
+val caffeineVersion by extra("3.2.3")
+val snakeyamlVersion by extra("2.5")
 val commonsCollectionsVersion by extra("4.5.0")
 val ulidCreatorVersion by extra("5.2.3")
 
