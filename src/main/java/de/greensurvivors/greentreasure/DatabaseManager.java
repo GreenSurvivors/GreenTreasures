@@ -1,5 +1,6 @@
 package de.greensurvivors.greentreasure;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
 import com.github.f4b6a3.ulid.Ulid;
 import com.zaxxer.hikari.HikariDataSource;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
@@ -60,9 +61,12 @@ public class DatabaseManager {
     private static final long DEFAULT_FORGET_DURATION_MILLIS = -1L;
     private static final short DEFAULT_SLOT_CHANCE = 10000;
     private static final boolean DEFAULT_IS_UNLIMITED = false, DEFAULT_IS_SHARED = false;
-    private static final @NotNull OfflinePlayer
+    private static final @NotNull PlayerProfile
         // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
-        SHARED_PROFILE = Bukkit.getOfflinePlayer("@SHARED");
+        // uuid created by UUID.nameUUIDFromBytes(("OfflinePlayer:@shared").getBytes(StandardCharsets.UTF_8))
+        // note: at time of writing choosing an invalid name here is totally fine, despite what the javadoc of the createProfileExact method says
+        // there are currently no checks for a valid username!
+        SHARED_PROFILE = Bukkit.createProfileExact(UUID.fromString("c1fadf20-80f9-3e87-b5f2-548a5d33c7dc"), "@shared");
     /// there is no specific missing table exception. Our best guess is to use this pattern.
     private static final @NotNull Pattern MISSING_TABLE_PATTERN = Pattern.compile("Table '.*?' doesn't exist$");
     private final @NotNull GreenTreasure plugin;
@@ -685,7 +689,7 @@ public class DatabaseManager {
                 return;
             }
 
-            addPlayer(player == null ? SHARED_PROFILE : player);
+            addPlayer(player);
 
             final @NotNull String statementStr =
                 "INSERT INTO " + PLAYERDATA_TABLE + " (" +
@@ -757,7 +761,7 @@ public class DatabaseManager {
                 return;
             }
 
-            addPlayer(player == null ? SHARED_PROFILE : player);
+            addPlayer(player);
 
             final @NotNull String statementStr =
                 "SELECT p." + TREASURE_LAST_TIMESTAMP_KEY + "," +
@@ -855,7 +859,7 @@ public class DatabaseManager {
                 return;
             }
 
-            addPlayer(player == null ? SHARED_PROFILE : player);
+            addPlayer(player);
 
             final String statementStr =
                 "DELETE FROM " + PLAYERDATA_TABLE +
@@ -1052,7 +1056,7 @@ public class DatabaseManager {
     /**
      * Tries to add a player into the player table
      */
-    protected void addPlayer(final @NotNull OfflinePlayer player) {
+    protected void addPlayer(final @Nullable OfflinePlayer player) {
         final String statementStr =
             "INSERT INTO " + USER_TABLE + " " +
                 "(" + NAME + ", " + UUID_KEY + ") VALUES (?, ?) " +
@@ -1060,8 +1064,13 @@ public class DatabaseManager {
 
         try (final @NotNull Connection connection = dataSource.getConnection();
              final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-            preparedStatement.setString(1, player.getName());
-            preparedStatement.setString(2, player.getUniqueId().toString());
+            if (player == null) {
+                preparedStatement.setString(1, SHARED_PROFILE.getName());
+                preparedStatement.setString(2, SHARED_PROFILE.getId().toString());
+            } else {
+                preparedStatement.setString(1, player.getName());
+                preparedStatement.setString(2, player.getUniqueId().toString());
+            }
             preparedStatement.executeUpdate();
 
         } catch (SQLException e) {
