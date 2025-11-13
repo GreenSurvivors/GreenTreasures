@@ -1,7 +1,11 @@
-package de.greensurvivors.greentreasure;
+package de.greensurvivors.greentreasure.data;
 
 import com.github.f4b6a3.ulid.Ulid;
 import com.zaxxer.hikari.HikariDataSource;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.UncaughtExceptionHandler;
+import de.greensurvivors.greentreasure.data.dao.PlayerDataDao;
+import de.greensurvivors.greentreasure.data.dao.TreasureDao;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import org.apache.commons.collections4.list.SetUniqueList;
@@ -35,21 +39,8 @@ public class DatabaseManager {
         /// uuid of player
         UUID_KEY = "uuid",
         /// name of player
-        NAME = "name",
-        TIMES_LOOTED = "times_looted", // unused for now
-        /// treasure identifier
-        TREASURE_ID_KEY = "treasureid",
-        /// last time a player had changed the treasure
-        TREASURE_LAST_TIMESTAMP_KEY = "timestamplast",
-        TREASURE_FIRST_TIMESTAMP_KEY = "timestampfirst",
-        /// the items of this treasure, the player data table as well as the treasure table have the same column name
-        TREASURE_CONTENT_KEY = "content",
-        TREASURE_FORGET_DURATION_KEY = "forgetduration",
-        TREASURE_NON_EMPTY_PERMYRIAD_KEY = "nonemptypermyriad",
-        TREASURE_UNLIMITED_KEY = "unlimited",
-        TREASURE_SHARED_KEY = "shared",
-        TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY = "findfreshmessageoverride",
-        TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY = "findlootedmessageoverride";
+        NAME = "name";
+
     // config keys
     private final static @NotNull String
         HOST = "host",
@@ -73,6 +64,9 @@ public class DatabaseManager {
     private volatile @NotNull String host = "localhost", database = "database";
     private volatile @Nullable String loginUserName = null, password = null;
     private volatile int port = 3306;
+
+    private TreasureDao treasureDao;
+    private PlayerDataDao playerDataDao;
 
     public DatabaseManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
@@ -161,11 +155,21 @@ public class DatabaseManager {
             //dataSource.setIdleTimeout(60000); // unused, since maximum pool size == minimum
             dataSource.setMaximumPoolSize(4); // don't keep the default 10 threads alive. we are way too small for that
 
+            treasureDao = new TreasureDao(dataSource);
+            playerDataDao = new PlayerDataDao(dataSource);
+
             // pre start pool - the first time hasConnection() is called would return false otherwise since the pool needs a second to start after it was invoked
             createTableUser();
             createTableTreasure();
             createTablePlayerData();
+
+            registerDaos();
         }
+    }
+
+    private void registerDaos() {
+        this.treasureDao = new TreasureDao(dataSource);
+        this.playerDataDao = new PlayerDataDao(dataSource);
     }
 
     public @NotNull CompletableFuture<Void> setTreasureContents(final @NotNull Ulid treasureId, final @NotNull List<@NotNull ItemStack> contents) {
@@ -177,22 +181,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "INSERT INTO " + TREASURE_TABLE + "(" +
-                TREASURE_ID_KEY + ", " +
-                TREASURE_CONTENT_KEY + ") " +
-                "VALUES (?, ?) ON DUPLICATE KEY UPDATE " +
-                TREASURE_CONTENT_KEY + " = VALUES(" + TREASURE_CONTENT_KEY + ")";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setBytes(1, treasureId.toBytes());
-
-                final @NotNull Blob blob = connection.createBlob();
-                blob.setBytes(1, ItemStack.serializeItemsAsBytes(contents.toArray(new ItemStack[0])));
-                preparedStatement.setBlob(2, blob);
-
-                int rowsAffected = preparedStatement.executeUpdate();
-                blob.free();
+            try {
+                int rowsAffected = treasureDao.setTreasureContents(treasureId, contents);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -221,29 +211,14 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
-            final @NotNull String statementStr =
-                "SELECT " + TREASURE_CONTENT_KEY +
-                    " FROM " + TREASURE_TABLE +
-                    " WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-                preparedStatement.setString(1, treasureId);
-
-                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    if (resultSet.next()) {
-                        //get list from blob
-                        final @NotNull Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                        final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
-                        blob.free();
-
-                        plugin.getComponentLogger().debug("successfully got treasure contents for get request for treasure id {}, on thread {}", treasureId, Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(items));
-                    } else { // this treasure was deleted / never created
-                        plugin.getComponentLogger().debug("got no answer for get request for treasure contents {}, on thread {}", treasureId, Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
-                    }
+            try {
+                List<ItemStack> items = treasureDao.getTreasureContents(treasureId);
+                if (items != null) {
+                    plugin.getComponentLogger().debug("successfully got treasure contents for get request for treasure id {}, on thread {}", treasureId, Thread.currentThread().getName());
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(items));
+                } else { // this treasure was deleted / never created
+                    plugin.getComponentLogger().debug("got no answer for get request for treasure contents {}, on thread {}", treasureId, Thread.currentThread().getName());
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
                 }
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
@@ -268,17 +243,8 @@ public class DatabaseManager {
                 return;
             }
 
-            // first delete all rows with foreign keys, then the rows itself
-            final @NotNull String playerDataStatementStr = "DELETE FROM " + PLAYERDATA_TABLE + " WHERE " + TREASURE_ID_KEY + " = ?";
-            final @NotNull String treasureStatementStr = "DELETE FROM " + TREASURE_TABLE + " WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement playerDataPreparedStatement = connection.prepareStatement(playerDataStatementStr);
-                 final @NotNull PreparedStatement treasurePreparedStatement = connection.prepareStatement(treasureStatementStr)) {
-                playerDataPreparedStatement.setBytes(1, treasureId.toBytes());
-                treasurePreparedStatement.setBytes(1, treasureId.toBytes());
-
-                int rowsAffected = playerDataPreparedStatement.executeUpdate() + treasurePreparedStatement.executeUpdate();
+            try {
+                int rowsAffected = playerDataDao.deletePlayerData(treasureId) + treasureDao.deleteTreasure(treasureId);
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished delete request for treasure {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
 
                 Bukkit.getScheduler().runTask(plugin, () -> forgetAll(treasureId).thenRun(() -> {
@@ -315,15 +281,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_NON_EMPTY_PERMYRIAD_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setShort(1, nonEmptyPermyriad);
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = treasureDao.setRandom(treasureId, nonEmptyPermyriad);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -359,15 +318,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_SHARED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setBoolean(1, isShared);
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = treasureDao.setShared(treasureId, isShared);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -403,15 +355,9 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_UNLIMITED_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
+            try {
 
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setBoolean(1, isUnLimited);
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+                int rowsAffected = treasureDao.setUnlimited(treasureId, isUnLimited);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -448,15 +394,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_FORGET_DURATION_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setLong(1, forgettingDuration == null ? DEFAULT_FORGET_DURATION_MILLIS : forgettingDuration.toMillis());
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = treasureDao.setForgetDuration(treasureId, forgettingDuration);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -489,15 +428,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, findFreshMessageOverride);
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = treasureDao.setFindFreshMessageOverride(treasureId, findFreshMessageOverride);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -530,15 +462,8 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setString(1, findLootedMessageOverride);
-                preparedStatement.setBytes(2, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = treasureDao.setFindLootedMessageOverride(treasureId, findLootedMessageOverride);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     plugin.getTreasureManager().invalidateTreasure(treasureId);
                     resultFuture.complete(null);
@@ -560,45 +485,14 @@ public class DatabaseManager {
     }
 
     public @Nullable TreasureInfo loadTreasureUrgently(final @NotNull Ulid treasureId) {
-        final @NotNull String statementStr = "SELECT " +
-            TREASURE_CONTENT_KEY + ", " +
-            TREASURE_FORGET_DURATION_KEY + ", " +
-            TREASURE_NON_EMPTY_PERMYRIAD_KEY + ", " +
-            TREASURE_UNLIMITED_KEY + ", " +
-            TREASURE_SHARED_KEY + ", " +
-            TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + ", " +
-            TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY +
-            " FROM " + TREASURE_TABLE +
-            " WHERE " + TREASURE_ID_KEY + " = ?";
+        try {
+            TreasureInfo info = treasureDao.loadTreasureUrgently(treasureId);
 
-        try (final @NotNull Connection connection = dataSource.getConnection();
-             final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-            preparedStatement.setBytes(1, treasureId.toBytes());
-
-            try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-
-                if (resultSet.next()) {
-                    final @NotNull Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                    final long forgetDurationMillis = resultSet.getLong(TREASURE_FORGET_DURATION_KEY);
-                    final short nonEmptyPermyriad = resultSet.getShort(TREASURE_NON_EMPTY_PERMYRIAD_KEY);
-                    final boolean isUnlimited = resultSet.getBoolean(TREASURE_UNLIMITED_KEY);
-                    final boolean isShared = resultSet.getBoolean(TREASURE_SHARED_KEY);
-                    final @Nullable String findFreshMessageOverride = resultSet.getString(TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY);
-                    final @Nullable String findLootedMessageOverride = resultSet.getString(TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY);
-
-                    if (blob.length() <= 1) {
-                        plugin.getComponentLogger().warn("No or malformed item list found for treasure id {}. Skipping. On thread {}", treasureId, Thread.currentThread().getName());
-                        return null;
-                    }
-
-                    final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
-                    blob.free();
-
-                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), nonEmptyPermyriad, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
-                } else { // this treasure was deleted / never created
-                    plugin.getComponentLogger().debug("got no answer for get request for treasure info {}, on thread {}", treasureId, Thread.currentThread().getName());
-                    return null;
-                }
+            if (info == null) {
+                plugin.getComponentLogger().debug("got no answer for get request for treasure info {}, on thread {}", treasureId, Thread.currentThread().getName());
+                return null;
+            } else {
+                return info;
             }
         } catch (SQLException e) {
             if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
@@ -606,7 +500,9 @@ public class DatabaseManager {
             }
 
             plugin.getComponentLogger().warn("Could not get treasure data for treasure id '{}'", treasureId, e);
-
+            return null;
+        } catch (TreasureDao.MalformedItemListException e) {
+            plugin.getComponentLogger().warn("No or malformed item list found for treasure id {}. Skipping. On thread {}", treasureId, Thread.currentThread().getName());
             return null;
         }
     }
@@ -636,20 +532,9 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "SELECT " + TREASURE_ID_KEY + " FROM " + TREASURE_TABLE;
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-
-                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    final @NotNull SetUniqueList<@NotNull Ulid> resultList = SetUniqueList.setUniqueList(new ArrayList<>());
-
-                    while (resultSet.next()) {
-                        resultList.add(Ulid.from(resultSet.getBytes(TREASURE_ID_KEY)));
-                    }
-
-                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(resultList));
-                }
+            try {
+                final @NotNull SetUniqueList<@NotNull Ulid> resultList = treasureDao.getTreasureIds();
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(resultList));
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
@@ -682,40 +567,9 @@ public class DatabaseManager {
 
             addPlayer(player == null ? SHARED_PROFILE : player);
 
-            final @NotNull String statementStr =
-                "INSERT INTO " + PLAYERDATA_TABLE + " (" +
-                        TREASURE_ID_KEY + ", " +
-                        PID_KEY + ", " +
-                        TREASURE_FIRST_TIMESTAMP_KEY + ", " +
-                        TREASURE_LAST_TIMESTAMP_KEY + ", " +
-                        TREASURE_CONTENT_KEY + ") " +
-                    "VALUES (" +
-                        "?, " +
-                        "(SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?), " +
-                        "?, " +
-                        "?, " +
-                        "?) ON DUPLICATE KEY UPDATE " +
-                    TREASURE_FIRST_TIMESTAMP_KEY + " = VALUES(" + TREASURE_FIRST_TIMESTAMP_KEY + "), " +
-                    TREASURE_LAST_TIMESTAMP_KEY + " = VALUES(" + TREASURE_LAST_TIMESTAMP_KEY + "), " +
-                    TREASURE_CONTENT_KEY + " = VALUES(" + TREASURE_CONTENT_KEY + ")";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
-                preparedStatement.setLong(3, lootDetail.firstLootedTimeStamp());
-                preparedStatement.setLong(4, lootDetail.lastChangedTimeStamp());
-
-                final @NotNull Blob blob = connection.createBlob();
-                if (lootDetail.unLootedStuff() == null) {
-                    blob.setBytes(1, new byte[0]);
-                } else {
-                    blob.setBytes(1, ItemStack.serializeItemsAsBytes(lootDetail.unLootedStuff()));
-                }
-                preparedStatement.setBlob(5, blob);
-
-                final int rowsAffected = preparedStatement.executeUpdate();
-                blob.free();
+            UUID uuid = player == null ? SHARED_PROFILE.getUniqueId() : player.getUniqueId();
+            try {
+                final int rowsAffected = playerDataDao.setPlayerData(uuid, treasureId, lootDetail);
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set request for player {} at timestamp {}, on thread {}",
@@ -751,48 +605,18 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(new NoConnectionException()));
                 return;
             }
-
             addPlayer(player == null ? SHARED_PROFILE : player);
 
-            final @NotNull String statementStr =
-                "SELECT p." + TREASURE_LAST_TIMESTAMP_KEY + "," +
-                    " p." + TREASURE_FIRST_TIMESTAMP_KEY + "," +
-                    " COALESCE(p." + TREASURE_CONTENT_KEY + ", t." + TREASURE_CONTENT_KEY + ") AS " + TREASURE_CONTENT_KEY +
-                        " FROM " + PLAYERDATA_TABLE + " AS p" +
-                        " JOIN " + USER_TABLE + " AS u" +
-                        " ON p." + PID_KEY + " = u." + PID_KEY +
-                        " LEFT JOIN " + TREASURE_TABLE + " AS t" +
-                        " ON p." + TREASURE_ID_KEY + " = t." + TREASURE_ID_KEY +
-                        " WHERE p." + TREASURE_ID_KEY + " = ? AND u." + UUID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
-                preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
-
-                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    if (resultSet.next()) {
-                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
-                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
-
-                        //get list from string
-                        final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                        final @Nullable List<ItemStack> items;
-                        if (blob == null || blob.length() <= 0) {
-                            items = null;
-                        } else {
-                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
-                            blob.free();
-                        }
-
-                        plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player == null ? "!Shared!" : player.getName(), items, Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items)));
-                    } else { //player had never opened this treasure
-
-                        plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}",
+            UUID uuid = player == null ? SHARED_PROFILE.getUniqueId() : player.getUniqueId();
+            try {
+                PlayerLootDetail data = playerDataDao.getPlayerData(uuid, treasureId);
+                if (data != null) {
+                    plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player == null ? "!Shared!" : player.getName(), data.unLootedStuff(), Thread.currentThread().getName());
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(data));
+                } else { //player had never opened this treasure
+                    plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}",
                             player == null ? SHARED_PROFILE.getName() : player.getName(), Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
-                    }
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
                 }
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
@@ -817,15 +641,9 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "DELETE FROM " + PLAYERDATA_TABLE + " WHERE  " + TREASURE_ID_KEY + " = ?";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.setBytes(1, treasureId.toBytes());
-
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = playerDataDao.forgetAll(treasureId);
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
-
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished forgetAll request for treasure id {}, on thread {}", rowsAffected, treasureId, Thread.currentThread().getName());
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
@@ -850,27 +668,19 @@ public class DatabaseManager {
                 return;
             }
 
-            addPlayer(player == null ? SHARED_PROFILE : player);
+            OfflinePlayer offlinePlayer = player == null ? SHARED_PROFILE : player;
+            addPlayer(offlinePlayer);
 
-            final String statementStr =
-                "DELETE FROM " + PLAYERDATA_TABLE +
-                    " WHERE " + TREASURE_ID_KEY + " = ? " +
-                    "AND " + PID_KEY + " = (SELECT " + PID_KEY + " FROM " + USER_TABLE + " WHERE " + UUID_KEY + " = ?)";
-
-            try (final Connection connection = dataSource.getConnection();
-                 final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-
-                preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
-                int rowsAffected = preparedStatement.executeUpdate();
+            try {
+                int rowsAffected = playerDataDao.forgetPlayer(offlinePlayer.getUniqueId(), treasureId);
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished forgetPlayer for {} and treasure {}, on thread {}",
-                    rowsAffected, player == null ? SHARED_PROFILE.getName() : player.getName(), treasureId, Thread.currentThread().getName());
+                    rowsAffected, offlinePlayer.getName(), treasureId, Thread.currentThread().getName());
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
-                plugin.getComponentLogger().warn("Could not forget player loot detail for '{}' with treasure '{}'", player == null ? SHARED_PROFILE.getName() : player.getName(), treasureId, e);
+                plugin.getComponentLogger().warn("Could not forget player loot detail for '{}' with treasure '{}'", offlinePlayer.getName(), treasureId, e);
 
                 if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
                     Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
@@ -890,43 +700,9 @@ public class DatabaseManager {
                 return;
             }
 
-            final String statementStr =
-                "SELECT u." + UUID_KEY + "," +
-                    " t." + TREASURE_FIRST_TIMESTAMP_KEY + "," +
-                    " t." + TREASURE_LAST_TIMESTAMP_KEY + "," +
-                    " t." + TREASURE_CONTENT_KEY +
-                        " FROM " + PLAYERDATA_TABLE + " AS t" +
-                        " JOIN " + USER_TABLE + " AS u ON t." + PID_KEY + " = u." + PID_KEY +
-                        " WHERE t." + TREASURE_ID_KEY + " = ?";
-
-            try (final Connection connection = dataSource.getConnection();
-                 final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-
-                preparedStatement.setBytes(1, treasureId.toBytes());
-
-                try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    final Map<UUID, PlayerLootDetail> result = new HashMap<>();
-
-                    while (resultSet.next()) {
-                        final UUID playerUUID = UUID.fromString(resultSet.getString(UUID_KEY));
-                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
-                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
-
-                        //get list from string
-                        final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                        final @Nullable List<ItemStack> items;
-                        if (blob == null || blob.length() <= 0) {
-                            items = null;
-                        } else {
-                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
-                            blob.free();
-                        }
-
-                        result.put(playerUUID, new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items));
-                    }
-
-                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
-                }
+            try {
+                Map<UUID, PlayerLootDetail> result = playerDataDao.getAllPlayerData(treasureId);
+                Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(Collections.emptyMap()));
 
@@ -963,19 +739,8 @@ public class DatabaseManager {
      */
     protected void createTableTreasure() {
         if (dataSource != null) {
-            final String statementStr = "CREATE TABLE IF NOT EXISTS " + TREASURE_TABLE + " (" +
-                TREASURE_ID_KEY + " BINARY(16) PRIMARY KEY, " +
-                TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
-                TREASURE_FORGET_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
-                TREASURE_NON_EMPTY_PERMYRIAD_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
-                TREASURE_UNLIMITED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_UNLIMITED + ", " +
-                TREASURE_SHARED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_SHARED + ", " +
-                TREASURE_FIND_FRESH_MESSAGE_OVERRIDE_KEY + " TEXT, " + // test is nullable with the default being null
-                TREASURE_FIND_LOOTED_MESSAGE_OVERRIDE_KEY + " TEXT)";
-
-            try (final @NotNull Connection connection = dataSource.getConnection();
-                 final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-                preparedStatement.executeUpdate();
+            try {
+                treasureDao.createTable();
             } catch (SQLException e) {
                 plugin.getComponentLogger().error("Could not create treasure data table.", e);
             }
@@ -983,7 +748,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Create a player table to reference against
+     * Create a player table to reference against, only table without own dao
      */
     protected void createTableUser() {
         if (dataSource != null) {
@@ -1005,24 +770,8 @@ public class DatabaseManager {
      * Contains all player looted treasures
      */
     private void createTablePlayerData() {
-        final String statementStr = "CREATE TABLE IF NOT EXISTS " + PLAYERDATA_TABLE + " (" +
-            PID_KEY + " INT UNSIGNED NOT NULL, " +
-            // is BINARY instead of UUID since SQL instances can not be trusted shifting UUIDs around in order to "optimizing" them;
-            // and not be string / char array since byte array is shorter bitwise and therefor faster
-            TREASURE_ID_KEY + " BINARY(16) NOT NULL, " +
-            TREASURE_FIRST_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
-            TREASURE_LAST_TIMESTAMP_KEY + " BIGINT UNSIGNED, " +
-            TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
-            TIMES_LOOTED + " INT UNSIGNED DEFAULT 0, " +
-            // important: don't make TREASURE_ID UNIQUE on its own, only one player could have an entry otherwise
-            // but also don't let TREASURE_ID without constrains, else wise a player can infinit entries of the same treasure, not updating them
-            "PRIMARY KEY (" + PID_KEY + ", " + TREASURE_ID_KEY + "), " +
-            "FOREIGN KEY (" + PID_KEY + ") REFERENCES " + USER_TABLE + "(" + PID_KEY + "), " +
-            "FOREIGN KEY (" + TREASURE_ID_KEY + ") REFERENCES " + TREASURE_TABLE + "(" + TREASURE_ID_KEY + "))";
-
-        try (final @NotNull Connection connection = dataSource.getConnection();
-             final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
-            preparedStatement.executeUpdate();
+        try {
+            playerDataDao.createTable();
         } catch (SQLException e) {
             if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
                 Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
@@ -1033,7 +782,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Tries to add a player into the player table
+     * Tries to add a player into the player table, only table without own dao
      */
     protected void addPlayer(final @NotNull OfflinePlayer player) {
         final String statementStr =

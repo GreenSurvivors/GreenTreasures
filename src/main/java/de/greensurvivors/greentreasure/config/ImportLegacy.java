@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.config;
 
 import com.github.f4b6a3.ulid.Ulid;
-import de.greensurvivors.greentreasure.DatabaseManager;
+import de.greensurvivors.greentreasure.data.DatabaseManager;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
