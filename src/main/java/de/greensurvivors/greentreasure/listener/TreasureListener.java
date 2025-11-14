@@ -246,15 +246,16 @@ public class TreasureListener implements Listener {
                                     final @NotNull Inventory inventory, final @NotNull Component eTitle,
                                     final @Nullable PlayerLootDetail playerLootDetail) {
         final @NotNull Inventory nowLooting;
+        boolean doesForget = false;
 
         if ( // never opened or unexpected empty
             (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
                 // unlimited treasure
                 treasureInfo.isUnlimited() ||
                 // automatically forget after a given time
-                (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
+                (doesForget = (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()) )) {
 
-            nowLooting = createInventory(inventory, eTitle, playerLootDetail);
+            nowLooting = createInventory(inventory, eTitle, doesForget ? null : playerLootDetail);
             Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
             sendLootMessage(player, treasureInfo, eTitle, null, true, treasureInfo.isUnlimited());
