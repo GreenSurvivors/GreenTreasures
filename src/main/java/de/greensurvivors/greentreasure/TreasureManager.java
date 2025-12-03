@@ -139,7 +139,6 @@ public class TreasureManager {
             dataHolder.getPersistentDataContainer().remove(idKey);
 
             return plugin.getDatabaseManager().deleteTreasure(treasureId).
-                thenCompose(void_ -> plugin.getDatabaseManager().forgetAll(treasureId)).
                 thenApply(void_ -> Boolean.TRUE);
         } else {
             return CompletableFuture.completedFuture(false);
@@ -175,7 +174,7 @@ public class TreasureManager {
             final @Nullable TreasureInfo treasureInfo = treasures.synchronous().getIfPresent(treasureId);
 
             if (treasureInfo == null) {
-                final TreasureInfo loadTreasureUrgently = plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
+                final @Nullable TreasureInfo loadTreasureUrgently = plugin.getDatabaseManager().loadTreasureUrgently(treasureId);
                 treasures.put(treasureId, CompletableFuture.completedFuture(loadTreasureUrgently));
 
                 return loadTreasureUrgently;
@@ -221,7 +220,9 @@ public class TreasureManager {
         plugin.getTreasureListener().closeInventories(treasureId);
 
         if (treasures.getIfPresent(treasureId) != null) {
-            treasures.synchronous().invalidate(treasureId);
+            final LoadingCache<@NotNull Ulid, @Nullable TreasureInfo> synchronous = treasures.synchronous();
+            synchronous.invalidate(treasureId);
+            synchronous.cleanUp();
         }
     }
 

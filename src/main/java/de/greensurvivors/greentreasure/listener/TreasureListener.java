@@ -334,7 +334,7 @@ public class TreasureListener implements Listener {
             final @Nullable TreasureInfo treasureInfo;
 
             // double chests are wierd.
-            if (Utils.getTreasureHolder(inventoryHolder.getInventory().getHolder()) instanceof PersistentDataHolder persistentDataHolder) {
+            if (Utils.getTreasureHolder(inventoryHolder.getInventory().getHolder(false)) instanceof PersistentDataHolder persistentDataHolder) {
                 treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder));
 
                 if (treasureInfo != null) {

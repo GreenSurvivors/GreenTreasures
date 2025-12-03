@@ -53,9 +53,10 @@ public class DeleteSubCommand extends ASubCommand {
                 final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
 
                 if (treasureId != null) {
-                    plugin.getTreasureManager().deleteTreasure(container).thenRun(() ->
+                    plugin.getTreasureManager().deleteTreasure(container).thenAccept(success -> { // todo use success value here
                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_DELETE_SUCCESS,
-                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
+                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                    });
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                 }
