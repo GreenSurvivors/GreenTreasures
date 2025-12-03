@@ -81,6 +81,7 @@ public class GreenTreasure extends JavaPlugin {
         commandInventoriesListener.clearInventories();
 
         treasureManager.clearTreasures();
+        databaseManager.closeConnection();
     }
 
     public @NotNull DatabaseManager getDatabaseManager() {

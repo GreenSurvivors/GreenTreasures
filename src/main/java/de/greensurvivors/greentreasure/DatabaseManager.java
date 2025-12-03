@@ -67,7 +67,7 @@ public class DatabaseManager {
     private static final @NotNull Pattern MISSING_TABLE_PATTERN = Pattern.compile("Table '.*?' doesn't exist$");
     private final @NotNull GreenTreasure plugin;
     /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
-    private final @NotNull Executor asyncExecutor;
+    private @NotNull ExecutorService asyncExecutor;
     private @Nullable HikariDataSource dataSource = null;
     // connection information
     private volatile @NotNull String host = "localhost", database = "database";
@@ -76,7 +76,10 @@ public class DatabaseManager {
 
     public DatabaseManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
+        createExecutorService();
+    }
 
+    private void createExecutorService() {
         // we expect a burst of requests and long time nothing.
         // so don't hold any thread in the dry periods, but grow as big as we need to
         // log errors with the plugins logger
@@ -154,6 +157,8 @@ public class DatabaseManager {
         }
 
         if (shouldConnect) {
+            createExecutorService();
+
             dataSource = new HikariDataSource();
             dataSource.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
             dataSource.setUsername(loginUserName);
@@ -953,6 +958,18 @@ public class DatabaseManager {
      */
     public void closeConnection() {
         if (dataSource != null && !dataSource.isClosed()) {
+            try {
+                if (asyncExecutor != null) {
+                    asyncExecutor.shutdown();
+
+                    if (!asyncExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
+                        plugin.getComponentLogger().error("Error: the timeout of 3 seconds elapsed and the database executor still hasn't returned! Data loss is imminent!");
+                    }
+                }
+            } catch (InterruptedException e) {
+                plugin.getComponentLogger().error("Couldn't gracefully shut down database thread pool. You may encounter data loss!", e);
+            }
+
             dataSource.close();
             plugin.getComponentLogger().debug("Logout database.");
         }
