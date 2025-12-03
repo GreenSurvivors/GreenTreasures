@@ -11,8 +11,6 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.World;
 import org.bukkit.block.Container;
-import org.bukkit.command.Command;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -61,14 +59,6 @@ public class ImportLegacy {
     private static void disablePlugin(final @Nullable Plugin treasureChestPlugin) {
         if (treasureChestPlugin != null) {
             Bukkit.getPluginManager().disablePlugin(treasureChestPlugin);
-
-            for (Command cmd : Bukkit.getCommandMap().getKnownCommands().values()) {
-                if (cmd instanceof PluginCommand pluginCommand) {
-                    if (pluginCommand.getPlugin().getName().equalsIgnoreCase(treasureChestPlugin.getName())) {
-                        cmd.unregister(Bukkit.getCommandMap());
-                    }
-                }
-            }
         }
     }
 

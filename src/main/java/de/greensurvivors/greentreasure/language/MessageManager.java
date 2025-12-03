@@ -56,7 +56,7 @@ public class MessageManager {
     private final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
         path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
 
-    public MessageManager(Plugin plugin) {
+    public MessageManager(final @NotNull Plugin plugin) {
         this.plugin = plugin;
     }
 

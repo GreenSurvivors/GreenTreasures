@@ -41,7 +41,7 @@ public abstract class AListCmdHelper {
         if (pageNow > 1) {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_BACK,
                     Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow - 1)).
-                clickEvent(ClickEvent.runCommand(command + (pageNow - 1))));
+                clickEvent(ClickEvent.runCommand("/" + command + (pageNow - 1))));
         } else {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));
         }
@@ -51,7 +51,7 @@ public abstract class AListCmdHelper {
         if (pageNow < lastPage) {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NEXT,
                     Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow + 1)).
-                clickEvent(ClickEvent.runCommand(command + (pageNow + 1))));
+                clickEvent(ClickEvent.runCommand("/" + command + (pageNow + 1))));
         } else {
             footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));
         }

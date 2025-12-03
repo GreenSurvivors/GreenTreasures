@@ -36,18 +36,18 @@ public class GreenTreasure extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // order is important, the config depends on the database and treasureManager
+        // order is important, the config depends on the database, treasure and messages
         databaseManager = new DatabaseManager(this);
         treasureManager = new TreasureManager(this);
+        messageManager = new MessageManager(this);
         // configuration
         configHandler = new TreasureConfig(this);
-        configHandler.reloadMain();
+        configHandler.reload();
 
         // command
         treasureCommands = new MainCommand(this);
         treasureListener = new TreasureListener(this);
         commandInventoriesListener = new CommandInventoriesListener(this);
-        messageManager = new MessageManager(this);
         dependencyHelper = new DependencyHelper(this);
 
         // disable legacy plugins and their commands

@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "de.greensurvivors"
-version = "0.4.1-SNAPSHOT"
+version = "0.4.2-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
 val mcVersion by extra("1.21.4")
 val javaVersion = 21

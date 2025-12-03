@@ -42,7 +42,7 @@ public class ReloadSubCommand extends ASubCommand {
      */
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            plugin.getConfigHandler().reloadMain();
+            plugin.getConfigHandler().reload();
 
             plugin.getMessageManager().sendLang(sender, LangPath.CMD_RELOAD_SUCCESS);
         } else {

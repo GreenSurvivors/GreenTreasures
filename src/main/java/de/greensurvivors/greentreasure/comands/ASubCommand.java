@@ -27,7 +27,7 @@ public abstract class ASubCommand {
      * @param permissible to check the permission for
      * @return true if the permissible can see/use the subcommand.
      */
-    abstract protected boolean checkPermission(@NotNull Permissible permissible);
+    protected abstract boolean checkPermission(@NotNull Permissible permissible);
 
     /**
      * get all the names a subcommand can get called.

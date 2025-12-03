@@ -16,6 +16,7 @@ import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -66,13 +67,8 @@ public class ListNearbyCommand extends ASubCommand {
 
                                     final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
                                     if (args.length >= 4) {
-                                        if (Utils.isInt(args[3])) {
-                                            //limit page to how many exits
-                                            pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[3])));
-                                        } else {
-                                            // this case will never happen, as we have sorted it out above
-                                            return;
-                                        }
+                                        //limit page to how many exits
+                                        pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[3])));
                                     } else {
                                         pageNow = 1;
                                     }
@@ -82,7 +78,7 @@ public class ListNearbyCommand extends ASubCommand {
                                     //maximum of entries this page can display
                                     final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
 
-                                    final ListCmdNearTreasuresHelper helper = new ListCmdNearTreasuresHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES);
+                                    final ListCmdNearTreasuresHelper helper = new ListCmdNearTreasuresHelper(plugin, entity.getUniqueId(), pageNow, numPages, NUM_ENTRIES);
 
                                     //add the treasure info for the page
                                     int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
@@ -130,8 +126,8 @@ public class ListNearbyCommand extends ASubCommand {
 
     private class ListCmdNearTreasuresHelper extends AListCmdHelper {
 
-        public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries) {
-            super(plugin, commandSender, pageNow, lastPage, numEntries,
+        public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final @NotNull UUID uuid, final int pageNow, final int lastPage, final int numEntries) {
+            super(plugin, Bukkit.getEntity(uuid), pageNow, lastPage, numEntries, // todo allow uuid in lists to not depend on player Object staying the same
                 //page will be added by super
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
@@ -154,7 +150,7 @@ public class ListNearbyCommand extends ASubCommand {
                     Placeholder.component(PlaceHolderKey.LOCATION.getKey(),
                         Component.join(JoinConfiguration.commas(true),
                             entry.getValue().stream().map(location ->
-                                plugin.getMessageManager().formatLocation(location).
+                                plugin.getMessageManager().formatLocation(location). // todo make the command configurable, since many plugins use /tppos
                                     clickEvent(ClickEvent.suggestCommand("/tp " + location.getX() + " " + location.getY() + " " + location.getZ()))
                             ).toList()))
                 );

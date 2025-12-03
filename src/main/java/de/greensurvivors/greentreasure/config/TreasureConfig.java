@@ -15,8 +15,6 @@ public class TreasureConfig {
         CONFIG_KEY_SQL = "SQL",
         CONFIG_KEY_LANG = "language",
         CONFIG_KEY_IMPORT_LEGACY = "import_legacy";
-    //ensures only one thread works with the file at a time
-    private final @NotNull Object mutexMainConfig = new Object();
     private final @NotNull GreenTreasure plugin;
 
     public TreasureConfig(final @NotNull GreenTreasure plugin) {
@@ -26,59 +24,22 @@ public class TreasureConfig {
     /**
      * Load main configurations.
      */
-    public void reloadMain() {
+    public void reload() {
         plugin.reloadConfig();
+
+        final FileConfiguration config = plugin.getConfig();
+        // set defaults
+        config.options().setHeader(List.of(plugin.getName() + " " + plugin.getPluginMeta().getVersion()));
+        config.options().copyDefaults(true);
+        config.options().parseComments(true);
+
         loadDatabase();
-        loadLanguage();
-        loadLegacy();
-    }
 
-    /**
-     * Save default configuration values.
-     */
-    private void setDefaults(final @NotNull FileConfiguration cfg) {
-        cfg.options().setHeader(List.of(plugin.getName() + " " + plugin.getPluginMeta().getVersion()));
-        cfg.options().copyDefaults(true);
-        cfg.options().parseComments(true);
-    }
+        // load language
+        Locale locale = Locale.forLanguageTag(config.getString(CONFIG_KEY_LANG, "en-en").replace("_", "-"));
+        plugin.getMessageManager().reload(locale);
 
-    /**
-     * Load language configuration.
-     */
-    private void loadLanguage() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            synchronized (mutexMainConfig) {
-                FileConfiguration mainCfg = plugin.getConfig();
-
-                Locale locale = Locale.forLanguageTag(mainCfg.getString(CONFIG_KEY_LANG, "en-en").replace("_", "-"));
-                Bukkit.getScheduler().runTask(plugin, () -> plugin.getMessageManager().reload(locale));
-            }
-        });
-    }
-
-    private void loadDatabase() {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            synchronized (mutexMainConfig) {
-                FileConfiguration mainCfg = plugin.getConfig();
-                setDefaults(mainCfg);
-
-                final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
-
-                if (section != null) {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        plugin.getDatabaseManager().reload(section.getValues(false));
-                        mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
-                        plugin.saveConfig();
-                    });
-                } else {
-                    plugin.getComponentLogger().error("Could not load database!");
-                }
-            }
-        });
-    }
-
-    private void loadLegacy() {
-        final @NotNull FileConfiguration config = plugin.getConfig();
+        // import legacy
         if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> { // run later to give the database time to connect
                 new ImportLegacy(plugin).importLegacyData();
@@ -86,6 +47,22 @@ public class TreasureConfig {
                 config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
                 plugin.saveConfig();
             }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
+        }
+
+        plugin.saveConfig();
+    }
+
+    private void loadDatabase() {
+        final FileConfiguration mainCfg = plugin.getConfig();
+        final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
+
+        if (section != null) {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                plugin.getDatabaseManager().reload(section.getValues(false));
+                mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
+            });
+        } else {
+            plugin.getComponentLogger().error("Could not load database!");
         }
     }
 }
