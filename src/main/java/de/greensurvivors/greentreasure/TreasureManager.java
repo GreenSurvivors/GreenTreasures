@@ -272,7 +272,7 @@ public class TreasureManager {
         final @NotNull AtomicInteger chunksStillToLoad = new AtomicInteger(0);
         final @NotNull AtomicInteger totalChunksToLoad = new AtomicInteger(0);
 
-        for (int cx = (startLocation.getBlockX() - radius) >> 4; cx <= maxCx; cx++) {
+        for (int cx = (startLocation.getBlockX() - radius) >> 4; cx <= maxCx; cx++) { // todo this is mighty fine for small radii, but it explodes in ram usage for bigger ones. This is bad. We need to schedeule this
             for (int cz = (startLocation.getBlockZ() - radius) >> 4; cz <= maxCz; cz++) {
                 chunksStillToLoad.getAndIncrement();
                 totalChunksToLoad.getAndIncrement();

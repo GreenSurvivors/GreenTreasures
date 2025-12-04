@@ -7,16 +7,17 @@ import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
+import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -58,7 +59,8 @@ public class ListNearbyCommand extends ASubCommand {
                             return false;
                         }
 
-                        plugin.getTreasureManager().getNearTreasures(entity.getLocation(), Math.abs(Integer.parseInt(args[2])), sender).
+                        final Audience audience = DynamicPlayerAudience.fromAudience(entity);
+                        plugin.getTreasureManager().getNearTreasures(entity.getLocation(), Math.abs(Integer.parseInt(args[2])), audience).
                             thenAccept(nearTreasures -> {
                                 final int numOfTreasures = nearTreasures.size();
 
@@ -78,7 +80,7 @@ public class ListNearbyCommand extends ASubCommand {
                                     //maximum of entries this page can display
                                     final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
 
-                                    final ListCmdNearTreasuresHelper helper = new ListCmdNearTreasuresHelper(plugin, entity.getUniqueId(), pageNow, numPages, NUM_ENTRIES);
+                                    final ListCmdNearTreasuresHelper helper = new ListCmdNearTreasuresHelper(plugin, audience, pageNow, numPages, NUM_ENTRIES);
 
                                     //add the treasure info for the page
                                     int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
@@ -98,7 +100,7 @@ public class ListNearbyCommand extends ASubCommand {
                                 } else {
                                     final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
-                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_NEARBY_TREASURES_EMPTY,
+                                    plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_NEARBY_TREASURES_EMPTY,
                                         Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
                                 }
                             });
@@ -126,8 +128,8 @@ public class ListNearbyCommand extends ASubCommand {
 
     private class ListCmdNearTreasuresHelper extends AListCmdHelper {
 
-        public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final @NotNull UUID uuid, final int pageNow, final int lastPage, final int numEntries) {
-            super(plugin, Bukkit.getEntity(uuid), pageNow, lastPage, numEntries, // todo allow uuid in lists to not depend on player Object staying the same
+        public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final @NotNull Audience audience, final int pageNow, final int lastPage, final int numEntries) {
+            super(plugin, audience, pageNow, lastPage, numEntries,
                 //page will be added by super
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 

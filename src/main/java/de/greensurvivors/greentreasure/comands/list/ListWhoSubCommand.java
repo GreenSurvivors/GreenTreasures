@@ -8,9 +8,11 @@ import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
+import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -55,6 +57,8 @@ public class ListWhoSubCommand extends ASubCommand {
             Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
+                final @NotNull Audience audience = DynamicPlayerAudience.fromAudience(sender);
+
                 plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                     if (treasureInfo != null) {
                         plugin.getDatabaseManager().getAllPlayerData(treasureInfo.treasureId()).thenAccept(playerLootDetailMap -> {
@@ -69,7 +73,7 @@ public class ListWhoSubCommand extends ASubCommand {
                                         //limit page to how many exits
                                         pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
                                     } else {
-                                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
+                                        plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
                                             Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
                                         return;
                                     }
@@ -82,7 +86,7 @@ public class ListWhoSubCommand extends ASubCommand {
                                 //maximum of entries this page can display
                                 final int NUM_ENTRIES = MAX_PLAYERS_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
 
-                                final ListCmdWhoHelper helper = new ListCmdWhoHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES, treasureInfo.treasureId());
+                                final ListCmdWhoHelper helper = new ListCmdWhoHelper(plugin, audience, pageNow, numPages, NUM_ENTRIES, treasureInfo.treasureId());
 
                                 final List<UUID> uuids = new ArrayList<>(playerLootDetailMap.keySet());
                                 //add the player info for the page
@@ -91,11 +95,11 @@ public class ListWhoSubCommand extends ASubCommand {
                                 }
 
                             } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_WHO_EMPTY);
+                                plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_WHO_EMPTY);
                             }
                         });
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                        plugin.getMessageManager().sendLang(audience, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
                 });
             } else {
@@ -114,10 +118,10 @@ public class ListWhoSubCommand extends ASubCommand {
     }
 
     public class ListCmdWhoHelper extends AListCmdHelper {
-        public ListCmdWhoHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender,
+        public ListCmdWhoHelper(final @NotNull GreenTreasure plugin, final @NotNull Audience audience,
                                 final int pageNow, final int lastPage, final int numEntries,
                                 final @NotNull Ulid treasureId) {
-            super(plugin, commandSender, pageNow, lastPage, numEntries,
+            super(plugin, audience, pageNow, lastPage, numEntries,
                 //page will be added by super
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 

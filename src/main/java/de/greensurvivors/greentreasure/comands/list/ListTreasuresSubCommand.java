@@ -8,10 +8,12 @@ import de.greensurvivors.greentreasure.comands.ASubCommand;
 import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
+import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
@@ -49,6 +51,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
+            final Audience audience = DynamicPlayerAudience.fromAudience(sender);
             plugin.getDatabaseManager().getTreasureIds().thenAccept(treasureIds -> {
                 final int numOfTreasures = treasureIds.size();
 
@@ -61,7 +64,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
                             //limit page to how many exits
                             pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
+                            plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
                                 Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
                             return;
                         }
@@ -74,7 +77,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
                     //maximum of entries this page can display
                     final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
 
-                    final ListCmdTreasureHelper helper = new ListCmdTreasureHelper(plugin, sender, pageNow, numPages, NUM_ENTRIES);
+                    final ListCmdTreasureHelper helper = new ListCmdTreasureHelper(plugin, audience, pageNow, numPages, NUM_ENTRIES);
 
                     //add the treasure info for the page
                     for (int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE; num < MAX_TREASURES_THIS_PAGE; num++) {
@@ -93,7 +96,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 } else {
                     final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
-                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_LIST_TREASURES_EMPTY,
+                    plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_TREASURES_EMPTY,
                         Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
                 }
             });
@@ -110,8 +113,8 @@ public class ListTreasuresSubCommand extends ASubCommand {
     }
 
     public class ListCmdTreasureHelper extends AListCmdHelper {
-        public ListCmdTreasureHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender, final int pageNow, final int lastPage, final int numEntries) {
-            super(plugin, commandSender, pageNow, lastPage, numEntries,
+        public ListCmdTreasureHelper(final @NotNull GreenTreasure plugin, final @NotNull Audience audience, final int pageNow, final int lastPage, final int numEntries) {
+            super(plugin, audience, pageNow, lastPage, numEntries,
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " "); //page will be added by super
 
             // header

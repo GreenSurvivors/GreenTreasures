@@ -3,12 +3,12 @@ package de.greensurvivors.greentreasure.dataobjects;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -19,14 +19,14 @@ public abstract class AListCmdHelper {
     protected final @NotNull GreenTreasure plugin;
     protected final @NotNull String command;
     private final int pageNow, lastPage;
-    private final @NotNull CommandSender commandSender;
+    private final @NotNull Audience audience;
     protected int numOfEntriesStillToDo;
 
-    public AListCmdHelper(final @NotNull GreenTreasure plugin, final @NotNull CommandSender commandSender,
+    public AListCmdHelper(final @NotNull GreenTreasure plugin, final @NotNull Audience audience,
                           int pageNow, int lastPage, int numEntries,
                           final @NotNull String command) {
         this.plugin = plugin;
-        this.commandSender = commandSender;
+        this.audience = audience;
         this.lastPage = lastPage;
         this.pageNow = pageNow;
         this.numOfEntriesStillToDo = numEntries;
@@ -61,6 +61,6 @@ public abstract class AListCmdHelper {
         componentResult.add(footerBuilder.build());
 
         // send components
-        commandSender.sendMessage(Component.join(JoinConfiguration.newlines(), componentResult));
+        audience.sendMessage(Component.join(JoinConfiguration.newlines(), componentResult));
     }
 }
