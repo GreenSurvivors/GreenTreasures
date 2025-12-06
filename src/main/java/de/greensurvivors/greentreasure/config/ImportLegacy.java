@@ -201,120 +201,103 @@ public class ImportLegacy {
             return CompletableFuture.failedFuture(new InvalidObjectException("Could not read treasure location"));
         }
 
-        final @NotNull CompletableFuture<@Nullable Ulid> doneFeature = new CompletableFuture<>();
-
         plugin.getTreasureManager().registerForChunkParsing(
             treasureLocation.getWorld().getName(), treasureLocation.getBlockX() >> 4, treasureLocation.getBlockZ() >> 4,
             block -> block.getLocation().distanceSquared(treasureLocation) < 0.25,
-            tileEntities -> {
-                if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
-                    plugin.getComponentLogger().warn("Could not load legacy treasure {} because the block at {} is not a container.", path, treasureLocation);
-
-                    result.completeExceptionally(new InvalidObjectException("Block at location " + treasureLocation + " is not a container!"));
-                    return null;
-                }
-
-                container = (Container) Utils.getTreasureHolder(container);
-
-                @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
-                if (treasureId == null) {
-                    treasureId = plugin.getTreasureManager().createNewMonotonicUlid();
-
-                    plugin.getTreasureManager().setTreasureId(container, treasureId);
-                }
-
-                return treasureId;
-            },
-            doneFeature
-        );
-
-        doneFeature.whenCompleteAsync((treasureId, throwable) -> {
-            if (throwable != null || treasureId == null) {
-                plugin.getComponentLogger().debug("Could not load legacy treasure at {}", treasureLocation, throwable);
-
-                result.complete(null);
-                return;
-            }
-
-            final @Nullable List<@NotNull ItemStack> contents = getTreasureContents(path.toString(), checkedContainerMap);
-
-            if (contents == null) {
-                plugin.getComponentLogger().warn("Legacy treasure {} found at {} is empty!.", path, treasureLocation);
-                final @NotNull InvalidObjectException exception = new InvalidObjectException("Block at location " + treasureLocation + " is not a container!");
-
-                result.completeExceptionally(exception);
-                throw new UncheckedIOException(exception);
-            }
-
-            if (rightContents != null) {
-                contents.addAll(rightContents);
-            }
-
-            final @NotNull AtomicBoolean isUnlimited = new AtomicBoolean(false);
-            final @NotNull DatabaseManager databaseManager = plugin.getDatabaseManager();
-            databaseManager.setTreasureContents(treasureId, contents).
-                thenCompose(voidz -> {
-                    if (checkedRootMap.get("unlimited") instanceof Boolean unlimited) {
-                        isUnlimited.set(unlimited);
-                        return databaseManager.setUnlimited(treasureId, unlimited);
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }).thenCompose(voidz -> {
-                    if (checkedRootMap.get("shared") instanceof Boolean shared) {
-                        return databaseManager.setShared(treasureId, shared);
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }).thenCompose(voidz -> {
-                    if (!contents.isEmpty() && checkedRootMap.get("random") instanceof Number randomNumber) {
-                        final double randomChance = randomNumber.longValue() == 0 ? 100.00 : randomNumber.doubleValue() / ((double) contents.size());
-                        return databaseManager.setRandom(treasureId, (short) (randomChance * 100));
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }).thenCompose(voidz -> {
-                    if (checkedRootMap.get("forget-time") instanceof Number forgetTimeNumber) {
-                        Duration forget_time = Duration.ofMillis(forgetTimeNumber.longValue());
-                        if (forget_time.isZero()) {
-                            forget_time = DEFAULT_FORGETTING_PERIOD;
-                        }
-                        return databaseManager.setForgetDuration(treasureId, forget_time);
-                    } else {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                }).thenCompose(voidz -> {
-                    final @NotNull List<@NotNull CompletableFuture<Void>> futures = new ArrayList<>(3);
-
-                    if (checkedRootMap.get("messages") instanceof Map<?, ?> messageMap) {
-                        final @NotNull Map<@NotNull String, @NotNull Object> checkedMessageMap = validateMap(messageMap);
-
-                        if (isUnlimited.get()) {
-                            if (checkedMessageMap.get("UNLIMITED") instanceof String unlimitedMessage &&
-                                !unlimitedMessage.equals("Take as much as you want!")) {
-                                futures.add(databaseManager.setFindFreshMessageOverride(treasureId, unlimitedMessage));
-                            }
-                        } else {
-                            if (checkedMessageMap.get("FOUND") instanceof String freshFindMessage &&
-                                    !freshFindMessage.equals("You have found treasure!")) {
-                                futures.add(databaseManager.setFindFreshMessageOverride(treasureId, freshFindMessage));
-                            }
-                        }
-
-                        if (checkedMessageMap.get("FOUND_ALREADY") instanceof String lootedMessage &&
-                            !lootedMessage.equals("You have already looted this treasure...")) {
-                            futures.add(databaseManager.setFindLootedMessageOverride(treasureId, lootedMessage));
-                        }
-                    }
-
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-                }).thenRun(() -> {
-                    plugin.getComponentLogger().debug("imported treasure with id {} from path {}", treasureId, path);
-                    resultMap.put(treasureLocation, treasureId);
-
+            resultEither -> resultEither.consume(
+                notGeneratedType -> {
+                    plugin.getComponentLogger().debug("Could not load legacy treasure at {} because {}", treasureLocation, notGeneratedType);
                     result.complete(null);
-                });
-        });
+                }, tileEntities -> {
+                    if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
+                        plugin.getComponentLogger().warn("Could not load legacy treasure {} because the block at {} is not a container.", path, treasureLocation);
+
+                        result.completeExceptionally(new InvalidObjectException("Block at location " + treasureLocation + " is not a container!"));
+                        return;
+                    }
+
+                    container = (Container) Utils.getTreasureHolder(container);
+
+                    @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
+                    if (treasureId == null) {
+                        treasureId = plugin.getTreasureManager().createNewMonotonicUlid();
+
+                        plugin.getTreasureManager().setTreasureId(container, treasureId);
+                    }
+
+                    final @Nullable Ulid finalTreasureId = treasureId; // f u java lambdas
+
+                    // commonPool doesn't need closing
+                    //noinspection resource
+                    ForkJoinPool.commonPool().execute(() -> {
+                        final @Nullable List<@NotNull ItemStack> contents = getTreasureContents(path.toString(), checkedContainerMap);
+
+                        if (contents == null) {
+                            plugin.getComponentLogger().warn("Legacy treasure {} found at {} is empty!.", path, treasureLocation);
+                            final @NotNull InvalidObjectException exception = new InvalidObjectException("Block at location " + treasureLocation + " is not a container!");
+
+                            result.completeExceptionally(exception);
+                            throw new UncheckedIOException(exception);
+                        }
+
+                        if (rightContents != null) {
+                            contents.addAll(rightContents);
+                        }
+
+                        final @NotNull AtomicBoolean isUnlimited = new AtomicBoolean(false);
+                        final @NotNull DatabaseManager databaseManager = plugin.getDatabaseManager();
+                        databaseManager.setTreasureContents(finalTreasureId, contents).thenRun(() -> {
+                            if (checkedRootMap.get("unlimited") instanceof Boolean unlimited) {
+                                isUnlimited.set(unlimited);
+                                databaseManager.setUnlimited(finalTreasureId, unlimited).join();
+                            }
+                        }).thenRun(() -> {
+                            if (checkedRootMap.get("shared") instanceof Boolean shared) {
+                                databaseManager.setShared(finalTreasureId, shared).join();
+                            }
+                        }).thenRun(() -> {
+                            if (!contents.isEmpty() && checkedRootMap.get("random") instanceof Number randomNumber) {
+                                final double randomChance = randomNumber.longValue() == 0 ? 100.00 : randomNumber.doubleValue() / ((double) contents.size());
+                                databaseManager.setRandom(finalTreasureId, (short) (randomChance * 100)).join();
+                            }
+                        }).thenRun(() -> {
+                            if (checkedRootMap.get("forget-time") instanceof Number forgetTimeNumber) {
+                                Duration forget_time = Duration.ofMillis(forgetTimeNumber.longValue());
+                                if (forget_time.isZero()) {
+                                    forget_time = DEFAULT_FORGETTING_PERIOD;
+                                }
+                                databaseManager.setForgetDuration(finalTreasureId, forget_time).join();
+                            }
+                        }).thenRun(() -> {
+                            if (checkedRootMap.get("messages") instanceof Map<?, ?> messageMap) {
+                                final @NotNull Map<@NotNull String, @NotNull Object> checkedMessageMap = validateMap(messageMap);
+
+                                if (isUnlimited.get()) {
+                                    if (checkedMessageMap.get("UNLIMITED") instanceof String unlimitedMessage &&
+                                        !unlimitedMessage.equals("Take as much as you want!")) {
+                                        databaseManager.setFindFreshMessageOverride(finalTreasureId, unlimitedMessage).join();
+                                    }
+                                } else {
+                                    if (checkedMessageMap.get("FOUND") instanceof String freshFindMessage &&
+                                        !freshFindMessage.equals("You have found treasure!")) {
+                                        databaseManager.setFindFreshMessageOverride(finalTreasureId, freshFindMessage).join();
+                                    }
+                                }
+
+                                if (checkedMessageMap.get("FOUND_ALREADY") instanceof String lootedMessage &&
+                                    !lootedMessage.equals("You have already looted this treasure...")) {
+                                    databaseManager.setFindLootedMessageOverride(finalTreasureId, lootedMessage).join();
+                                }
+                            }
+                        }).thenRun(() -> {
+                            plugin.getComponentLogger().debug("imported treasure with id {} from path {}", finalTreasureId, path);
+                            resultMap.put(treasureLocation, finalTreasureId);
+
+                            result.complete(null);
+                        });
+                    });
+                }
+            ));
 
         return result;
     }
@@ -537,51 +520,36 @@ public class ImportLegacy {
                                             }
                                         }
 
+                                        asyncProcessesToDo.getAndIncrement();
                                         if (treasureId == null) {
-                                            CompletableFuture<Void> future = new CompletableFuture<>();
-
-                                            asyncProcessesToDo.getAndIncrement();
                                             plugin.getTreasureManager().registerForChunkParsing(
                                                 world.getName(), x >> 4, z >> 4,
                                                 block ->
                                                     NumberConversions.square(x - block.getX()) +
                                                         NumberConversions.square(y - block.getY()) +
                                                         NumberConversions.square(z - block.getZ()) < 0.25,
-                                                tileEntities -> {
-                                                    if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
-                                                        plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, new Location(world, x, y, z));
-                                                        gotNoErrorAnyFile.set(false);
-                                                        return null;
-                                                    }
+                                                resultEither -> {
+                                                    resultEither.consume(notGeneratedType -> gotNoErrorAnyFile.set(false),
+                                                        tileEntities -> {
+                                                        if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
+                                                            plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, new Location(world, x, y, z));
+                                                            gotNoErrorAnyFile.set(false);
+                                                        } else {
+                                                            final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
-                                                    final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
+                                                            if (asyncTreasureId != null) {
+                                                                asyncProcessesToDo.getAndIncrement();
+                                                                plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
+                                                            } else {
+                                                                plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
+                                                                gotNoErrorAnyFile.set(false);
+                                                            }
+                                                        }
+                                                    });
 
-                                                    if (asyncTreasureId != null) {
-                                                        asyncProcessesToDo.getAndIncrement();
-                                                        plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of())).
-                                                            whenComplete((ignored, ignored2) ->
-                                                                scheduleNextPlayerPath(asyncProcessesToDo.decrementAndGet(), playerPathIterator, importedTreasureIds, gotNoErrorAnyFile, result, millisAtStart)
-                                                            );
-                                                    } else {
-                                                        plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
-                                                        gotNoErrorAnyFile.set(false);
-                                                    }
-
-                                                    return null;
-                                                },
-                                                future
-                                            );
-
-                                            future.whenComplete((ignored, ignored2) ->
-                                                scheduleNextPlayerPath(asyncProcessesToDo.decrementAndGet(), playerPathIterator, importedTreasureIds, gotNoErrorAnyFile, result, millisAtStart)
-                                            );
-
-                                            future.exceptionally(throwable -> {
-                                                gotNoErrorAnyFile.set(false);
-                                                return null;
-                                            });
+                                                    scheduleNextPlayerPath(asyncProcessesToDo.decrementAndGet(), playerPathIterator, importedTreasureIds, gotNoErrorAnyFile, result, millisAtStart);
+                                                });
                                         } else {
-                                            asyncProcessesToDo.getAndIncrement();
                                             plugin.getDatabaseManager().setPlayerData(offlinePlayer, treasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of())).
                                                 whenComplete((ignored, ignored2) ->
                                                     scheduleNextPlayerPath(asyncProcessesToDo.decrementAndGet(), playerPathIterator, importedTreasureIds, gotNoErrorAnyFile, result, millisAtStart)
