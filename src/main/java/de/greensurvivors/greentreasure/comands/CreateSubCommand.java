@@ -52,7 +52,7 @@ public class CreateSubCommand extends ASubCommand {
 
             if (container != null) {
                 if (container.getInventory().getType().isCreatable()) {
-                    plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo  -> {
+                    plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                         if (treasureInfo == null) {
                             final @NotNull Ulid newTreasureId = plugin.getTreasureManager().createNewMonotonicUlid();
                             plugin.getTreasureManager().setTreasureId(container, newTreasureId);

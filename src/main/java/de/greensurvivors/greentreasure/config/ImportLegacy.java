@@ -201,7 +201,7 @@ public class ImportLegacy {
             return CompletableFuture.failedFuture(new InvalidObjectException("Could not read treasure location"));
         }
 
-        plugin.getTreasureManager().registerForChunkParsing(
+        plugin.getChunkParser().registerForChunkParsing(
             treasureLocation.getWorld().getName(), treasureLocation.getBlockX() >> 4, treasureLocation.getBlockZ() >> 4,
             block -> block.getLocation().distanceSquared(treasureLocation) < 0.25,
             resultEither -> resultEither.consume(
@@ -420,9 +420,8 @@ public class ImportLegacy {
                     final @NotNull AtomicBoolean gotNoErrorAnyFile = new AtomicBoolean(true);
 
                     try {
-                        final @NotNull DirectoryStream<@NotNull Path> stream = Files.newDirectoryStream(playersPath, pathToCheck -> {
-                            return Files.isRegularFile(pathToCheck) &&
-                            PATH_MATCHER.matches(pathToCheck.getFileName());});
+                        final @NotNull DirectoryStream<@NotNull Path> stream = Files.newDirectoryStream(playersPath, pathToCheck ->
+                            Files.isRegularFile(pathToCheck) && PATH_MATCHER.matches(pathToCheck.getFileName()));
                         final @NotNull Iterator<@NotNull Path> playerPathIterator = stream.iterator();
 
                         handleNextPlayerPath(playerPathIterator, importedTreasureIds, 0, gotNoErrorAnyFile, result);
@@ -522,7 +521,7 @@ public class ImportLegacy {
 
                                         asyncProcessesToDo.getAndIncrement();
                                         if (treasureId == null) {
-                                            plugin.getTreasureManager().registerForChunkParsing(
+                                            plugin.getChunkParser().registerForChunkParsing(
                                                 world.getName(), x >> 4, z >> 4,
                                                 block ->
                                                     NumberConversions.square(x - block.getX()) +
@@ -531,21 +530,21 @@ public class ImportLegacy {
                                                 resultEither -> {
                                                     resultEither.consume(notGeneratedType -> gotNoErrorAnyFile.set(false),
                                                         tileEntities -> {
-                                                        if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
-                                                            plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, new Location(world, x, y, z));
-                                                            gotNoErrorAnyFile.set(false);
-                                                        } else {
-                                                            final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
-
-                                                            if (asyncTreasureId != null) {
-                                                                asyncProcessesToDo.getAndIncrement();
-                                                                plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
-                                                            } else {
-                                                                plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
+                                                            if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
+                                                                plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at {} is not a container.", path, new Location(world, x, y, z));
                                                                 gotNoErrorAnyFile.set(false);
+                                                            } else {
+                                                                final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
+
+                                                                if (asyncTreasureId != null) {
+                                                                    asyncProcessesToDo.getAndIncrement();
+                                                                    plugin.getDatabaseManager().setPlayerData(offlinePlayer, asyncTreasureId, new PlayerLootDetail(timeStampNumber.longValue(), List.of()));
+                                                                } else {
+                                                                    plugin.getComponentLogger().warn("[playerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", world.getName(), x, y, z);
+                                                                    gotNoErrorAnyFile.set(false);
+                                                                }
                                                             }
-                                                        }
-                                                    });
+                                                        });
 
                                                     scheduleNextPlayerPath(asyncProcessesToDo.decrementAndGet(), playerPathIterator, importedTreasureIds, gotNoErrorAnyFile, result, millisAtStart);
                                                 });
@@ -600,7 +599,7 @@ public class ImportLegacy {
 
             handleNextPlayerPath(playerPathIterator, importedTreasureIds, ticks, gotNoErrorAnyFile, result);
         } else {
-            plugin.getComponentLogger().debug("Tried to start next player, but the current one still has {} processes left!",  processesWaiting);
+            plugin.getComponentLogger().debug("Tried to start next player, but the current one still has {} processes left!", processesWaiting);
         }
     }
 }

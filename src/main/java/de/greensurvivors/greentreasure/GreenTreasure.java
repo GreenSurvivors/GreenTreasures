@@ -16,6 +16,7 @@ public class GreenTreasure extends JavaPlugin {
     private static GreenTreasure instance;
     private DatabaseManager databaseManager;
     private TreasureManager treasureManager;
+    private ChunkParser chunkParser;
     private TreasureConfig configHandler;
     private TreasureListener treasureListener;
     private CommandInventoriesListener commandInventoriesListener;
@@ -44,6 +45,7 @@ public class GreenTreasure extends JavaPlugin {
         // order is important, the config depends on the database, treasure and messages
         databaseManager = new DatabaseManager(this);
         treasureManager = new TreasureManager(this);
+        chunkParser = new ChunkParser(this);
         messageManager = new MessageManager(this);
         // configuration
         configHandler = new TreasureConfig(this);
@@ -94,6 +96,10 @@ public class GreenTreasure extends JavaPlugin {
 
     public TreasureManager getTreasureManager() {
         return treasureManager;
+    }
+
+    public ChunkParser getChunkParser() {
+        return chunkParser;
     }
 
     public @NotNull CommandInventoriesListener getCommandInventoriesListener() {
