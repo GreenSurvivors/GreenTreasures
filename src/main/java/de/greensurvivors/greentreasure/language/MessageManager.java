@@ -195,7 +195,7 @@ public class MessageManager {
 
         if (lang == null) { // fallback, since we are always trying to save defaults this never should happen
             try {
-                lang = PropertyResourceBundle.getBundle(BUNDLE_NAME, locale, plugin.getClass().getClassLoader(), new UTF8ResourceBundleControl());
+                lang = PropertyResourceBundle.getBundle(BUNDLE_NAME, locale, plugin.getClass().getClassLoader(), UTF8ResourceBundleControl.get());
             } catch (MissingResourceException e) {
                 plugin.getLogger().log(Level.SEVERE, "Couldn't get Ressource bundle \"lang\" for locale \"" + locale.toLanguageTag() + "\". Messages WILL be broken!", e);
             }

@@ -5,31 +5,30 @@ plugins {
 }
 
 group = "de.greensurvivors"
-version = "0.4.2-SNAPSHOT"
 description = "Like TreasureChest but with less bugs!"
-val mcVersion by extra("1.21.4")
-val javaVersion = 21
+version = buildString {
+    append(project.properties["plugin_version"])
 
+    if ((project.properties["is_release"] as String).toBoolean().not()) {
+        append("-Snapshot")
+    }
+
+    append("+${project.properties["minecraft_version"]}")
+}
+
+// todo remove with 26.1
 // we only work with paper and downstream!
 paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
 
-// dependencies
-val worldGuardDependencyVersion by extra("7.0.14-SNAPSHOT") // this is the version used to compile against. It is potentially not a runnable plugin, therefor we specify the modrinth version below
-val worldGuardRunVersion by extra("7.0.13") // note this is the modrinth version, used in the run task
-val worldEditVersion by extra("3ISh7ADm") // wierd modrinth version id, used to fetch worldEdit for the run task.
-val hikariCPVersion by extra("7.0.2")
-val caffeineVersion by extra("3.2.3")
-val snakeyamlVersion by extra("2.5")
-val commonsCollectionsVersion by extra("4.5.0")
-val ulidCreatorVersion by extra("5.2.3")
-
 java {
     // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
-    toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
+    toolchain.languageVersion = JavaLanguageVersion.of("${rootProject.properties["java_version"]}")
+    sourceCompatibility = JavaVersion.toVersion(rootProject.properties["java_version"]!!)
 }
 
 repositories {
     mavenLocal()
+    mavenCentral()
 
     //paper
     maven {
@@ -41,14 +40,13 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("$mcVersion-R0.1-SNAPSHOT")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:$worldGuardDependencyVersion")
+    paperweight.paperDevBundle("${project.properties["minecraft_version"]}-R0.1-SNAPSHOT")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${project.properties["worldGuard_version"]}")
 
-    compileOnly("com.zaxxer:HikariCP:$hikariCPVersion")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:$caffeineVersion") // caches
-    compileOnly("org.yaml:snakeyaml:$snakeyamlVersion")
-    compileOnly("org.apache.commons:commons-collections4:$commonsCollectionsVersion")
-    compileOnly("com.github.f4b6a3:ulid-creator:$ulidCreatorVersion")
+    compileOnly("com.zaxxer:HikariCP:${project.properties["hikariCP_version"]}")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:${project.properties["caffeine_version"]}") // caches
+    compileOnly("org.apache.commons:commons-collections4:${project.properties["commonsCollections_version"]}")
+    compileOnly("com.github.f4b6a3:ulid-creator:${project.properties["ulidCreator_version"]}")
 }
 
 tasks {
@@ -57,19 +55,24 @@ tasks {
 
         expand(project.properties)
     }
+
     compileJava {
         options.encoding = Charsets.UTF_8.name() // We want UTF-8 for everything
 
         // Set the release flag. This configures what version bytecode the compiler will emit, as well as what JDK APIs are usable.
         // See https://openjdk.java.net/jeps/247 for more information.
-        options.release.set(javaVersion)
+        options.release = project.properties["java_version"].toString().toInt()
+    }
+
+    javadoc {
+        options.encoding = Charsets.UTF_8.name()
     }
 
     runServer {
         downloadPlugins {
             // make sure to double-check the version id on the Modrinth version page
-            modrinth("worldedit", worldEditVersion)
-            modrinth("worldguard", worldGuardRunVersion)
+            modrinth("worldedit", project.properties["worldEdit_runVersion"].toString())
+            modrinth("worldguard", project.properties["worldGuard_runVersion"].toString())
         }
 
         // disable bstats, as it isn't needed for dev environment

@@ -1,6 +1,6 @@
 main: de.greensurvivors.greentreasure.GreenTreasure
 name: GreenTreasure
-api-version: "${mcVersion}"
+api-version: "${minecraft_version}"
 version: ${version}
 load: POSTWORLD
 softdepend:
@@ -8,10 +8,9 @@ softdepend:
   - TreasureChestX
   - WorldGuard
 libraries:
-  - com.github.ben-manes.caffeine:caffeine:${caffeineVersion}
-  - org.yaml:snakeyaml:${snakeyamlVersion}
-  - org.apache.commons:commons-collections4:${commonsCollectionsVersion}
-  - com.zaxxer:HikariCP:${hikariCPVersion}
-  - com.github.f4b6a3:ulid-creator:${ulidCreatorVersion}
+  - com.github.ben-manes.caffeine:caffeine:${caffeine_version}
+  - org.apache.commons:commons-collections4:${commonsCollections_version}
+  - com.zaxxer:HikariCP:${hikariCP_version}
+  - com.github.f4b6a3:ulid-creator:${ulidCreator_version}
 description: ${description}
 author: GreensurvivorsTeam
