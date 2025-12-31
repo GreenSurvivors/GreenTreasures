@@ -6,13 +6,13 @@ import de.greensurvivors.greentreasure.dataobjects.either.Either;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import it.unimi.dsi.fastutil.Pair;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
+import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
-import it.unimi.dsi.fastutil.objects.Object2ObjectMaps;
-import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
+import it.unimi.dsi.fastutil.objects.*;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.apache.logging.log4j.util.TriConsumer;
@@ -23,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
+import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -41,7 +42,8 @@ public class ChunkParser {
         thenComparingDouble(Location::y).
         thenComparingDouble(Location::z);
     // the amount of chunks that should get requested in the same tick.
-    // in my testing, 24 chunks would take up to 1.2 GB and round about <??> ms/tick for the whole server and 700MG / <??> ms/tick for the plugin
+    // in my testing, 8 chunks parallel would take up to 1.2 GB and round about for the whole server and 700MG / for the plugin without any performance issues,
+    // apart from some ticks here and there, where the GC was working hard. But this also was in combination of another world loading plugin running at the same time.
     // for a radius of 20000 blocks
     // faster aka more chunks / tick needs more cpu / hdd read speed (given the ram is big enough to support the request)
     // and bigger aka more radius needs more ram.
@@ -49,6 +51,8 @@ public class ChunkParser {
     private static final int CHUNKS_TO_PROCESS_BETWEEN_MESSAGES = CHUNKS_TO_LOAD_PARALLEL * 400; // 20 ticks * 20 == 20 seconds, if there is no other task interfering
 
     private final @NotNull Object2ObjectMap<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>> worldChunkLoadingMap = new Object2ObjectOpenHashMap<>();
+    private int nextChunkProcessId = 0;
+    private final @NotNull Int2ObjectMap<@NotNull UUID> openProcessesPerUser = new Int2ObjectOpenHashMap<>();
     protected final @NotNull GreenTreasure plugin;
 
     public ChunkParser(final @NotNull GreenTreasure plugin) {
@@ -90,7 +94,7 @@ public class ChunkParser {
 
                         entry.getValue().values().forEach(chunkLoadInfo ->
                             chunkLoadInfo.chunkConsumers.forEach(chunkConsumer ->
-                                chunkConsumer.resultConsumer.accept(Either.left(NotGeneratedType.WORLD))));
+                                chunkConsumer.resultConsumer.accept(Either.left(OperationFailedReason.NOT_GENERATED_WORLD))));
                         entry.getValue().clear();
 
                         worldIterator.remove();
@@ -100,8 +104,172 @@ public class ChunkParser {
         }, 20, 1);
     }
 
-    protected double square(final double d) {
-        return d * d;
+    /**
+     * <p>Queries all Treasures in a radius around a location.<br>
+     * The returned Map will be ordered by the smallest x, y, z coordinates of the TreasureInfo.<br>
+     * Therefor the map, as well as the set will always be in the same order for the same location and same radius,<br>
+     * as long as no Treasure was changed. </p>
+     * Since much work has to be done on the main thread, this method will get throttled if the workload is too big,
+     * and the audience will get informed about the ongoing process.
+     */
+    public @NotNull CompletableFuture<@NotNull SequencedMap<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> getNearTreasures(
+        final @NotNull Location startLocation, final @Range(from = 0, to = Integer.MAX_VALUE) int radius,
+        final @NotNull Audience audienceToMessage, final UUID requesterUUID) {
+        final String worldName = startLocation.getWorld().getName();
+        final int cxStart = startLocation.getBlockX() >> 4;
+        final int czStart = startLocation.getBlockZ() >> 4;
+
+        // result map
+        final @NotNull SequencedMap<@NotNull Ulid, @NotNull List<@NotNull Location>> foundTreasures = new LinkedHashMap<>();
+
+        final @NotNull AtomicInteger numberChunksDone = new AtomicInteger(0);
+        final @NotNull AtomicInteger totalChunksToLoad = new AtomicInteger(0);
+        final @NotNull CompletableFuture<@NotNull SequencedMap<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> resultFuture = new CompletableFuture<>();
+
+        // todo this is mighty fine for small radii, but it explodes in ram usage for bigger ones. We need to schedule this
+        //  Note on a later date: I tested it with a radius of 20000 blocks, and it was fine. Having it scheduled would be nice, but doesn't seam as bad as I thought
+        // make sure we include the whole cycle, if we  don't there might be some parts of the cycle jut in the corners
+        final double cRadius = (radius >> 4) + 1;
+
+        final double radiusSquared = NumberConversions.square(radius);
+        final @NotNull Predicate<@NotNull Block> blockPredicate = block ->
+            NumberConversions.square(block.getX() - startLocation.x()) +
+                NumberConversions.square(block.getY() - startLocation.y()) +
+                NumberConversions.square(block.getZ() - startLocation.z()) <= radiusSquared;
+
+        final @NotNull AtomicBoolean allChunksRegistered = new AtomicBoolean(false);
+        final int processId = nextChunkProcessId++;
+        final @NotNull TriConsumer<@NotNull Either<@NotNull OperationFailedReason, @NotNull Collection<@NotNull BlockState>>, @NotNull Integer, @NotNull Integer> stateConsumer = (resultEither, cx, cz) -> {
+            resultEither.consume(
+                notGeneratedType -> {
+                }, tileEntities -> {
+                    for (BlockState tileEntity : tileEntities) {
+                        if (tileEntity instanceof Container container) {
+                            final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
+
+                            if (treasureId != null) {
+                                // using array list here instead of an already sorted set like TreeSet, because ArrayList add way less overhead and most of these list should end up empty.
+                                foundTreasures.computeIfAbsent(treasureId, k -> new ArrayList<>()).add(tileEntity.getLocation());
+                            }
+                        }
+                    }
+                });
+
+            numberChunksDone.getAndIncrement();
+            messageAudience(audienceToMessage, cx, cz, totalChunksToLoad, numberChunksDone);
+
+            // since everything happens on main thread there shouldn't be any racing conditions here
+            if (allChunksRegistered.get()) {
+                if (numberChunksDone.get() >= totalChunksToLoad.get()) {
+                    sortNearTreasureResult(foundTreasures).thenApplyAsync(result -> {
+                        openProcessesPerUser.remove(processId);
+                        return resultFuture.complete(result);
+                    }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+                }
+            }
+        };
+        openProcessesPerUser.put(processId, requesterUUID);
+
+        if (cRadius == 1) {
+            allChunksRegistered.set(true);
+            prepareChunkForParsing(worldName, cxStart, czStart, blockPredicate, totalChunksToLoad, stateConsumer, processId);
+
+            return resultFuture;
+        }
+
+        final double cRadiusSquared = cRadius * cRadius;
+
+        for (int x = 0; x <= cRadius; ++x) {
+            for (int z = 0; z <= cRadius; ++z) {
+                // x^2 + z^2 > r^2
+                if (NumberConversions.square(x) + NumberConversions.square(z) > cRadiusSquared) {
+                    break;
+                }
+
+                prepareChunkForParsing(worldName, cxStart + x + 1, czStart + z + 1, blockPredicate, totalChunksToLoad, stateConsumer, processId);
+                prepareChunkForParsing(worldName, cxStart - x, czStart + z + 1, blockPredicate, totalChunksToLoad, stateConsumer, processId);
+                prepareChunkForParsing(worldName, cxStart + x + 1, czStart - z, blockPredicate, totalChunksToLoad, stateConsumer, processId);
+                prepareChunkForParsing(worldName, cxStart - x, czStart - z, blockPredicate, totalChunksToLoad, stateConsumer, processId);
+            }
+        }
+        allChunksRegistered.set(true);
+
+        return resultFuture;
+    }
+
+    public void registerForChunkParsing(final @NotNull String worldName, final int chunkX, final int chunkZ,
+                                        final @NotNull Predicate<? super Block> blockPredicate,
+                                        final @NotNull Consumer<@NotNull Either<
+                                            @NotNull OperationFailedReason,
+                                            @NotNull Collection<@NotNull BlockState>>> resultConsumer,
+                                        final int processId) {
+        final long chunkKey = Chunk.getChunkKey(chunkX, chunkZ);
+
+        final @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo> chunkLoadingMap = worldChunkLoadingMap.
+            // todo, the openHashMap will not retain any order. In some situations that might be irrelevant,
+            //  but this does mean the loading order is pretty unpredictable
+                computeIfAbsent(worldName, ignored -> new Long2ObjectOpenHashMap<>());
+        // note: even though ArrayList would allow multiple entries of the same instance AND as a List remains insertion order,
+        // the Type was chosen, because of its low overhead. Please treat it, like it was a HashSet.
+        chunkLoadingMap.computeIfAbsent(chunkKey, k -> new ChunkLoadInfo(chunkX, chunkZ, new ArrayList<>())).
+            chunkConsumers.add(new ChunkConsumer(blockPredicate, resultConsumer, processId));
+    }
+
+    /// always positive
+    public int requestProcessId() {
+        return nextChunkProcessId++;
+    }
+
+    public void cancelProcessForUUID (final @NotNull UUID uuid) {
+        final @NotNull ObjectIterator<Int2ObjectMap.@NotNull Entry<@NotNull UUID>> openProcessesIterator = Int2ObjectMaps.fastIterator(openProcessesPerUser);
+
+        while (openProcessesIterator.hasNext()) {
+            final @NotNull Int2ObjectMap.Entry<@NotNull UUID> openProcessEntry = openProcessesIterator.next();
+
+            if (openProcessEntry.getValue().equals(uuid)) {
+                cancelProcessForProcessIDInternal(openProcessEntry.getIntKey(), false);
+                openProcessesIterator.remove();
+            }
+        }
+    }
+
+    public void cancelProcessForProcessId(final int chunkProcessID) {
+        cancelProcessForProcessIDInternal(chunkProcessID, true);
+    }
+
+    protected void cancelProcessForProcessIDInternal(final int chunkProcessID, final boolean remove) {
+        final @NotNull Iterator<Object2ObjectMap.@NotNull Entry<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>>> worldIterator = Object2ObjectMaps.fastIterator(worldChunkLoadingMap);
+
+        while (worldIterator.hasNext()) {
+            final @NotNull Object2ObjectMap.@NotNull Entry<@NotNull String, @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo>> worldEntry = worldIterator.next();
+            final @NotNull Iterator<Long2ObjectMap.@NotNull Entry<@NotNull ChunkLoadInfo>> chunkLoadInfoIterator = Long2ObjectMaps.fastIterator(worldEntry.getValue());
+
+            while (chunkLoadInfoIterator.hasNext()) {
+                final @NotNull Long2ObjectMap. @NotNull Entry<@NotNull ChunkLoadInfo> chunkLoadInfoEntry = chunkLoadInfoIterator.next();
+                final @NotNull Iterator<@NotNull ChunkConsumer> chunkConsumerIterator = chunkLoadInfoEntry.getValue().chunkConsumers().iterator();
+
+                while (chunkConsumerIterator.hasNext()) {
+                    final @NotNull ChunkConsumer chunkConsumer = chunkConsumerIterator.next();
+
+                    if (chunkConsumer.processID == chunkProcessID) {
+                        chunkConsumer.resultConsumer.accept(Either.left(OperationFailedReason.CANCELED));
+                        chunkConsumerIterator.remove();
+                    }
+
+                    if (chunkLoadInfoEntry.getValue().chunkConsumers().isEmpty()) {
+                        chunkLoadInfoIterator.remove();
+                    }
+                }
+
+                if (worldEntry.getValue().isEmpty()) {
+                    worldIterator.remove();
+                }
+            }
+        }
+
+        if (remove) {
+            openProcessesPerUser.remove(chunkProcessID);
+        }
     }
 
     // wait for all to complete, then sort by location
@@ -143,110 +311,6 @@ public class ChunkParser {
         });
     }
 
-    /**
-     * <p>Queries all Treasures in a radius around a location.<br>
-     * The returned Map will be ordered by the smallest x, y, z coordinates of the TreasureInfo.<br>
-     * Therefor the map, as well as the set will always be in the same order for the same location and same radius,<br>
-     * as long as no Treasure was changed. </p>
-     * Since much work has to be done on the main thread, this method will get throttled if the workload is too big,
-     * and the audience will get informed about the ongoing process.
-     */
-    public @NotNull CompletableFuture<@NotNull SequencedMap<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> getNearTreasures(
-        final @NotNull Location startLocation, final @Range(from = 0, to = Integer.MAX_VALUE) int radius,
-        final @NotNull Audience audience) {
-        final String worldName = startLocation.getWorld().getName();
-        final int cxStart = startLocation.getBlockX() >> 4;
-        final int czStart = startLocation.getBlockZ() >> 4;
-
-        // result map
-        final @NotNull SequencedMap<@NotNull Ulid, @NotNull List<@NotNull Location>> foundTreasures = new LinkedHashMap<>();
-
-        final @NotNull AtomicInteger numberChunksDone = new AtomicInteger(0);
-        final @NotNull AtomicInteger totalChunksToLoad = new AtomicInteger(0);
-        final @NotNull CompletableFuture<@NotNull SequencedMap<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> resultFuture = new CompletableFuture<>();
-
-        // todo this is mighty fine for small radii, but it explodes in ram usage for bigger ones. This is bad. We need to schedeule this
-        // make sure we include the whole cycle, if we  don't there might be some parts of the cycle jut in the corners
-        final double cRadius = (radius >> 4) + 1;
-        final double radiusSquared = square(radius);
-        final @NotNull Predicate<@NotNull Block> blockPredicate = block ->
-            square(block.getX() - startLocation.x()) +
-                square(block.getY() - startLocation.y()) +
-                square(block.getZ() - startLocation.z()) <= radiusSquared;
-
-        final @NotNull AtomicBoolean allChunksRegistered = new AtomicBoolean(false);
-        final @NotNull TriConsumer<@NotNull Either<@NotNull NotGeneratedType, @NotNull Collection<@NotNull BlockState>>, @NotNull Integer, @NotNull Integer> stateConsumer = (resultEither, cx, cz) -> {
-            resultEither.consume(
-                notGeneratedType -> {
-                },
-                tileEntities -> {
-                    for (BlockState tileEntity : tileEntities) {
-                        if (tileEntity instanceof Container container) {
-                            final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
-
-                            if (treasureId != null) {
-                                // using array list here instead of an already sorted set like TreeSet, because ArrayList add way less overhead and most of these list should end up empty.
-                                foundTreasures.computeIfAbsent(treasureId, k -> new ArrayList<>()).add(tileEntity.getLocation());
-                            }
-                        }
-                    }
-                });
-
-            numberChunksDone.getAndIncrement();
-            messageAudience(audience, cx, cz, totalChunksToLoad, numberChunksDone);
-
-            // since everything happens on main thread there shouldn't be any racing conditions here
-            if (allChunksRegistered.get()) {
-                if (numberChunksDone.get() >= totalChunksToLoad.get()) {
-                    sortNearTreasureResult(foundTreasures).thenApplyAsync(resultFuture::complete, Bukkit.getScheduler().getMainThreadExecutor(plugin));
-                }
-            }
-        };
-
-        if (cRadius == 1) {
-            allChunksRegistered.set(true);
-            prepareChunkForParsing(worldName, cxStart, czStart, blockPredicate, totalChunksToLoad, stateConsumer);
-
-            return resultFuture;
-        }
-
-        final double cRadiusSquared = cRadius * cRadius;
-
-        for (int x = 0; x <= cRadius; ++x) {
-            for (int z = 0; z <= cRadius; ++z) {
-                // x^2 + z^2 > r^2
-                if (square(x) + square(z) > cRadiusSquared) {
-                    break;
-                }
-
-                prepareChunkForParsing(worldName, cxStart + x + 1, czStart + z + 1, blockPredicate, totalChunksToLoad, stateConsumer);
-                prepareChunkForParsing(worldName, cxStart - x, czStart + z + 1, blockPredicate, totalChunksToLoad, stateConsumer);
-                prepareChunkForParsing(worldName, cxStart + x + 1, czStart - z, blockPredicate, totalChunksToLoad, stateConsumer);
-                prepareChunkForParsing(worldName, cxStart - x, czStart - z, blockPredicate, totalChunksToLoad, stateConsumer);
-            }
-        }
-        allChunksRegistered.set(true);
-
-        return resultFuture;
-    }
-
-    public void registerForChunkParsing(final @NotNull String worldName, final int chunkX, final int chunkZ,
-                                        final @NotNull Predicate<? super Block> blockPredicate,
-                                        @NotNull Consumer<@NotNull Either<
-                                            @NotNull NotGeneratedType,
-                                            @NotNull Collection<@NotNull BlockState>>> resultConsumer) {
-        final long chunkKey = Chunk.getChunkKey(chunkX, chunkZ);
-
-        final @NotNull Long2ObjectMap<@NotNull ChunkLoadInfo> chunkLoadingMap = worldChunkLoadingMap.
-            // todo, the openHashMap will not retain any order. In some situations that might be irrelevant,
-            //  but this does mean the loading order is pretty unpredictable
-                computeIfAbsent(worldName, ignored -> new Long2ObjectOpenHashMap<>());
-        // note: even though ArrayList would allow multiple entries of the same instance AND as a List remains insertion order,
-        // the Type was chosen, because of its low overhead. Please treat it, like it was a HashSet.
-        chunkLoadingMap.computeIfAbsent(chunkKey, k -> new ChunkLoadInfo(chunkX, chunkZ, new ArrayList<>())).
-            chunkConsumers.add(new ChunkConsumer(blockPredicate, resultConsumer));
-    }
-
     /// inform the user about the current process.
     protected void messageAudience(final @NotNull Audience audience,
                                    final int cx, final int cz,
@@ -268,16 +332,17 @@ public class ChunkParser {
 
     protected void prepareChunkForParsing(final @NotNull String worldName, final int cx, final int cz, final @NotNull Predicate<@NotNull Block> blockPredicate,
                                           final @NotNull AtomicInteger totalChunksToLoad,
-                                          final @NotNull TriConsumer<@NotNull Either<@NotNull NotGeneratedType, @NotNull Collection<@NotNull BlockState>>, Integer, Integer> stateConsumer) {
+                                          final @NotNull TriConsumer<@NotNull Either<@NotNull OperationFailedReason, @NotNull Collection<@NotNull BlockState>>, Integer, Integer> stateConsumer,
+                                          final int processId) {
         totalChunksToLoad.getAndIncrement();
-        registerForChunkParsing(worldName, cx, cz, blockPredicate, it -> stateConsumer.accept(it, cx, cz));
+        registerForChunkParsing(worldName, cx, cz, blockPredicate, it -> stateConsumer.accept(it, cx, cz), processId);
     }
 
     protected void parseChunk(final @NotNull World world, final @NotNull ChunkLoadInfo chunkLoadInfo) {
         world.getChunkAtAsync(chunkLoadInfo.chunkX, chunkLoadInfo.chunkZ, false, chunk -> {
             if (chunk == null) { // chunk was not generated yet. I don't expect treasures there! (even though there could be using a custom generator, maybe use an optional gen parameter if it ever becomes useful)
                 for (final @NotNull ChunkConsumer chunkConsumer : chunkLoadInfo.chunkConsumers) {
-                    chunkConsumer.resultConsumer.accept(Either.left(NotGeneratedType.CHUNK));
+                    chunkConsumer.resultConsumer.accept(Either.left(OperationFailedReason.NOT_GENERATED_CHUNK));
                 }
             } else {
                 for (final @NotNull ChunkConsumer chunkConsumer : chunkLoadInfo.chunkConsumers) {
@@ -288,9 +353,10 @@ public class ChunkParser {
         });
     }
 
-    public enum NotGeneratedType {
-        WORLD,
-        CHUNK
+    public enum OperationFailedReason {
+        NOT_GENERATED_WORLD,
+        NOT_GENERATED_CHUNK,
+        CANCELED
     }
 
     protected record ChunkLoadInfo(int chunkX, int chunkZ, @NotNull Collection<@NotNull ChunkConsumer> chunkConsumers) {
@@ -298,7 +364,8 @@ public class ChunkParser {
 
     protected record ChunkConsumer(@NotNull Predicate<? super Block> blockPredicate,
                                    @NotNull Consumer<@NotNull Either<
-                                       @NotNull NotGeneratedType,
-                                       @NotNull Collection<@NotNull BlockState>>> resultConsumer) {
+                                       @NotNull OperationFailedReason,
+                                       @NotNull Collection<@NotNull BlockState>>> resultConsumer,
+                                   int processID) {
     }
 }
