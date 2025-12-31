@@ -1,5 +1,8 @@
 package de.greensurvivors.greentreasure.language;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.PropertyKey;
+
 /// Paths of all translatable
 public enum LangPath {
     //actions
@@ -84,24 +87,24 @@ public enum LangPath {
     TREASURE_TITLE_PEEK_SHARED("treasure.title.peek.shared"),
     TREASURE_TITLE_PEEK_PLAYER("treasure.title.peek.player");
 
-    private final String path;
-    private final String defaultValue;
+    private final @NotNull @PropertyKey(resourceBundle = "lang") String path;
+    private final @NotNull String defaultValue;
 
-    LangPath(String path) {
+    LangPath(final @NotNull String path) {
         this.path = path;
         this.defaultValue = path; // we don't need to define a default value, but if something couldn't get loaded we have to return at least helpful information
     }
 
-    LangPath(String path, String defaultValue) {
+    LangPath(final @NotNull String path, final @NotNull String defaultValue) {
         this.path = path;
         this.defaultValue = defaultValue;
     }
 
-    public String getPath() {
+    public @NotNull String getPath() {
         return path;
     }
 
-    public String getDefaultValue() {
+    public @NotNull String getDefaultValue() {
         return defaultValue;
     }
 }

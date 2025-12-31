@@ -707,7 +707,7 @@ public class DatabaseManager {
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
                 preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
+                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getId().toString() : player.getUniqueId().toString());
                 preparedStatement.setLong(3, lootDetail.firstLootedTimeStamp());
                 preparedStatement.setLong(4, lootDetail.lastChangedTimeStamp());
 
@@ -773,7 +773,7 @@ public class DatabaseManager {
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr, ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY)) {
                 preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
+                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getId().toString() : player.getUniqueId().toString());
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
@@ -866,7 +866,7 @@ public class DatabaseManager {
                  final PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
 
                 preparedStatement.setBytes(1, treasureId.toBytes());
-                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getUniqueId().toString() : player.getUniqueId().toString());
+                preparedStatement.setString(2, player == null ? SHARED_PROFILE.getId().toString() : player.getUniqueId().toString());
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 

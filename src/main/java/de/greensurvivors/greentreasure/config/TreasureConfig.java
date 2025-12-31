@@ -15,7 +15,7 @@ public class TreasureConfig {
         CONFIG_KEY_SQL = "SQL",
         CONFIG_KEY_LANG = "language",
         CONFIG_KEY_IMPORT_LEGACY = "import_legacy";
-    private final @NotNull GreenTreasure plugin;
+    protected final @NotNull GreenTreasure plugin;
 
     public TreasureConfig(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
@@ -42,10 +42,12 @@ public class TreasureConfig {
         // import legacy
         if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> { // run later to give the database time to connect
-                new ImportLegacy(plugin).importLegacyData();
-
-                config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
-                plugin.saveConfig();
+                if (plugin.getLegacyDataImporter().importLegacyData()) {
+                    config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
+                    plugin.saveConfig();
+               } else {
+                   plugin.getComponentLogger().warn("Could not import legacy data, since a import process is already running!");
+               }
             }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
         }
 

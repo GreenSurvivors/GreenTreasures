@@ -102,11 +102,10 @@ final class Left<L, R> extends Either<L, R> {
             return true;
         }
 
-        if (!(obj instanceof Left)) {
+        if (!(obj instanceof Left<?, ?> other)) {
             return false;
         }
 
-        Left<?, ?> other = (Left<?, ?>) obj;
         return value.equals(other.value);
     }
 

@@ -1,38 +1,35 @@
 package de.greensurvivors.greentreasure;
 
 import de.greensurvivors.greentreasure.comands.MainCommand;
-import de.greensurvivors.greentreasure.config.ImportLegacy;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.language.MessageManager;
+import de.greensurvivors.greentreasure.legacy.LegacyDataImporter;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 
 public class GreenTreasure extends JavaPlugin {
-    private static GreenTreasure instance;
-    private DatabaseManager databaseManager;
-    private TreasureManager treasureManager;
-    private ChunkParser chunkParser;
-    private TreasureConfig configHandler;
-    private TreasureListener treasureListener;
-    private CommandInventoriesListener commandInventoriesListener;
-    private MessageManager messageManager;
-    private MainCommand treasureCommands;
-    private DependencyHelper dependencyHelper;
+    private final @NotNull DatabaseManager databaseManager;
+    private final @NotNull TreasureManager treasureManager;
+    private final @NotNull MessageManager messageManager;
+    private final @NotNull TreasureConfig configHandler;
+    private @MonotonicNonNull ChunkParser chunkParser;
+    private @MonotonicNonNull TreasureListener treasureListener;
+    private @MonotonicNonNull CommandInventoriesListener commandInventoriesListener;
+    private @MonotonicNonNull MainCommand treasureCommands;
+    private @MonotonicNonNull DependencyHelper dependencyHelper;
+    private @MonotonicNonNull LegacyDataImporter legacyDataImporter = null;
 
     public GreenTreasure() {
-        super();
-
-        instance = this;
-    }
-
-    @Deprecated // only use if you really have to!
-    public static GreenTreasure inst() {
-        return instance;
+        databaseManager = new DatabaseManager(this);
+        treasureManager = new TreasureManager(this);
+        messageManager = new MessageManager(this);
+        configHandler = new TreasureConfig(this);
     }
 
     @Override
@@ -43,22 +40,16 @@ public class GreenTreasure extends JavaPlugin {
     @Override
     public void onEnable() {
         // order is important, the config depends on the database, treasure and messages
-        databaseManager = new DatabaseManager(this);
-        treasureManager = new TreasureManager(this);
         chunkParser = new ChunkParser(this);
-        messageManager = new MessageManager(this);
-        // configuration
-        configHandler = new TreasureConfig(this);
         configHandler.reload();
 
-        // command
         treasureCommands = new MainCommand(this);
         treasureListener = new TreasureListener(this);
         commandInventoriesListener = new CommandInventoriesListener(this);
         dependencyHelper.enable();
 
         // disable legacy plugins and their commands
-        ImportLegacy.disableLegacyPlugins();
+        LegacyDataImporter.disableLegacyPlugins();
     }
 
     public void shutdownForcefully() {
@@ -94,7 +85,7 @@ public class GreenTreasure extends JavaPlugin {
         return configHandler;
     }
 
-    public TreasureManager getTreasureManager() {
+    public @NotNull TreasureManager getTreasureManager() {
         return treasureManager;
     }
 
@@ -106,7 +97,7 @@ public class GreenTreasure extends JavaPlugin {
         return commandInventoriesListener;
     }
 
-    public MessageManager getMessageManager() {
+    public @NotNull MessageManager getMessageManager() {
         return messageManager;
     }
 
@@ -116,5 +107,13 @@ public class GreenTreasure extends JavaPlugin {
 
     public MainCommand getMainCommand() {
         return treasureCommands;
+    }
+
+    public @NotNull LegacyDataImporter getLegacyDataImporter() {
+        if (legacyDataImporter == null) {
+            legacyDataImporter = new LegacyDataImporter(this);
+        }
+
+        return legacyDataImporter;
     }
 }

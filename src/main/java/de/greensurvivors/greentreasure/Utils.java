@@ -124,11 +124,16 @@ public class Utils {
         inventory.setContents(newContents);
     }
 
-    /// double chests are wierd.
+    /// double chests are weird.
     @Contract("null -> null; !null -> !null")
     public static @Nullable InventoryHolder getTreasureHolder(final @Nullable InventoryHolder holder) {
         if (holder == null) {
             return null;
+            // todo this WILL fail, and not return the correct half, if the other one isn't loaded.
+            //  Luckily, there should never be a case where this happens, other then legacy import.
+            //  And its maybe fine there since the import only loads only the left one as "main" chest.
+            //  Fails at:
+            //  holder.getInventory() calls -> ChestBlock#getMenuProvider(...) -> combine(...) -> DoubleBlockCombiner#combineWithNeigbour(...) -> LevelAccessor#getBlockStateIfLoaded(<relative pos>)
         } else if (holder.getInventory() instanceof DoubleChestInventory doubleChestInventory &&
             ((DoubleChest) doubleChestInventory.getHolder(false)).getLeftSide(false) instanceof InventoryHolder leftSide) {
             return leftSide;
