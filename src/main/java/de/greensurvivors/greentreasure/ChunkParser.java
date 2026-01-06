@@ -220,17 +220,22 @@ public class ChunkParser {
         return nextChunkProcessId++;
     }
 
-    public void cancelProcessForUUID (final @NotNull UUID uuid) {
+    public boolean cancelProcessForUUID (final @NotNull UUID uuid) {
         final @NotNull ObjectIterator<Int2ObjectMap.@NotNull Entry<@NotNull UUID>> openProcessesIterator = Int2ObjectMaps.fastIterator(openProcessesPerUser);
+        boolean anyCanceled = false;
 
         while (openProcessesIterator.hasNext()) {
             final @NotNull Int2ObjectMap.Entry<@NotNull UUID> openProcessEntry = openProcessesIterator.next();
 
             if (openProcessEntry.getValue().equals(uuid)) {
+                anyCanceled = true;
+
                 cancelProcessForProcessIDInternal(openProcessEntry.getIntKey(), false);
                 openProcessesIterator.remove();
             }
         }
+
+        return anyCanceled;
     }
 
     public void cancelProcessForProcessId(final int chunkProcessID) {

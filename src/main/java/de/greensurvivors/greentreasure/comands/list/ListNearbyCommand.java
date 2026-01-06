@@ -61,7 +61,7 @@ public class ListNearbyCommand extends ASubCommand {
 
                         final Audience audience = DynamicPlayerAudience.fromAudience(entity);
                         plugin.getChunkParser().getNearTreasures(entity.getLocation(), Math.abs(Integer.parseInt(args[2])), audience, entity.getUniqueId()).
-                            thenAccept(nearTreasures -> {
+                            thenAccept(nearTreasures -> { // todo cache entries for some time to not not parse again for next page
                                 final int numOfTreasures = nearTreasures.size();
 
                                 if (numOfTreasures > 0) {

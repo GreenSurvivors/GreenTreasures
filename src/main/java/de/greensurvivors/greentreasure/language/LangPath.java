@@ -67,6 +67,10 @@ public enum LangPath {
     CMD_SET_SHARED_SUCCESS("cmd.set.shared.success"),
     CMD_SET_UNLIMITED_SUCCESS("cmd.set.unlimited.success"),
     CMD_SET_FORGET_DURATION_SUCCESS("cmd.set.forget.duration.success"),
+    CMD_CANCEL_SUCCESS_OTHER("cmd.cancel.success.other"),
+    CMD_CANCEL_SUCCESS_SELF("cmd.cancel.success.self"),
+    CMD_CANCEL_SUCCESS_IMPORT("cmd.cancel.success.import"),
+    CMD_CANCEL_ERROR_NO_RUNNING("cmd.cancel.error.notRunning"),
 
     //
     CMD_USAGE("cmd.usage"),

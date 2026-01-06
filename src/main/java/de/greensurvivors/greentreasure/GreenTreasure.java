@@ -109,6 +109,7 @@ public class GreenTreasure extends JavaPlugin {
         return treasureCommands;
     }
 
+    @Deprecated
     public @NotNull LegacyDataImporter getLegacyDataImporter() {
         if (legacyDataImporter == null) {
             legacyDataImporter = new LegacyDataImporter(this);

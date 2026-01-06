@@ -37,11 +37,6 @@ public class LegacyDataImporter {
         }
     }
 
-    public void cancelImport () {
-        uuidFetchScheduler.cancel();
-        importProcessId.set(-1);
-    }
-
     public boolean importLegacyData() {
         if (importProcessId.get() >= 0) {
             return false;
@@ -65,6 +60,16 @@ public class LegacyDataImporter {
         }
 
         return true;
+    }
+
+    public boolean cancelImport () {
+        if (importProcessId.getAndSet(-1) >= 0) {
+            uuidFetchScheduler.cancel();
+
+            return true;
+        }
+
+        return false;
     }
 
     protected void startImport(final @NotNull String pluginName, final @NotNull Path path) {

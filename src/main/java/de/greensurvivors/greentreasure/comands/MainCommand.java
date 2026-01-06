@@ -17,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
 
-public class MainCommand extends Command {
+public class MainCommand extends Command { // todo adapt to Brigadier
     public static final String CMD = "greentreasure";
 
     private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
@@ -49,6 +49,7 @@ public class MainCommand extends Command {
         registerSubCommand(new PeekSubCommand(plugin));
         registerSubCommand(new ReloadSubCommand(plugin));
         registerSubCommand(new SetSubCommand(plugin));
+        registerSubCommand(new CancelSubCommand(plugin));
     }
 
     private void registerSubCommand(final @NotNull ASubCommand subCommand) {
