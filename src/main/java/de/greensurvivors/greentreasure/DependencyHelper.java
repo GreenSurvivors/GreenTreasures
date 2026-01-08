@@ -115,7 +115,7 @@ public class DependencyHelper {
                             // todo check how worldguard handles double chests when being partly inside a region. Does this event include all sub blocks?
                             //  if yes this implementation will prioritize the flag and therefore the worlguard overwrite
                             // double chests are wierd.
-                            if (Utils.getTreasureHolder(inventoryHolder.getInventory().getHolder(false)) instanceof PersistentDataHolder persistentDataHolder &&
+                            if (Utils.getTreasureHolder(inventoryHolder) instanceof PersistentDataHolder persistentDataHolder &&
                                 plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder)) != null) {
                                 // allow the interaction of thees blocks
                                 event.setAllowed(true);

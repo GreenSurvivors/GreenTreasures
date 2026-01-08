@@ -158,7 +158,7 @@ class TreasureFileVisitor extends ALegacyFileVisitor {
                                          final @NotNull Path path) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             final @Nullable List<@NotNull ItemStack> contents = switch (blockInventory) {
-                case DoubleBlockInventory doubleBlockInventory ->  {
+                case DoubleBlockInventory doubleBlockInventory -> {
                     final @Nullable List<@NotNull ItemStack> result2;
                     final @Nullable List<@NotNull ItemStack> leftContents = mapItemList(doubleBlockInventory.leftSide().size(), doubleBlockInventory.leftSide().contents(), path);
                     final @Nullable List<@NotNull ItemStack> rightContents = mapItemList(doubleBlockInventory.rightSide().size(), doubleBlockInventory.rightSide().contents(), path);
@@ -271,7 +271,7 @@ class TreasureFileVisitor extends ALegacyFileVisitor {
         return treasureLocation;
     }
 
-    protected @Nullable List<@NotNull ItemStack> mapItemList (final int inventorySize, final @NotNull Map<@NotNull String, @NotNull ItemStack> serializedMap, final @NotNull Path path) {
+    protected @Nullable List<@NotNull ItemStack> mapItemList(final int inventorySize, final @NotNull Map<@NotNull String, @NotNull ItemStack> serializedMap, final @NotNull Path path) {
         final @Nullable ItemStack @NotNull [] result = new ItemStack[inventorySize];
 
         for (Map.Entry<@NotNull String, @NotNull ItemStack> contentsEntry : serializedMap.entrySet()) {

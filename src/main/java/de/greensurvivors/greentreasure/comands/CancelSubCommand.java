@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-public class CancelSubCommand extends ASubCommand{
+public class CancelSubCommand extends ASubCommand {
     protected final static @NotNull String IMPORT1 = "import";
     protected final static @NotNull String IMPORT2 = "import_legacy";
 

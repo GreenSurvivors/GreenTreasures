@@ -71,8 +71,8 @@ public class DatabaseManager {
     private static final @NotNull Pattern MISSING_TABLE_PATTERN = Pattern.compile("Table '.*?' doesn't exist$");
     private final @NotNull GreenTreasure plugin;
     /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
-    private @NotNull ExecutorService asyncExecutor;
-    private @Nullable HikariDataSource dataSource = null;
+    private volatile @NotNull ExecutorService asyncExecutor;
+    private volatile @Nullable HikariDataSource dataSource = null;
     // connection information
     private volatile @NotNull String host = "localhost", database = "database";
     private volatile @Nullable String loginUserName = null, password = null;

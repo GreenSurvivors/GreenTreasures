@@ -38,6 +38,13 @@ public class LegacyDataImporter {
     }
 
     public boolean importLegacyData() {
+        // note: this looks bad from a multi thread perspektive:
+        // We check, let some time pass where another thread could change the value and then change it ourselves, possibly
+        // overwriting the changes made.
+        // however, only the main server thread should ever be able to start an import.
+        // So the only "unsafe" thing that might happen is that a new import fails while another is currently ending.
+        // might be a tad bit annoying, but so is life.
+        // I have no clue why anyone should spam imports close together.
         if (importProcessId.get() >= 0) {
             return false;
         }
@@ -62,7 +69,7 @@ public class LegacyDataImporter {
         return true;
     }
 
-    public boolean cancelImport () {
+    public boolean cancelImport() {
         if (importProcessId.getAndSet(-1) >= 0) {
             uuidFetchScheduler.cancel();
 
@@ -117,6 +124,7 @@ public class LegacyDataImporter {
             return CompletableFuture.completedStage(Boolean.FALSE);
         }
     }
+
     /**
      * import player data
      */

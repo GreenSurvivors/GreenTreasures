@@ -12,16 +12,14 @@ public class InventoryHolderWrapper<T extends InventoryHolder & PersistentDataHo
     private final boolean perCommand;
     private final @Nullable Long fistLootedTimeStamp;
 
-    public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand) {
-        this.holder = holder;
-        this.perCommand = perCommand;
-        this.fistLootedTimeStamp = null;
-    }
-
     public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand, final @Nullable Long fistLootedTimeStamp) {
         this.holder = holder;
         this.perCommand = perCommand;
         this.fistLootedTimeStamp = fistLootedTimeStamp;
+    }
+
+    public InventoryHolderWrapper(final @NotNull T holder, boolean perCommand) {
+        this(holder, perCommand, null);
     }
 
     @Override

@@ -220,7 +220,7 @@ public class ChunkParser {
         return nextChunkProcessId++;
     }
 
-    public boolean cancelProcessForUUID (final @NotNull UUID uuid) {
+    public boolean cancelProcessForUUID(final @NotNull UUID uuid) {
         final @NotNull ObjectIterator<Int2ObjectMap.@NotNull Entry<@NotNull UUID>> openProcessesIterator = Int2ObjectMaps.fastIterator(openProcessesPerUser);
         boolean anyCanceled = false;
 
@@ -250,7 +250,7 @@ public class ChunkParser {
             final @NotNull Iterator<Long2ObjectMap.@NotNull Entry<@NotNull ChunkLoadInfo>> chunkLoadInfoIterator = Long2ObjectMaps.fastIterator(worldEntry.getValue());
 
             while (chunkLoadInfoIterator.hasNext()) {
-                final @NotNull Long2ObjectMap. @NotNull Entry<@NotNull ChunkLoadInfo> chunkLoadInfoEntry = chunkLoadInfoIterator.next();
+                final @NotNull Long2ObjectMap.@NotNull Entry<@NotNull ChunkLoadInfo> chunkLoadInfoEntry = chunkLoadInfoIterator.next();
                 final @NotNull Iterator<@NotNull ChunkConsumer> chunkConsumerIterator = chunkLoadInfoEntry.getValue().chunkConsumers().iterator();
 
                 while (chunkConsumerIterator.hasNext()) {

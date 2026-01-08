@@ -40,12 +40,13 @@ public class GreenTreasure extends JavaPlugin {
     @Override
     public void onEnable() {
         // order is important, the config depends on the database, treasure and messages
+        commandInventoriesListener = new CommandInventoriesListener(this);
+        reload();
+
         chunkParser = new ChunkParser(this);
-        configHandler.reload();
 
         treasureCommands = new MainCommand(this);
         treasureListener = new TreasureListener(this);
-        commandInventoriesListener = new CommandInventoriesListener(this);
         dependencyHelper.enable();
 
         // disable legacy plugins and their commands
@@ -75,6 +76,11 @@ public class GreenTreasure extends JavaPlugin {
 
         treasureManager.clearTreasures();
         databaseManager.closeConnection();
+    }
+
+    public void reload() {
+        configHandler.reload();
+        commandInventoriesListener.clearInventories();
     }
 
     public @NotNull DatabaseManager getDatabaseManager() {

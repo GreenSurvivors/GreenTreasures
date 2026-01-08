@@ -12,7 +12,6 @@ import java.util.Objects;
 
 /**
  * the information a treasure has
- *
  */
 public final class TreasureInfo {
     private final @NotNull Ulid treasureId;
@@ -112,5 +111,4 @@ public final class TreasureInfo {
             "rawFindFreshMessageOverride=" + rawFindFreshMessageOverride + ", " +
             "rawFindLootedMessageOverride=" + rawFindLootedMessageOverride + ']';
     }
-
 }

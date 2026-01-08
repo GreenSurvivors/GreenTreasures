@@ -49,7 +49,6 @@ public abstract class ASubCommand {
      */
     public abstract @NotNull Component getHelpText();
 
-
     /**
      * Executes the given command, returning its success.
      * <br> If false is returned, then the "usage" plugin.yml entry for this command

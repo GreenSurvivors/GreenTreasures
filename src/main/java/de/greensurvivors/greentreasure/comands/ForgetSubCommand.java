@@ -105,7 +105,6 @@ public class ForgetSubCommand extends ASubCommand {
                         } else {
                             plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
                                 Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
-                            return;
                         }
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

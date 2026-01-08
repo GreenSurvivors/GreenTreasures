@@ -63,7 +63,7 @@ public class TreasureListener implements Listener {
      * closes all open inventories to update them
      */
     public void closeAllInventories() {
-        for (Collection<InventoryView> views : openInventories.values()) {
+        for (final @NotNull Collection<@NotNull InventoryView> views : openInventories.values()) {
             views.forEach(InventoryView::close); // will call inventory close event first before removing this entry
         }
         openInventories.clear();
@@ -246,16 +246,15 @@ public class TreasureListener implements Listener {
                                     final @NotNull Inventory inventory, final @NotNull Component eTitle,
                                     final @Nullable PlayerLootDetail playerLootDetail) {
         final @NotNull Inventory nowLooting;
-        boolean doesForget = false;
 
         if ( // never opened or unexpected empty
             (playerLootDetail == null || playerLootDetail.unLootedStuff() == null) ||
                 // unlimited treasure
                 treasureInfo.isUnlimited() ||
                 // automatically forget after a given time
-                (doesForget = (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp()) > treasureInfo.timeUntilForget().toMillis()) )) {
+                (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
 
-            nowLooting = createInventory(inventory, eTitle, doesForget ? null : playerLootDetail);
+            nowLooting = createInventory(inventory, eTitle, null);
             Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
             sendLootMessage(player, treasureInfo, eTitle, null, true, treasureInfo.isUnlimited());

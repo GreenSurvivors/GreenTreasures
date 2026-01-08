@@ -11,10 +11,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class TreasureConfig {
-    private static final @NotNull String
-        CONFIG_KEY_SQL = "SQL",
-        CONFIG_KEY_LANG = "language",
-        CONFIG_KEY_IMPORT_LEGACY = "import_legacy";
+    protected final @NotNull ConfigOption<@NotNull String> language = new ConfigOption<>("language", "en-en");
+    protected final @NotNull ConfigOption<@NotNull Boolean> importLegacy = new ConfigOption<>("import_legacy", false);
+    protected static final @NotNull String CONFIG_KEY_SQL = "SQL";
     protected final @NotNull GreenTreasure plugin;
 
     public TreasureConfig(final @NotNull GreenTreasure plugin) {
@@ -27,44 +26,39 @@ public class TreasureConfig {
     public void reload() {
         plugin.reloadConfig();
 
-        final FileConfiguration config = plugin.getConfig();
+        final @NotNull FileConfiguration config = plugin.getConfig();
         // set defaults
         config.options().setHeader(List.of(plugin.getName() + " " + plugin.getPluginMeta().getVersion()));
         config.options().copyDefaults(true);
         config.options().parseComments(true);
 
-        loadDatabase();
-
-        // load language
-        Locale locale = Locale.forLanguageTag(config.getString(CONFIG_KEY_LANG, "en-en").replace("_", "-"));
-        plugin.getMessageManager().reload(locale);
-
-        // import legacy
-        if (config.getBoolean(CONFIG_KEY_IMPORT_LEGACY)) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> { // run later to give the database time to connect
-                if (plugin.getLegacyDataImporter().importLegacyData()) {
-                    config.set(CONFIG_KEY_IMPORT_LEGACY, Boolean.FALSE);
-                    plugin.saveConfig();
-               } else {
-                   plugin.getComponentLogger().warn("Could not import legacy data, since a import process is already running!");
-               }
-            }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
-        }
-
-        plugin.saveConfig();
-    }
-
-    private void loadDatabase() {
         final FileConfiguration mainCfg = plugin.getConfig();
         final @Nullable ConfigurationSection section = mainCfg.getConfigurationSection(CONFIG_KEY_SQL);
 
         if (section != null) {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                plugin.getDatabaseManager().reload(section.getValues(false));
-                mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
-            });
+            plugin.getDatabaseManager().reload(section.getValues(false));
+            mainCfg.set(CONFIG_KEY_SQL, plugin.getDatabaseManager().serializeDatabaseConnectionConfig());
         } else {
             plugin.getComponentLogger().error("Could not load database!");
         }
+
+        // load language
+        language.setValue(config.getString(language.getPath()));
+        Locale locale = Locale.forLanguageTag(language.getValueOrFallback().replace("_", "-"));
+        plugin.getMessageManager().reload(locale);
+
+        // import legacy
+        if (config.getBoolean(importLegacy.getPath(), importLegacy.getValueOrFallback())) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> { // run later to give the database time to connect
+                if (plugin.getLegacyDataImporter().importLegacyData()) {
+                    config.set(importLegacy.getPath(), Boolean.FALSE);
+                    plugin.saveConfig();
+                } else {
+                    plugin.getComponentLogger().warn("Could not import legacy data, since a import process is already running!");
+                }
+            }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
+        }
+
+        plugin.saveConfig();
     }
 }

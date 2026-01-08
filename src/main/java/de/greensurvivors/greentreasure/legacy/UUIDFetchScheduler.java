@@ -42,8 +42,8 @@ public class UUIDFetchScheduler {
         }
     }
 
-    public void cancel () {
-        queuedIds.removeIf( fetchRequest -> {
+    public void cancel() {
+        queuedIds.removeIf(fetchRequest -> {
             fetchRequest.resultConsumer.accept(null);
             return true;
         });

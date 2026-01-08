@@ -4,9 +4,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
@@ -41,11 +38,6 @@ public class MessageManager {
     // please note: since minutes and months both are identified by m, it is intentional for this pattern to NOT be
     // case-insensitive!
     private static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWMyY])");
-    public static final @NotNull Style DEFAULT_STYLE = Style.style(). // todo there has to be a better way to force reset to the default style!
-        color(NamedTextColor.WHITE).
-        clickEvent(null).
-        decorations(Set.of(TextDecoration.values()), false).
-        build();
     private final String BUNDLE_NAME = "lang";
     final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
     private final Plugin plugin;
@@ -339,7 +331,7 @@ public class MessageManager {
      * prepend the message with the plugins prefix before sending it to the audience.
      */
     public void sendMessage(final @NotNull Audience audience, final @NotNull Component messages) {
-        audience.sendMessage(langCache.get(LangPath.PLUGIN_PREFIX).appendSpace().append(messages.applyFallbackStyle(DEFAULT_STYLE)));
+        audience.sendMessage(Component.text().append(langCache.get(LangPath.PLUGIN_PREFIX)).appendSpace().append(messages));
     }
 
     /**

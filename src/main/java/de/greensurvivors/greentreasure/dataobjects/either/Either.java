@@ -37,11 +37,9 @@ public abstract class Either<L, R> {
         }
     }
 
-
     public static <L, R> Either<L, R> left(L value) {
         return new Left<>(value);
     }
-
 
     public static <L, R> Either<L, R> right(R value) {
         return new Right<>(value);
@@ -104,7 +102,6 @@ public abstract class Either<L, R> {
     public abstract <U> U fold(
         Function<? super L, ? extends U> leftMapper,
         Function<? super R, ? extends U> rightMapper);
-
 
     /**
      * If this is a Left, performs the {@code leftConsumer} with the LHS value.

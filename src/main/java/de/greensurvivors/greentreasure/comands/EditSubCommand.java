@@ -19,6 +19,7 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,7 +32,7 @@ public class EditSubCommand extends ASubCommand {
     }
 
     @Override
-    protected boolean checkPermission(@NotNull Permissible permissible) {
+    protected boolean checkPermission(final @NotNull Permissible permissible) {
         return permissible.hasPermission(PermissionManager.TREASURE_EDIT_CONTENT.get());
     }
 
@@ -54,7 +55,7 @@ public class EditSubCommand extends ASubCommand {
      */
     public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (checkPermission(sender)) {
-            Container container = plugin.getMainCommand().getContainer(sender);
+            final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
             if (container != null) {
                 if (sender instanceof Player player) {
@@ -73,7 +74,7 @@ public class EditSubCommand extends ASubCommand {
                             }
 
                             Utils.setContents(inventory, treasureInfo.itemLoot());
-                            InventoryView view = player.openInventory(inventory);
+                            final @Nullable InventoryView view = player.openInventory(inventory);
 
                             if (view != null) {
                                 plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
@@ -98,7 +99,7 @@ public class EditSubCommand extends ASubCommand {
         return true;
     }
 
-    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+    public @NotNull List<@NotNull String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length == 1) {
             return List.copyOf(getAliases());
         } else {

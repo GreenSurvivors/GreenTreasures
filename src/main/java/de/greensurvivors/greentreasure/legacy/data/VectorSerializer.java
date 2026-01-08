@@ -24,7 +24,7 @@ public final class VectorSerializer implements TypeSerializer<@NotNull Vector> {
         if ("Vector".equals(node.node(ConfigurationSerialization.SERIALIZED_TYPE_KEY).getString())) {
             return Vector.deserialize(node.require(MAP_TOKEN));
         } else {
-            throw new SerializationException(node, String.class, "The serialized type key is missing or not an ItemStack key!");
+            throw new SerializationException(node, String.class, "The serialized type key is missing or not an Vector key!");
         }
     }
 
