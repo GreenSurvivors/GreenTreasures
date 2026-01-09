@@ -6,6 +6,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.f4b6a3.ulid.Ulid;
 import com.github.f4b6a3.ulid.UlidFactory;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import io.papermc.paper.block.TileStateInventoryHolder;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
@@ -127,17 +128,17 @@ public class TreasureManager {
         if (treasureId == null) {
             return CompletableFuture.completedFuture(null);
         } else {
-            return getTreasureInfo(treasureId);
-        }
-    }
+            final @NotNull CompletableFuture<@Nullable TreasureInfo> treasureInfoFuture = getTreasureInfo(treasureId);
 
-    public @NotNull CompletableFuture<@Nullable TreasureInfo> getTreasureInfo(final @NotNull InventoryView view) {
-        final @Nullable Ulid treasureId = getTreasureId(view);
+            if (persistentDataHolder instanceof TileStateInventoryHolder tileStateInventoryHolder) {
+                treasureInfoFuture.thenAccept(info -> {
+                    if (info != null) {
+                        plugin.log(info, tileStateInventoryHolder.getLocation());
+                    }
+                });
+            }
 
-        if (treasureId == null) {
-            return CompletableFuture.completedFuture(null);
-        } else {
-            return getTreasureInfo(treasureId);
+            return treasureInfoFuture;
         }
     }
 

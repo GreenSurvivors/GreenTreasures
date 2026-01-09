@@ -297,6 +297,8 @@ public class ChunkParser {
                 final @NotNull List<@NotNull Location> locations = allLocationsIterator.next();
 
                 if (treasureInfo != null) {
+                    locations.forEach(location -> plugin.log(treasureInfo, location));
+
                     final @NotNull SortedSet<@NotNull Location> sortedLocations = new TreeSet<>(LOCATION_COMPARATOR);
                     sortedLocations.addAll(locations);
 

@@ -7,4 +7,5 @@ SQL:
 
 language: en_en
 import_legacy: false
+log_loaded_treasures: false
 break_behavior: ALL_BREAK_GLOBAL

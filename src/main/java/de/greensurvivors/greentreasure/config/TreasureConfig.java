@@ -13,6 +13,7 @@ import java.util.Locale;
 public class TreasureConfig {
     protected final @NotNull ConfigOption<@NotNull Boolean> importLegacy = new ConfigOption<>("import_legacy", false);
     protected final @NotNull ConfigOption<@NotNull BreakBehavior> breakBehavior = new ConfigOption<>("break_behavior", BreakBehavior.ALL_BREAK_GLOBAL);
+    protected final @NotNull ConfigOption<@NotNull Boolean> logLoadedTreasures = new ConfigOption<>("log_loaded_treasures", false);
     protected static final @NotNull String CONFIG_KEY_SQL = "SQL";
     protected final @NotNull GreenTreasure plugin;
 
@@ -65,11 +66,17 @@ public class TreasureConfig {
 
         breakBehavior.setValue(newBehavior);
 
+        logLoadedTreasures.setValue(config.getBoolean(logLoadedTreasures.getPath()));
+
         plugin.saveConfig();
     }
 
     public @NotNull BreakBehavior getBreakBehavior() {
         return breakBehavior.getValueOrFallback();
+    }
+
+    public boolean shouldLogLoadedTreasures() {
+        return logLoadedTreasures.getValueOrFallback();
     }
 
     public enum BreakBehavior {

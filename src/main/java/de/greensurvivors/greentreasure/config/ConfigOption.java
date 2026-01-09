@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 public class ConfigOption<T> {
     private final @NotNull String path;
     protected final T fallback;
-    protected @Nullable T value = null;
+    protected volatile @Nullable T value = null;
 
     public ConfigOption(final @NotNull String path, final T fallback) {
         this.path = path;

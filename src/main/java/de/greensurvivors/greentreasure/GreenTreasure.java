@@ -2,11 +2,13 @@ package de.greensurvivors.greentreasure;
 
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.config.TreasureConfig;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.legacy.LegacyDataImporter;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,6 +26,7 @@ public class GreenTreasure extends JavaPlugin {
     private @MonotonicNonNull MainCommand treasureCommands;
     private @MonotonicNonNull DependencyHelper dependencyHelper;
     private @MonotonicNonNull LegacyDataImporter legacyDataImporter = null;
+    private volatile @MonotonicNonNull LoadedTreasureLogger loadedTreasureLogger = null;
 
     public GreenTreasure() {
         databaseManager = new DatabaseManager(this);
@@ -123,5 +126,15 @@ public class GreenTreasure extends JavaPlugin {
         }
 
         return legacyDataImporter;
+    }
+
+    public void log(final @NotNull TreasureInfo treasureInfo, final @NotNull Location location) {
+        if (getConfigHandler().shouldLogLoadedTreasures()) {
+            if (loadedTreasureLogger == null) {
+                loadedTreasureLogger = new LoadedTreasureLogger(this);
+            }
+
+            loadedTreasureLogger.log(treasureInfo, location);
+        }
     }
 }

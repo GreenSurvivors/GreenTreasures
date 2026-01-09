@@ -172,77 +172,99 @@ public class TreasureListener implements Listener {
     private void onOpenTreasure(final @NotNull InventoryOpenEvent event) {
         if (event.getPlayer() instanceof Player player) {
             final @NotNull Inventory eInventory = event.getInventory();
-            final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(event.getView()));
+            final @Nullable InventoryHolder holder = event.getView().getTopInventory().getHolder(false);
 
-            if (treasureInfo != null) {
-                final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureInfo.treasureId());
+            final InventoryHolder treasureHolder = Utils.getTreasureHolder(holder);
+            if (treasureHolder instanceof PersistentDataHolder persistentDataHolder) {
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder));
 
-                // we will cancel this event and open a new inventory, retriggering this event.
-                // ignore them as well as the views created by our commands
-                if (eInventory.getHolder(false) instanceof InventoryHolderWrapper<?>) {
-                    return;
-                }
-                // everything should get sorted out above, but just to be sure, ignore all already tracked views
-                // should basically never happen.
-                if (views != null && views.contains(event.getView())) {
-                    return;
-                }
+                if (treasureInfo != null) {
+                    if (treasureHolder instanceof TileStateInventoryHolder tileStateInventoryHolder) {
+                        plugin.log(treasureInfo, tileStateInventoryHolder.getLocation());
+                    }
 
-                //test permission
-                if (player.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
-                    if (treasureInfo.isUnlocked()) {
-                        final @NotNull Component eTitle = event.getView().title();
+                    final @Nullable Collection<@NotNull InventoryView> views = openInventories.get(treasureInfo.treasureId());
 
-                        // call api event: TreasureOpenEvent
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
-                        treasureOpenEvent.callEvent();
+                    // we will cancel this event and open a new inventory, retriggering this event.
+                    // ignore them as well as the views created by our commands
+                    if (eInventory.getHolder(false) instanceof InventoryHolderWrapper<?>) {
+                        return;
+                    }
+                    // everything should get sorted out above, but just to be sure, ignore all already tracked views
+                    // should basically never happen.
+                    if (views != null && views.contains(event.getView())) {
+                        return;
+                    }
 
-                        // evaluate result
-                        switch (treasureOpenEvent.getResult()) {
-                            case DEFAULT -> event.setCancelled(true);
-                            case ORIGINAL -> {
-                                return;
+                    //test permission
+                    if (player.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
+                        if (treasureInfo.isUnlocked()) {
+                            final @NotNull Component eTitle = event.getView().title();
+
+                            // call api event: TreasureOpenEvent
+                            TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
+                            treasureOpenEvent.callEvent();
+
+                            // evaluate result
+                            switch (treasureOpenEvent.getResult()) {
+                                case DEFAULT -> event.setCancelled(true);
+                                case ORIGINAL -> {
+                                    return;
+                                }
+                                case CANCELED -> {
+                                    event.setCancelled(true);
+                                    return;
+                                }
                             }
-                            case CANCELED -> {
-                                event.setCancelled(true);
-                                return;
-                            }
-                        }
 
-                        if (treasureInfo.isShared()) {
-                            final @Nullable InventoryView inventoryView;
-                            if (views == null || views.isEmpty()) {
-                                inventoryView = null;
-                            } else {
-                                inventoryView = views.iterator().next();
-                            }
+                            if (treasureInfo.isShared()) {
+                                final @Nullable InventoryView inventoryView;
+                                if (views == null || views.isEmpty()) {
+                                    inventoryView = null;
+                                } else {
+                                    inventoryView = views.iterator().next();
+                                }
 
-                            if (inventoryView != null && !treasureInfo.isUnlimited()) {
-                                // shared and already open inventory with our custom owner and with limited stock.
-                                // Just share the inventory to keep it sync across all players
-                                player.openInventory(inventoryView.getTopInventory());
-                            } else if (treasureInfo.isUnlimited()) {
-                                handleTreasureOpen(player, treasureInfo, eInventory, eTitle, null);
-                            } else {
-                                //load global treasure async
-                                plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                                if (inventoryView != null && !treasureInfo.isUnlimited()) {
+                                    // shared and already open inventory with our custom owner and with limited stock.
+                                    // Just share the inventory to keep it sync across all players
+                                    player.openInventory(inventoryView.getTopInventory());
+                                } else if (treasureInfo.isUnlimited()) {
+                                    handleTreasureOpen(player, treasureInfo, eInventory, eTitle, null);
+                                } else {
+                                    //load global treasure async
+                                    plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                                        handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
+                                }
+                            } else { // not globally shared
+                                plugin.getDatabaseManager().getPlayerData(player, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
                                     handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
                             }
-                        } else { // not globally shared
-                            plugin.getDatabaseManager().getPlayerData(player, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
-                                handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
+                        } else {
+                            TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
+                            treasureOpenEvent.callEvent();
+
+                            switch (treasureOpenEvent.getResult()) {
+                                case DEFAULT -> {
+                                    plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_LOCKED.create(
+                                        PlaceHolder.TEXT.component( event.getView().title()),
+                                        PlaceHolder.TIME.component(
+                                            MessageManager.formatDuration(treasureInfo.getRefreshInfo().getTimeUntilFresh(null)))
+                                    ));// don't open the original block inventory
+                                    event.setCancelled(true);
+                                }
+                                case ORIGINAL -> {
+                                }
+                                case CANCELED -> event.setCancelled(true);
+                            }
                         }
                     } else {
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, false);
                         treasureOpenEvent.callEvent();
 
                         switch (treasureOpenEvent.getResult()) {
                             case DEFAULT -> {
-                                plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_LOCKED.create(
-                                    PlaceHolder.TEXT.component(event.getView().title()),
-                                    PlaceHolder.TIME.component(
-                                        MessageManager.formatDuration(treasureInfo.getRefreshInfo().getTimeUntilFresh(null)))
-                                ));
+                                plugin.getMessageManager().sendPrefixed(player, LangKey.NO_PERMISSION);
                                 // don't open the original block inventory
                                 event.setCancelled(true);
                             }
@@ -250,21 +272,6 @@ public class TreasureListener implements Listener {
                             }
                             case CANCELED -> event.setCancelled(true);
                         }
-
-                    }
-                } else {
-                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, false);
-                    treasureOpenEvent.callEvent();
-
-                    switch (treasureOpenEvent.getResult()) {
-                        case DEFAULT -> {
-                            plugin.getMessageManager().sendPrefixed(player, LangKey.NO_PERMISSION);
-                            // don't open the original block inventory
-                            event.setCancelled(true);
-                        }
-                        case ORIGINAL -> {
-                        }
-                        case CANCELED -> event.setCancelled(true);
                     }
                 }
             }
@@ -360,11 +367,13 @@ public class TreasureListener implements Listener {
     @EventHandler
     private void onTreasureBreak(final @NotNull BlockBreakEvent event) {
         if (event.getBlock().getState(false) instanceof TileStateInventoryHolder inventoryHolder) {
-            final @Nullable TreasureInfo treasureInfo;
+
+            final @Nullable InventoryHolder holder = inventoryHolder.getInventory().getHolder(false);
 
             // double chests are wierd.
-            if (Utils.getTreasureHolder(inventoryHolder.getInventory().getHolder(false)) instanceof PersistentDataHolder persistentDataHolder) {
-                treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder));
+            final InventoryHolder treasureHolder = Utils.getTreasureHolder(holder);
+            if (treasureHolder instanceof final @NotNull PersistentDataHolder persistentDataHolder) {
+                final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder));
 
                 if (treasureInfo != null) {
                     final @NotNull Player ePlayer = event.getPlayer();
@@ -378,58 +387,62 @@ public class TreasureListener implements Listener {
                         }
                     }
 
-                    final boolean isGlobal = switch (plugin.getConfigHandler().getBreakBehavior()) {
-                        case SHIFT_BREAKS_LOCAL -> !ePlayer.isSneaking();
-                        case ALL_BREAK_GLOBAL, ONLY_SHIFT_BREAKS_GLOBAL ->  true;
-                    };
-                    final boolean hasPermission = ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get());
+                    if (treasureHolder instanceof final @NotNull Container container) {
+                        plugin.log(treasureInfo, container.getLocation());
 
-                    final TreasureBreakEvent treasureBreakEvent = new TreasureBreakEvent(event.getBlock(), event.getPlayer(), isGlobal);
-                    treasureBreakEvent.setCancelled(!hasPermission);
+                        final boolean isGlobal = switch (plugin.getConfigHandler().getBreakBehavior()) {
+                            case SHIFT_BREAKS_LOCAL -> !ePlayer.isSneaking();
+                            case ALL_BREAK_GLOBAL, ONLY_SHIFT_BREAKS_GLOBAL ->  true;
+                        };
+                        final boolean hasPermission = ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get());
 
-                    if (treasureBreakEvent.callEvent() || !hasPermission) {
-                        event.setCancelled(true);
+                        final TreasureBreakEvent treasureBreakEvent = new TreasureBreakEvent(event.getBlock(), event.getPlayer(), isGlobal);
+                        treasureBreakEvent.setCancelled(!hasPermission);
 
-                        if (hasPermission) {
-                            if (isGlobal) {
-                                plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success -> {
-                                    if (success) {
-                                        plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_GLOBAL_SUCCESS.create(
+                        if (treasureBreakEvent.callEvent() || !hasPermission) {
+                            event.setCancelled(true);
+
+                            if (hasPermission) {
+                                if (isGlobal) {
+                                    plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success -> {
+                                        if (success) {
+                                            plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_GLOBAL_SUCCESS.create(
+                                                PlaceHolder.TREASURE_ID.component(
+                                                    Utils.getDisplayName((Container) persistentDataHolder))));
+                                        } else {
+                                            final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
+                                            plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_ERROR.create(
+                                                PlaceHolder.TREASURE_ID.component(
+                                                    Utils.getDisplayName((Container) persistentDataHolder)),
+                                                PlaceHolder.CMD.component(
+                                                    Component.text()
+                                                        .content(command)
+                                                        .clickEvent(ClickEvent.suggestCommand(command))
+                                                )
+                                            ));
+                                        }
+                                    });
+                                } else {
+                                    if (plugin.getTreasureManager().deleteTreasureLocal(persistentDataHolder)) {
+                                        plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_LOCAL_SUCCESS.create(
                                             PlaceHolder.TREASURE_ID.component(
                                                 Utils.getDisplayName((Container) persistentDataHolder))));
-                                    } else {
+                                    }  else {
                                         final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
                                         plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_ERROR.create(
                                             PlaceHolder.TREASURE_ID.component(
                                                 Utils.getDisplayName((Container) persistentDataHolder)),
                                             PlaceHolder.CMD.component(
-                                                Component.text()
-                                                    .content(command)
-                                                    .clickEvent(ClickEvent.suggestCommand(command))
+                                                Component.text().
+                                                    content(command).
+                                                    clickEvent(ClickEvent.suggestCommand(command))
                                             )
                                         ));
                                     }
-                                });
-                            } else {
-                                if (plugin.getTreasureManager().deleteTreasureLocal(persistentDataHolder)) {
-                                    plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_LOCAL_SUCCESS.create(
-                                        PlaceHolder.TREASURE_ID.component(
-                                            Utils.getDisplayName((Container) persistentDataHolder))));
-                                }  else {
-                                    final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
-                                    plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_ERROR.create(
-                                        PlaceHolder.TREASURE_ID.component(
-                                            Utils.getDisplayName((Container) persistentDataHolder)),
-                                        PlaceHolder.CMD.component(
-                                            Component.text().
-                                                content(command).
-                                                clickEvent(ClickEvent.suggestCommand(command))
-                                        )
-                                    ));
                                 }
+                            } else {
+                                plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.ACTION_REMOVE_DENIED);
                             }
-                        } else {
-                            plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.ACTION_REMOVE_DENIED);
                         }
                     }
                 }
