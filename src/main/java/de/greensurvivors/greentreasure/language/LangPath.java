@@ -6,9 +6,7 @@ import org.jetbrains.annotations.PropertyKey;
 /// Paths of all translatable
 public enum LangPath {
     //actions
-    ACTION_BREAK_CONTAINER_SUCCESS("action.break.container.success"),
-    ACTION_BREAK_CONTAINER_ERROR("action.break.container.error"),
-    ACTION_BREAK_CONTAINER_DENIED("action.break.container.denied"),
+    ACTION_REMOVE_DENIED("action.remove.denied"),
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
     ACTION_FIND_LIMITED("action.find.limited"),
     ACTION_FIND_UNLIMITED("action.find.unlimited"),
@@ -28,7 +26,6 @@ public enum LangPath {
     CMD_CREATE_ERROR_ALREADY_TREASURE("cmd.create.error.already-treasure"),
     CMD_CREATE_ERROR_INVALID_CONTAINER("cmd.create.error.invalid-container"),
     CMD_CREATE_SUCCESS("cmd.create.success"),
-    CMD_DELETE_SUCCESS("cmd.delete.success"),
     CMD_FORGET_ALL_SUCCESS("cmd.forget-all.success"),
     CMD_FORGET_SHARED_SUCCESS("cmd.forget.shared.success"),
     CMD_FORGET_USER_SUCCESS("cmd.forget.user.success"),
@@ -74,11 +71,15 @@ public enum LangPath {
 
     //
     CMD_USAGE("cmd.usage"),
-    ERROR_NOT_ENOUGH_ARGS("cmd.error.not-enough-args"),
+    CMD_ERROR_NOT_ENOUGH_ARGS("cmd.error.not-enough-args"),
     ERROR_NOT_LOOKING_AT_CONTAINER("cmd.error.not-looking-at-container"),
     ERROR_NOT_LOOKING_AT_TREASURE("cmd.error.not-looking-at-treasure"),
     ERROR_SENDER_NOT_PLAYER("cmd.error.sender-not-player"),
     ERROR_UNKNOWN("error.unknown"),
+
+    REMOVE_GLOBAL_SUCCESS("remove.global.success"),
+    REMOVE_LOCAL_SUCCESS("remove.local.success"),
+    REMOVE_ERROR("remove.error"),
 
     //
     FORMAT_LOCATION("format.location"),

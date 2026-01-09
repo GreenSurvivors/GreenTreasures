@@ -110,7 +110,7 @@ public class ListNearbyCommand extends ASubCommand {
                         return false;
                     }
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
+                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
                     return false;
                 }
             } else {

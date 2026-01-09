@@ -5,6 +5,7 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.MainCommand;
+import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
@@ -337,19 +338,57 @@ public class TreasureListener implements Listener {
                 treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(persistentDataHolder));
 
                 if (treasureInfo != null) {
-                    if (new TreasureBreakEvent(event.getBlock(), event.getPlayer()).callEvent()) {
+                    final @NotNull Player ePlayer = event.getPlayer();
+
+                    // java being java again. I easily could do this in the switch, but then java thinks it would require a default branch,
+                    // and I don't want a default branch. I want the compiler to scream at me, when (if ever) any other BreakBehaviors get added!
+                    // Not yet because there could any get added somewhere in the future. The switch is always exclusive, shut up!
+                    if (plugin.getConfigHandler().getBreakBehavior() == TreasureConfig.BreakBehavior.ONLY_SHIFT_BREAKS_GLOBAL) {
+                        if (!ePlayer.isSneaking()) {
+                            return;
+                        }
+                    }
+
+                    final boolean isGlobal = switch (plugin.getConfigHandler().getBreakBehavior()) {
+                        case SHIFT_BREAKS_LOCAL -> !ePlayer.isSneaking();
+                        case ALL_BREAK_GLOBAL, ONLY_SHIFT_BREAKS_GLOBAL ->  true;
+                    };
+                    final boolean hasPermission = ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get());
+
+                    final TreasureBreakEvent treasureBreakEvent = new TreasureBreakEvent(event.getBlock(), event.getPlayer(), isGlobal);
+                    treasureBreakEvent.setCancelled(!hasPermission);
+
+                    if (treasureBreakEvent.callEvent() || !hasPermission) {
                         event.setCancelled(true);
 
-                        Player ePlayer = event.getPlayer();
-                        if (ePlayer.hasPermission(PermissionManager.TREASURE_DELETE.get())) {
-                            plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success -> {
-                                if (success) {
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_SUCCESS,
+                        if (hasPermission) {
+                            if (isGlobal) {
+                                plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success -> {
+                                    if (success) {
+                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_GLOBAL_SUCCESS,
+                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                                Utils.getDisplayName((Container) persistentDataHolder)));
+                                    } else {
+                                        final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
+                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_ERROR,
+                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                                Utils.getDisplayName((Container) persistentDataHolder)),
+                                            Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                                Component.text().
+                                                    content(command).
+                                                    clickEvent(ClickEvent.suggestCommand(command))
+                                            )
+                                        );
+                                    }
+                                });
+                            } else {
+                                if (plugin.getTreasureManager().deleteTreasureLocal(persistentDataHolder)) {
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_LOCAL_SUCCESS,
                                         Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
                                             Utils.getDisplayName((Container) persistentDataHolder)));
-                                } else {
+                                }  else {
                                     final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_ERROR,
+                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_ERROR,
                                         Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
                                             Utils.getDisplayName((Container) persistentDataHolder)),
                                         Placeholder.component(PlaceHolderKey.CMD.getKey(),
@@ -359,9 +398,9 @@ public class TreasureListener implements Listener {
                                         )
                                     );
                                 }
-                            });
+                            }
                         } else {
-                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_BREAK_CONTAINER_DENIED);
+                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_REMOVE_DENIED);
                         }
                     }
                 }

@@ -91,7 +91,7 @@ public class SetForgetSubCommand extends ASubCommand {
                                         Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

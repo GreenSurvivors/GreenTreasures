@@ -7,6 +7,7 @@ import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Set;
 
 public class DeleteSubCommand extends ASubCommand {
+    protected static final @NotNull String GLOBAL = "global", LOCAL = "local";
 
     public DeleteSubCommand(@NotNull GreenTreasure plugin) {
         super(plugin);
@@ -53,10 +55,52 @@ public class DeleteSubCommand extends ASubCommand {
                 final @Nullable Ulid treasureId = plugin.getTreasureManager().getTreasureId(container);
 
                 if (treasureId != null) {
-                    plugin.getTreasureManager().deleteTreasure(container).thenAccept(success -> { // todo use success value here
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_DELETE_SUCCESS,
-                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
-                    });
+                    boolean isGlobal = true;
+
+                    if (args.length > 1) {
+                        if (args[1].equalsIgnoreCase(LOCAL)) {
+                            isGlobal = false;
+                        } else if (!args[1].equalsIgnoreCase(GLOBAL)) {
+                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_UNKNOWN,
+                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                            return true;
+                        }
+                    }
+
+                    final @NotNull String command = "/" + MainCommand.CMD + " " + getAliases().iterator().next();
+                    if (isGlobal) {
+                        plugin.getTreasureManager().deleteTreasure(container).thenAccept(success -> {
+                            if (success) {
+                                plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_GLOBAL_SUCCESS,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                            } else {
+                                plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_ERROR,
+                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                        Utils.getDisplayName(container)),
+                                    Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                        Component.text().
+                                            content(command).
+                                            clickEvent(ClickEvent.suggestCommand(command))
+                                    )
+                                );
+                            }
+                        });
+                    } else {
+                        if (plugin.getTreasureManager().deleteTreasureLocal(container)){
+                            plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_LOCAL_SUCCESS,
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                        } else {
+                            plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_ERROR,
+                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                    Utils.getDisplayName(container)),
+                                Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                    Component.text().
+                                        content(command).
+                                        clickEvent(ClickEvent.suggestCommand(command))
+                                )
+                            );
+                        }
+                    }
                 } else {
                     plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
                 }
@@ -73,6 +117,8 @@ public class DeleteSubCommand extends ASubCommand {
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
         if (args.length == 1) {
             return List.copyOf(getAliases());
+        } if (args.length == 2) {
+            return List.of(GLOBAL, LOCAL);
         } else {
             return new ArrayList<>();
         }

@@ -13,6 +13,7 @@ import java.util.Locale;
 public class TreasureConfig {
     protected final @NotNull ConfigOption<@NotNull String> language = new ConfigOption<>("language", "en-en");
     protected final @NotNull ConfigOption<@NotNull Boolean> importLegacy = new ConfigOption<>("import_legacy", false);
+    protected final @NotNull ConfigOption<@NotNull BreakBehavior> breakBehavior = new ConfigOption<>("break_behavior", BreakBehavior.ALL_BREAK_GLOBAL);
     protected static final @NotNull String CONFIG_KEY_SQL = "SQL";
     protected final @NotNull GreenTreasure plugin;
 
@@ -21,7 +22,7 @@ public class TreasureConfig {
     }
 
     /**
-     * Load main configurations.
+     * Load main configuration.
      */
     public void reload() {
         plugin.reloadConfig();
@@ -59,6 +60,29 @@ public class TreasureConfig {
             }, plugin.getDatabaseManager().hasConnection() ? 20 : 300);
         }
 
+        @Nullable BreakBehavior newBehavior = null;
+        final @Nullable String strBehavior = config.getString(breakBehavior.getPath());
+
+        if (strBehavior != null) {
+            try {
+                newBehavior = BreakBehavior.valueOf(strBehavior.toUpperCase(Locale.ENGLISH));
+            } catch (final @NotNull IllegalArgumentException e) {
+                plugin.getComponentLogger().warn("Could not load break behavior config option (invalid). Falling back to default.", e);
+            }
+        }
+
+        breakBehavior.setValue(newBehavior);
+
         plugin.saveConfig();
+    }
+
+    public @NotNull BreakBehavior getBreakBehavior() {
+        return breakBehavior.getValueOrFallback();
+    }
+
+    public enum BreakBehavior {
+        SHIFT_BREAKS_LOCAL,
+        ONLY_SHIFT_BREAKS_GLOBAL,
+        ALL_BREAK_GLOBAL
     }
 }

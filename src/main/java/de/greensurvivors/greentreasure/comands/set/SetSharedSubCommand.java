@@ -68,7 +68,7 @@ public class SetSharedSubCommand extends ASubCommand {
                                     Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_ENOUGH_ARGS);
+                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
                         plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);

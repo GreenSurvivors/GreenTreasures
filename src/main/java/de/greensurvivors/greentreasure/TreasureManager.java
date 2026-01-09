@@ -56,7 +56,19 @@ public class TreasureManager {
         dataHolder.getPersistentDataContainer().set(idKey, PersistentDataType.BYTE_ARRAY, treasureId.toBytes());
     }
 
-    public @NotNull CompletableFuture<@NotNull Boolean> deleteTreasure(final @NotNull PersistentDataHolder dataHolder) { // todo this have to get reworked, if multiple treasures with the same id ever get exposed to the user
+    public boolean deleteTreasureLocal (final @NotNull PersistentDataHolder dataHolder) {
+        final @Nullable Ulid treasureId = getTreasureId(dataHolder);
+
+        if (treasureId == null) {
+            return false;
+        } else {
+            dataHolder.getPersistentDataContainer().remove(idKey);
+
+            return true;
+        }
+    }
+
+    public @NotNull CompletableFuture<@NotNull Boolean> deleteTreasure(final @NotNull PersistentDataHolder dataHolder) {
         final @Nullable Ulid treasureId = getTreasureId(dataHolder);
 
         if (treasureId != null) {

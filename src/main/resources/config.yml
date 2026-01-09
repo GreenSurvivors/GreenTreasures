@@ -7,3 +7,4 @@ SQL:
 
 language: en_en
 import_legacy: false
+break_behavior: ALL_BREAK_GLOBAL
