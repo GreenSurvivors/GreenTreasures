@@ -10,11 +10,11 @@ import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -144,7 +144,9 @@ public class ListNearbyCommand extends ASubCommand {
                 super.numOfEntriesStillToDo--;
 
                 //build treasureInfo
-                @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_BODY,
+                final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
+
+                treasureInfoComponentBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_BODY,
                     Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), entry.getKey().treasureId().toString()),
                     Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) entry.getKey().nonEmptyPermyriad()) / 100.0d),
                     Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), entry.getKey().isShared()),
@@ -155,14 +157,13 @@ public class ListNearbyCommand extends ASubCommand {
                                 plugin.getMessageManager().formatLocation(location). // todo make the command configurable, since many plugins use /tppos
                                     clickEvent(ClickEvent.suggestCommand("/tp " + location.getX() + " " + location.getY() + " " + location.getZ()))
                             ).toList()))
-                );
+                ));
 
-                if (entry.getKey().timeUntilForget().isPositive()) {
-                    treasureInfoComponent = treasureInfoComponent.appendSpace().append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURE_FORGETPERIOD,
-                        Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatTime(entry.getKey().timeUntilForget()))));
+                if (entry.getKey().doesForget() || !entry.getKey().isUnlocked()) {
+                    treasureInfoComponentBuilder.appendSpace().append(entry.getKey().getRefreshInfo().infoMessage());
                 }
 
-                super.componentResult.add(treasureInfoComponent);
+                super.componentResult.add(treasureInfoComponentBuilder);
 
                 if (super.numOfEntriesStillToDo <= 0) {
                     sendMessage();

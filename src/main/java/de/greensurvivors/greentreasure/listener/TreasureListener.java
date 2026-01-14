@@ -37,6 +37,8 @@ import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -103,8 +105,8 @@ public class TreasureListener implements Listener {
 
                         plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
                             new PlayerLootDetail(
-                                wrapper.getFistLootedTimeStamp(),
-                                System.currentTimeMillis(),
+                                wrapper.getFistLootedInstant(),
+                                Instant.now(),
                                 Arrays.stream(eInventory.getContents()).collect(Collectors.toCollection(ArrayList::new))
                             )
                         );
@@ -183,46 +185,66 @@ public class TreasureListener implements Listener {
 
                 //test permission
                 if (ePlayer.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
-                    final @NotNull Component eTitle = event.getView().title();
+                    if (treasureInfo.isUnlocked()) {
+                        final @NotNull Component eTitle = event.getView().title();
 
-                    // call api event: TreasureOpenEvent
-                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
-                    treasureOpenEvent.callEvent();
+                        // call api event: TreasureOpenEvent
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                        treasureOpenEvent.callEvent();
 
-                    // evaluate result
-                    switch (treasureOpenEvent.getResult()) {
-                        case DEFAULT -> event.setCancelled(true);
-                        case ORIGINAL -> {
-                            return;
-                        }
-                        case CANCELED -> {
-                            event.setCancelled(true);
-                            return;
-                        }
-                    }
-
-                    if (treasureInfo.isShared()) {
-                        final @Nullable InventoryView inventoryView;
-                        if (views == null || views.isEmpty()) {
-                            inventoryView = null;
-                        } else {
-                            inventoryView = views.iterator().next();
+                        // evaluate result
+                        switch (treasureOpenEvent.getResult()) {
+                            case DEFAULT -> event.setCancelled(true);
+                            case ORIGINAL -> {
+                                return;
+                            }
+                            case CANCELED -> {
+                                event.setCancelled(true);
+                                return;
+                            }
                         }
 
-                        if (inventoryView != null && !treasureInfo.isUnlimited()) {
-                            // shared and already open inventory with our custom owner and with limited stock.
-                            // Just share the inventory to keep it sync across all players
-                            ePlayer.openInventory(inventoryView.getTopInventory());
-                        } else if (treasureInfo.isUnlimited()) {
-                            handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, null);
-                        } else {
-                            //load global treasure async
-                            plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                        if (treasureInfo.isShared()) {
+                            final @Nullable InventoryView inventoryView;
+                            if (views == null || views.isEmpty()) {
+                                inventoryView = null;
+                            } else {
+                                inventoryView = views.iterator().next();
+                            }
+
+                            if (inventoryView != null && !treasureInfo.isUnlimited()) {
+                                // shared and already open inventory with our custom owner and with limited stock.
+                                // Just share the inventory to keep it sync across all players
+                                ePlayer.openInventory(inventoryView.getTopInventory());
+                            } else if (treasureInfo.isUnlimited()) {
+                                handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, null);
+                            } else {
+                                //load global treasure async
+                                plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                                    handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, playerLootDetail));
+                            }
+                        } else { // not globally shared
+                            plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
                                 handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, playerLootDetail));
                         }
-                    } else { // not globally shared
-                        plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
-                            handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, playerLootDetail));
+                    } else {
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                        treasureOpenEvent.callEvent();
+
+                        switch (treasureOpenEvent.getResult()) {
+                            case DEFAULT -> {
+                                plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LOCKED,
+                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), event.getView().title()),
+                                    Placeholder.component(PlaceHolderKey.TIME.getKey(),
+                                        MessageManager.formatDuration(treasureInfo.getRefreshInfo().getTimeUntilFresh(null))));
+                                // don't open the original block inventory
+                                event.setCancelled(true);
+                            }
+                            case ORIGINAL -> {
+                            }
+                            case CANCELED -> event.setCancelled(true);
+                        }
+
                     }
                 } else {
                     TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, false);
@@ -253,18 +275,18 @@ public class TreasureListener implements Listener {
                 // unlimited treasure
                 treasureInfo.isUnlimited() ||
                 // automatically forget after a given time
-                (treasureInfo.timeUntilForget().isPositive() && (System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp()) > treasureInfo.timeUntilForget().toMillis())) {
+                treasureInfo.getRefreshInfo().canOpenFresh(playerLootDetail)) {
 
             nowLooting = createInventory(inventory, eTitle, null);
             Utils.setContents(nowLooting, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
-            sendLootMessage(player, treasureInfo, eTitle, null, true, treasureInfo.isUnlimited());
+            sendLootMessage(player, treasureInfo, eTitle, null, true);
         } else {
             nowLooting = createInventory(inventory, eTitle, playerLootDetail);
             // get items left there last time
             Utils.setContents(nowLooting, playerLootDetail.unLootedStuff());
 
-            sendLootMessage(player, treasureInfo, eTitle, playerLootDetail, false, false);
+            sendLootMessage(player, treasureInfo, eTitle, playerLootDetail, false);
         }
 
         final InventoryView view = player.openInventory(nowLooting);
@@ -277,7 +299,7 @@ public class TreasureListener implements Listener {
                                                       final @Nullable PlayerLootDetail playerLootDetail) {
         final @NotNull InventoryHolderWrapper<?> owner = new InventoryHolderWrapper<>(
             (InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(eInventory.getHolder(false)), false,
-            playerLootDetail != null ? playerLootDetail.firstLootedTimeStamp() : null
+            playerLootDetail != null ? playerLootDetail.firstLootedInstant() : null
         );
 
         if (eInventory.getType() == InventoryType.CHEST) {
@@ -288,17 +310,17 @@ public class TreasureListener implements Listener {
     }
 
     private void sendLootMessage(final @NotNull Player player, final @NotNull TreasureInfo treasureInfo, final @NotNull Component title,
-                                 final @Nullable PlayerLootDetail playerLootDetail, final boolean isFresh, final boolean isUnlimited) {
+                                 final @Nullable PlayerLootDetail playerLootDetail, final boolean isFresh) {
         final @Nullable String messageOverride = isFresh ? treasureInfo.rawFindFreshMessageOverride() : treasureInfo.rawFindLootedMessageOverride();
 
         if (messageOverride != null) {
             plugin.getMessageManager().sendMessage(player, MiniMessage.miniMessage().deserialize(messageOverride,
-                getTagResolvers(player, treasureInfo, title, playerLootDetail, isUnlimited)));
+                getTagResolvers(player, treasureInfo, title, playerLootDetail)));
         } else if (!isFresh) { // already looted limited
             plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_ALREADY_LOOTED,
-                getTagResolvers(player, treasureInfo, title, playerLootDetail, isUnlimited));
+                getTagResolvers(player, treasureInfo, title, playerLootDetail));
         } else {
-            if (isUnlimited) {
+            if (treasureInfo.isUnlimited()) {
                 plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_UNLIMITED);
             } else {
                 plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_LIMITED);
@@ -307,19 +329,20 @@ public class TreasureListener implements Listener {
     }
 
     private static @NotNull TagResolver @NotNull [] getTagResolvers(final @NotNull Player player, final @NotNull TreasureInfo treasureInfo, final @NotNull Component title,
-                                                                    final @Nullable PlayerLootDetail playerLootDetail, final boolean isUnlimited) {
+                                                                    final @Nullable PlayerLootDetail playerLootDetail) {
         final @NotNull TagResolver @NotNull [] resolvers;
+        final @Nullable Duration timeUntilFresh = treasureInfo.getRefreshInfo().getTimeUntilFresh(playerLootDetail);
         // add time until forget if we got one
-        if (playerLootDetail == null || isUnlimited || treasureInfo.timeUntilForget().isNegative()) {
+        if ((playerLootDetail == null && treasureInfo.isUnlocked()) || treasureInfo.isUnlimited() || timeUntilFresh == null) {
             resolvers = new TagResolver[3];
         } else {
             resolvers = new TagResolver[4];
-            resolvers[3] = Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatTime(treasureInfo.timeUntilForget().minusMillis(System.currentTimeMillis() - playerLootDetail.firstLootedTimeStamp())));
+            resolvers[3] = Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatDuration(timeUntilFresh));
         }
 
         resolvers[0] = Placeholder.component(PlaceHolderKey.PLAYER.getKey(), player.displayName());
         resolvers[1] = Placeholder.component(PlaceHolderKey.TEXT.getKey(), title);
-        resolvers[2] = Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), isUnlimited);
+        resolvers[2] = Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited());
 
         return resolvers;
     }

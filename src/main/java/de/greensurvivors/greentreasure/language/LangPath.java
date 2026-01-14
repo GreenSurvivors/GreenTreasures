@@ -9,6 +9,7 @@ public enum LangPath {
     ACTION_REMOVE_DENIED("action.remove.denied"),
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
     ACTION_FIND_LIMITED("action.find.limited"),
+    ACTION_FIND_LOCKED("action.find.locked"),
     ACTION_FIND_UNLIMITED("action.find.unlimited"),
     ACTION_TREASURE_EDITED("action.treasure-edit.success"),
 
@@ -45,7 +46,6 @@ public enum LangPath {
     CMD_LIST_NEARBY_TREASURES_EMPTY("cmd.list.nearby-treasures.empty"),
     CMD_LIST_NEARBY_TREASURES_HEADER("cmd.list.nearby-treasures.header"),
     CMD_LIST_NEARBY_TREASURES_BODY("cmd.list.nearby-treasures.body"),
-    CMD_LIST_TREASURE_FORGETPERIOD("cmd.list.treasures.forget-period"),
     CMD_LIST_WHO_BODY("cmd.list.who.body"),
     CMD_LIST_WHO_EMPTY("cmd.list.who.empty"),
     CMD_LIST_WHO_HEADER("cmd.list.who.header"),
@@ -64,6 +64,7 @@ public enum LangPath {
     CMD_SET_SHARED_SUCCESS("cmd.set.shared.success"),
     CMD_SET_UNLIMITED_SUCCESS("cmd.set.unlimited.success"),
     CMD_SET_FORGET_DURATION_SUCCESS("cmd.set.forget.duration.success"),
+    CMD_SET_FORGET_DURATION_INSTANT_SUCCESS("cmd.set.forget.duration-instant.success"),
     CMD_CANCEL_SUCCESS_OTHER("cmd.cancel.success.other"),
     CMD_CANCEL_SUCCESS_SELF("cmd.cancel.success.self"),
     CMD_CANCEL_SUCCESS_IMPORT("cmd.cancel.success.import"),
@@ -90,7 +91,12 @@ public enum LangPath {
     //
     TREASURE_TITLE_EDIT("treasure.title.edit"),
     TREASURE_TITLE_PEEK_SHARED("treasure.title.peek.shared"),
-    TREASURE_TITLE_PEEK_PLAYER("treasure.title.peek.player");
+    TREASURE_TITLE_PEEK_PLAYER("treasure.title.peek.player"),
+
+    REFRESH_MSG_INFO_PERIODIC("refresh.msg.info.periodic"),
+    REFRESH_MSG_INFO_PERIODIC_INSTANT("refresh.msg.info.periodic_instant"),
+    REFRESH_MSG_INFO_NEVER("refresh.msg.info.never"),
+    REFRESH_MSG_INFO_INSTANT_UNLOCK("refresh.msg.info.instant_unlock");
 
     private final @NotNull @PropertyKey(resourceBundle = "lang") String path;
     private final @NotNull String defaultValue;

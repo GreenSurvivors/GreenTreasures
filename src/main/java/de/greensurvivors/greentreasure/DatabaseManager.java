@@ -5,6 +5,7 @@ import com.github.f4b6a3.ulid.Ulid;
 import com.zaxxer.hikari.HikariDataSource;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.dataobjects.refreshInfo.*;
 import org.apache.commons.collections4.list.SetUniqueList;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.Range;
 
 import java.sql.*;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -45,7 +47,9 @@ public class DatabaseManager {
         TREASURE_FIRST_TIMESTAMP_KEY = "timestampfirst",
         /// the items of this treasure, the player data table as well as the treasure table have the same column name
         TREASURE_CONTENT_KEY = "content",
-        TREASURE_FORGET_DURATION_KEY = "forgetduration",
+        TREASURE_REFRESH_DURATION_LEGACY_KEY = "forgetduration",
+        TREASURE_REFRESH_DURATION_KEY = "refreshduration",
+        TREASURE_REFRESH_START_TIME_KEY = "refreshstart",
         TREASURE_NON_EMPTY_PERMYRIAD_KEY = "nonemptypermyriad",
         TREASURE_UNLIMITED_KEY = "unlimited",
         TREASURE_SHARED_KEY = "shared",
@@ -173,6 +177,7 @@ public class DatabaseManager {
             // pre start pool - the first time hasConnection() is called would return false otherwise since the pool needs a second to start after it was invoked
             createTableUser();
             createTableTreasure();
+            updateTableTreasure();
             createTablePlayerData();
         }
     }
@@ -448,7 +453,7 @@ public class DatabaseManager {
      * @param forgettingDuration how long a Treasure has to be not looted until it is filled again.
      *                           negative or null values mean the Treasure will never restock.
      */
-    public @NotNull CompletableFuture<Void> setForgetDuration(final @NotNull Ulid treasureId, final @Nullable Duration forgettingDuration) {
+    public @NotNull CompletableFuture<Void> setForgetDuration(final @NotNull Ulid treasureId, final @Nullable Instant forgetStart, final @Nullable Duration forgettingDuration) {
         final @NotNull CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -457,13 +462,16 @@ public class DatabaseManager {
                 return;
             }
 
-            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE +
-                " SET " + TREASURE_FORGET_DURATION_KEY + " = ? WHERE " + TREASURE_ID_KEY + " = ?";
+            final @NotNull String statementStr = "UPDATE " + TREASURE_TABLE + " SET " +
+                TREASURE_REFRESH_DURATION_KEY + " = ?, " +
+                TREASURE_REFRESH_START_TIME_KEY + " = ? " +
+                " WHERE " + TREASURE_ID_KEY + " = ?";
 
             try (final @NotNull Connection connection = dataSource.getConnection();
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
                 preparedStatement.setLong(1, forgettingDuration == null ? DEFAULT_FORGET_DURATION_MILLIS : forgettingDuration.toMillis());
-                preparedStatement.setBytes(2, treasureId.toBytes());
+                preparedStatement.setObject(2, forgetStart == null ? null : forgetStart.toEpochMilli());
+                preparedStatement.setBytes(3, treasureId.toBytes());
 
                 int rowsAffected = preparedStatement.executeUpdate();
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -571,7 +579,8 @@ public class DatabaseManager {
     public @Nullable TreasureInfo loadTreasureUrgently(final @NotNull Ulid treasureId) {
         final @NotNull String statementStr = "SELECT " +
             TREASURE_CONTENT_KEY + ", " +
-            TREASURE_FORGET_DURATION_KEY + ", " +
+            TREASURE_REFRESH_DURATION_KEY + ", " +
+            TREASURE_REFRESH_START_TIME_KEY + "," +
             TREASURE_NON_EMPTY_PERMYRIAD_KEY + ", " +
             TREASURE_UNLIMITED_KEY + ", " +
             TREASURE_SHARED_KEY + ", " +
@@ -588,7 +597,8 @@ public class DatabaseManager {
 
                 if (resultSet.next()) {
                     final @NotNull Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                    final long forgetDurationMillis = resultSet.getLong(TREASURE_FORGET_DURATION_KEY);
+                    final long forgetDurationMillis = resultSet.getLong(TREASURE_REFRESH_DURATION_KEY);
+                    final @Nullable Long forgetStartMillis = resultSet.getObject(TREASURE_REFRESH_START_TIME_KEY, Long.TYPE);
                     final short nonEmptyPermyriad = resultSet.getShort(TREASURE_NON_EMPTY_PERMYRIAD_KEY);
                     final boolean isUnlimited = resultSet.getBoolean(TREASURE_UNLIMITED_KEY);
                     final boolean isShared = resultSet.getBoolean(TREASURE_SHARED_KEY);
@@ -603,7 +613,22 @@ public class DatabaseManager {
                     final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
                     blob.free();
 
-                    return new TreasureInfo(treasureId, items, Duration.ofMillis(forgetDurationMillis), nonEmptyPermyriad, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
+                    final @NotNull ARefreshInfo forgetContainer;
+                    if (forgetDurationMillis <= 0) {
+                        if (forgetStartMillis == null) {
+                            forgetContainer = new NoForget(plugin);
+                        } else {
+                            forgetContainer = new InstantUnlock(plugin, Instant.ofEpochMilli(forgetStartMillis));
+                        }
+                    } else {
+                        if (forgetStartMillis == null) {
+                            forgetContainer = new PeriodicForget(plugin, Duration.ofMillis(forgetDurationMillis));
+                        } else {
+                            forgetContainer = new PeriodicInstantForget(plugin, Instant.ofEpochMilli(forgetStartMillis), Duration.ofMillis(forgetDurationMillis));
+                        }
+                    }
+
+                    return new TreasureInfo(treasureId, items, forgetContainer, nonEmptyPermyriad, isUnlimited, isShared, findFreshMessageOverride, findLootedMessageOverride);
                 } else { // this treasure was deleted / never created
                     plugin.getComponentLogger().debug("got no answer for get request for treasure info {}, on thread {}", treasureId, Thread.currentThread().getName());
                     return null;
@@ -712,8 +737,8 @@ public class DatabaseManager {
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
                 preparedStatement.setBytes(1, treasureId.toBytes());
                 preparedStatement.setString(2, player == null ? SHARED_PROFILE.getId().toString() : player.getUniqueId().toString());
-                preparedStatement.setLong(3, lootDetail.firstLootedTimeStamp());
-                preparedStatement.setLong(4, lootDetail.lastChangedTimeStamp());
+                preparedStatement.setLong(3, lootDetail.firstLootedInstant().toEpochMilli());
+                preparedStatement.setLong(4, lootDetail.lastChangedInstant().toEpochMilli());
 
                 final @NotNull Blob blob = connection.createBlob();
                 if (lootDetail.unLootedStuff() == null) {
@@ -728,12 +753,12 @@ public class DatabaseManager {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(null));
 
                 plugin.getComponentLogger().debug("Rows affected: {} -> successfully finished set request for player {} at timestamp {}, on thread {}",
-                    rowsAffected, player == null ? SHARED_PROFILE.getName() : player.getName(), lootDetail.lastChangedTimeStamp(), Thread.currentThread().getName());
+                    rowsAffected, player == null ? SHARED_PROFILE.getName() : player.getName(), lootDetail.lastChangedInstant(), Thread.currentThread().getName());
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));
 
                 plugin.getComponentLogger().warn("Could not set player loot data for '{}' at timestamp '{}' for '{}'",
-                    treasureId, lootDetail.lastChangedTimeStamp(), player == null ? SHARED_PROFILE.getName() : player.getName(), e);
+                    treasureId, lootDetail.lastChangedInstant(), player == null ? SHARED_PROFILE.getName() : player.getName(), e);
 
                 if (e instanceof SQLSyntaxErrorException && MISSING_TABLE_PATTERN.matcher(e.getMessage()).matches()) {
                     Bukkit.getScheduler().runTask(plugin, plugin::shutdownForcefully);
@@ -781,8 +806,8 @@ public class DatabaseManager {
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
                     if (resultSet.next()) {
-                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
-                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
+                        final @NotNull Instant firstLootedInstant = Instant.ofEpochMilli(resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY));
+                        final @NotNull Instant lastChangedInstant = Instant.ofEpochMilli(resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY));
 
                         //get list from string
                         final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
@@ -795,7 +820,7 @@ public class DatabaseManager {
                         }
 
                         plugin.getComponentLogger().debug("successfully got data for getPlayerData request for player {}: {}, on thread {}", player == null ? "!Shared!" : player.getName(), items, Thread.currentThread().getName());
-                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items)));
+                        Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new PlayerLootDetail(firstLootedInstant, lastChangedInstant, items)));
                     } else { //player had never opened this treasure
 
                         plugin.getComponentLogger().debug("got no answer for get request for player {}, and defaulted to null player data, on thread {}",
@@ -914,12 +939,12 @@ public class DatabaseManager {
                 preparedStatement.setBytes(1, treasureId.toBytes());
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    final Map<UUID, PlayerLootDetail> result = new HashMap<>();
+                    final @NotNull Map<@NotNull UUID, @NotNull PlayerLootDetail> result = new HashMap<>();
 
                     while (resultSet.next()) {
-                        final UUID playerUUID = UUID.fromString(resultSet.getString(UUID_KEY));
-                        final long firstTimeStamp = resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY);
-                        final long lastTimeStamp = resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY);
+                        final @NotNull UUID playerUUID = UUID.fromString(resultSet.getString(UUID_KEY));
+                        final @NotNull Instant firstLootedInstant = Instant.ofEpochMilli(resultSet.getLong(TREASURE_FIRST_TIMESTAMP_KEY));
+                        final @NotNull Instant lastChangedInstant = Instant.ofEpochMilli(resultSet.getLong(TREASURE_LAST_TIMESTAMP_KEY));
 
                         //get list from string
                         final @Nullable Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
@@ -931,7 +956,7 @@ public class DatabaseManager {
                             blob.free();
                         }
 
-                        result.put(playerUUID, new PlayerLootDetail(firstTimeStamp, lastTimeStamp, items));
+                        result.put(playerUUID, new PlayerLootDetail(firstLootedInstant, lastChangedInstant, items));
                     }
 
                     Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(result));
@@ -987,7 +1012,8 @@ public class DatabaseManager {
             final String statementStr = "CREATE TABLE IF NOT EXISTS " + TREASURE_TABLE + " (" +
                 TREASURE_ID_KEY + " BINARY(16) PRIMARY KEY, " +
                 TREASURE_CONTENT_KEY + " MEDIUMBLOB NOT NULL, " +
-                TREASURE_FORGET_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
+                TREASURE_REFRESH_DURATION_KEY + " BIGINT NOT NULL DEFAULT " + DEFAULT_FORGET_DURATION_MILLIS + ", " + // < 0 means no forgetting
+                TREASURE_REFRESH_START_TIME_KEY + " BIGINT NULL DEFAULT NULL, " + // even though it is unlikely, using any time instant before Epoch is valid, so we have to use NULL as "not set"
                 TREASURE_NON_EMPTY_PERMYRIAD_KEY + " SMALLINT UNSIGNED NOT NULL DEFAULT " + DEFAULT_SLOT_CHANCE + ", " +
                 TREASURE_UNLIMITED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_UNLIMITED + ", " +
                 TREASURE_SHARED_KEY + " BOOLEAN NOT NULL DEFAULT " + DEFAULT_IS_SHARED + ", " +
@@ -999,6 +1025,41 @@ public class DatabaseManager {
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
                 plugin.getComponentLogger().error("Could not create treasure data table.", e);
+            }
+        }
+    }
+
+    protected void updateTableTreasure() {
+        if (dataSource != null) {
+            try (final @NotNull Connection connection = dataSource.getConnection()){
+                @NotNull String statementStr = "ALTER TABLE " + TREASURE_TABLE;
+                int changesToMake = 0;
+
+                // todo someone smart probably can just call getColumns with a null key for the column key and check the resultset. I didn't understand the JavaDocs nor the result itself...
+                if (connection.getMetaData().getColumns(null, null, TREASURE_TABLE, TREASURE_REFRESH_DURATION_LEGACY_KEY).next()) {
+                    statementStr += "RENAME COLUMN " + TREASURE_REFRESH_DURATION_LEGACY_KEY + " TO " + TREASURE_REFRESH_DURATION_KEY;
+                    changesToMake++;
+                }
+                if (!connection.getMetaData().getColumns(null, null, TREASURE_TABLE, TREASURE_REFRESH_START_TIME_KEY).next()) {
+                    if (changesToMake > 0) {
+                        statementStr += ", ";
+                    }
+
+                    statementStr += TREASURE_REFRESH_START_TIME_KEY + " BIGINT NULL DEFAULT NULL";
+                    changesToMake++;
+                }
+
+                if (changesToMake > 0) {
+                    try (final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)){
+                        preparedStatement.executeUpdate();
+
+                        plugin.getComponentLogger().info("Amended table " + TREASURE_TABLE);
+                    }
+                } else {
+                    plugin.getComponentLogger().debug("Table " + TREASURE_TABLE + " is up to date!");
+                }
+            } catch (final @NotNull SQLException e) {
+                plugin.getComponentLogger().error("Could not amend treasure data table.", e);
             }
         }
     }

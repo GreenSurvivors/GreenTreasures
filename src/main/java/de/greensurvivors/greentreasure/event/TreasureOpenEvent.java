@@ -1,6 +1,9 @@
 package de.greensurvivors.greentreasure.event;
 
+import com.github.f4b6a3.ulid.Ulid;
+import de.greensurvivors.greentreasure.DatabaseManager;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
@@ -9,9 +12,13 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * called if a player opens a treasure
+ * <br>
  * Note: this Event doesn't include PlayerLootDetail, since it's loaded async,
  * and therefore we couldn't cancel the open-Inventory-event afterward.
- * If you need the info, you have to call TreasureConfig.inst().getPlayerLootDetail() yourself.
+ * If you need the info, you have to call {@link DatabaseManager#getPlayerData(OfflinePlayer, Ulid)} yourself.
+ * <br>
+ * Note: an event happens even if the Treasure isn't unlocked yet.
+ * use {@link TreasureInfo#isUnlocked()} to check this case!
  */
 public class TreasureOpenEvent extends PlayerEvent implements Cancellable {
     private static final @NotNull HandlerList handlers = new HandlerList();

@@ -11,10 +11,10 @@ import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
@@ -127,19 +127,20 @@ public class ListTreasuresSubCommand extends ASubCommand {
             super.numOfEntriesStillToDo--;
 
             //build treasureInfo
-            @NotNull Component treasureInfoComponent = plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
+            final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
+
+            treasureInfoComponentBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) treasureInfo.nonEmptyPermyriad()) / 100.0d),
                 Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), treasureInfo.isShared()),
                 Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited())
-            );
+            ));
 
-            if (treasureInfo.timeUntilForget().isPositive()) {
-                treasureInfoComponent = treasureInfoComponent.appendSpace().append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURE_FORGETPERIOD,
-                    Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatTime(treasureInfo.timeUntilForget()))));
+            if (treasureInfo.doesForget() || !treasureInfo.isUnlocked()) {
+                treasureInfoComponentBuilder.appendSpace().append(treasureInfo.getRefreshInfo().infoMessage());
             }
 
-            super.componentResult.add(treasureInfoComponent);
+            super.componentResult.add(treasureInfoComponentBuilder);
 
             if (super.numOfEntriesStillToDo <= 0) {
                 sendMessage();

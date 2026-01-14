@@ -12,6 +12,7 @@ import org.apache.commons.io.FileUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.plugin.Plugin;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -21,9 +22,14 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
 import java.security.CodeSource;
+import java.time.DateTimeException;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAccessor;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
@@ -37,16 +43,17 @@ import java.util.zip.ZipInputStream;
 public class MessageManager {
     // please note: since minutes and months both are identified by m, it is intentional for this pattern to NOT be
     // case-insensitive!
-    private static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWMyY])");
-    private final String BUNDLE_NAME = "lang";
-    final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
-    private final Plugin plugin;
-    private ResourceBundle lang;
+    protected static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWMyY])");
+    protected static final String BUNDLE_NAME = "lang";
+    protected static final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
+    protected final @NotNull Plugin plugin;
+    protected ResourceBundle lang;
     /**
      * caches every component without placeholder for faster access in future and loads missing values automatically
      */
-    private final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
+    protected final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
         path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
+    protected @MonotonicNonNull DateTimeFormatter dateTimeFormatter;
 
     public MessageManager(final @NotNull Plugin plugin) {
         this.plugin = plugin;
@@ -62,8 +69,8 @@ public class MessageManager {
      * S = amount of seconds, if any
      * T = amount of ticks, if any
      */
-    public static @NotNull Component formatTime(final @NotNull Duration duration) {
-        StringBuilder timeStr = new StringBuilder();
+    public static @NotNull Component formatDuration(final @NotNull Duration duration) { // todo better format
+        final @NotNull StringBuilder timeStr = new StringBuilder();
 
         final long days = duration.toDaysPart();
         if (days != 0) { // todo represent more then days
@@ -93,6 +100,14 @@ public class MessageManager {
             timeStr.append(ticks).append("t");
         }
         return Component.text(timeStr.toString());
+    }
+
+    public @NotNull String formatTime(final @NotNull TemporalAccessor temporalAccessor) {
+        return dateTimeFormatter.format(temporalAccessor);
+    }
+
+    public @NotNull Instant parseTime(final @NotNull String string) throws DateTimeException {
+        return dateTimeFormatter.parse(string, Instant::from);
     }
 
     /**
@@ -197,6 +212,10 @@ public class MessageManager {
         langCache.invalidateAll();
         langCache.cleanUp();
         langCache.asMap().clear();
+
+        dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT, FormatStyle.MEDIUM).
+            withLocale(locale).
+            withZone(TimeZone.getDefault().toZoneId());
     }
 
     private @NotNull String saveConvert(final @NotNull String theString, final boolean escapeSpace) {

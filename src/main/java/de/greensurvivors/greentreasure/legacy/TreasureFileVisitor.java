@@ -214,7 +214,7 @@ class TreasureFileVisitor extends ALegacyFileVisitor {
                     if (forget_time.isZero()) {
                         forget_time = DEFAULT_FORGETTING_PERIOD;
                     }
-                    return databaseManager.setForgetDuration(treasureId, forget_time);
+                    return databaseManager.setForgetDuration(treasureId, null, forget_time);
                 }
                 return CompletableFuture.completedStage(null);
             }, bukkitAsyncExecutor).thenComposeAsync(voidz -> {

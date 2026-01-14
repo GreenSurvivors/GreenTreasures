@@ -25,8 +25,10 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.text.DateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 public class ListWhoSubCommand extends ASubCommand {
 
@@ -154,7 +156,7 @@ public class ListWhoSubCommand extends ASubCommand {
                 Placeholder.component(PlaceHolderKey.TIME.getKey(),
                     (playerLootDetail.unLootedStuff() == null) ?
                         plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :
-                        Component.text(DateFormat.getDateTimeInstance().format(new Date(playerLootDetail.lastChangedTimeStamp())))
+                        Component.text(plugin.getMessageManager().formatTime(playerLootDetail.lastChangedInstant()))
                 )
             ));
 

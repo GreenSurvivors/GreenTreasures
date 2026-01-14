@@ -15,6 +15,7 @@ public enum PlaceHolderKey {
     SHARED("shared"),
     TEXT("text"),
     TIME("time"),
+    START("start"),
     TREASURE_ID("treasure_id"),
     UNLIMITED("unlimited"),
     WORLD("world"),

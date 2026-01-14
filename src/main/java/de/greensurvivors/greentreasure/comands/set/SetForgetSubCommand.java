@@ -14,14 +14,17 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.time.DateTimeException;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 public class SetForgetSubCommand extends ASubCommand {
     // time suffixes
-    private static final String
+    protected static final @NotNull String
         SUFFIX_YEAR = "y",
         SUFFIX_WEEK = "w",
         SUFFIX_DAY = "d",
@@ -29,6 +32,9 @@ public class SetForgetSubCommand extends ASubCommand {
         SUFFIX_MINUTE = "m",
         SUFFIX_SECOND = "s",
         SUFFIX_TICK = "t";
+    protected static final @NotNull String
+        STARTING_AT = "startingat",
+        STARTING = "starting";
 
     public SetForgetSubCommand(@NotNull GreenTreasure plugin) {
         super(plugin);
@@ -67,7 +73,12 @@ public class SetForgetSubCommand extends ASubCommand {
                         if (args.length > 2) {
                             @NotNull Duration forgetDuration = Duration.ZERO;
 
-                            for (int i = 2; i < args.length; i++) {
+                            int i = 2;
+                            for (; i < args.length; i++) {
+                                if (args[i].equalsIgnoreCase(STARTING_AT) || args[i].equalsIgnoreCase(STARTING)) {
+                                    break;
+                                }
+
                                 final @Nullable Duration temp = plugin.getMessageManager().parseDuration(args[i]);
 
                                 if (temp != null) {
@@ -79,16 +90,35 @@ public class SetForgetSubCommand extends ASubCommand {
                                 }
                             }
 
-                            if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
-                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null).thenRun(() ->
-                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
-                                );
-                            } else {
-                                final @NotNull Component formattedTime = MessageManager.formatTime(forgetDuration);
+                            @Nullable Instant start = null;
+                            if (args.length > ++i) {
+                                try {
+                                    start = plugin.getMessageManager().parseTime(args[i]);
+                                } catch (DateTimeException e){
+                                    plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_TIME,
+                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[i]));
+                                }
+                            }
 
-                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), forgetDuration).thenRun(() ->
-                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_SUCCESS,
-                                        Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedTime)));
+                            if (forgetDuration.isZero() || forgetDuration.isNegative()) { //negative values turn forget off
+                                plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), start, null).thenRun(() ->
+                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_REMOVE_DURATION)
+                                ); // todo this technically also sets unlocks
+                            } else {
+                                final @NotNull Component formattedDuration = MessageManager.formatDuration(forgetDuration);
+
+                                if (start == null) {
+                                    plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), null, forgetDuration).thenRun(() ->
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_SUCCESS,
+                                            Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedDuration)));
+                                } else {
+                                    final @NotNull Component formattedStart = Component.text(plugin.getMessageManager().formatTime(start));
+
+                                    plugin.getDatabaseManager().setForgetDuration(treasureInfo.treasureId(), start, forgetDuration).thenRun(() ->
+                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_FORGET_DURATION_INSTANT_SUCCESS,
+                                            Placeholder.component(PlaceHolderKey.TIME.getKey(), formattedDuration),
+                                            Placeholder.component(PlaceHolderKey.START.getKey(), formattedStart)));
+                                }
                             }
                         } else {
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
@@ -108,8 +138,8 @@ public class SetForgetSubCommand extends ASubCommand {
     }
 
     public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
-        if (args.length > 2) {
-            return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK);
+        if (args.length > 2 && Arrays.stream(args).noneMatch(it -> it.equalsIgnoreCase(STARTING_AT) || it.equalsIgnoreCase(STARTING))) {
+            return List.of(SUFFIX_YEAR, SUFFIX_WEEK, SUFFIX_DAY, SUFFIX_HOUR, SUFFIX_MINUTE, SUFFIX_SECOND, SUFFIX_TICK, STARTING_AT, STARTING);
         }
 
         return new ArrayList<>();

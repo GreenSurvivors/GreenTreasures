@@ -19,6 +19,7 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -133,7 +134,7 @@ class PlayerFileVisitor extends ALegacyFileVisitor {
                                                         final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
                                                         if (asyncTreasureId != null) {
-                                                            plugin.getDatabaseManager().setPlayerData(plugin.getServer().getOfflinePlayer(uuid), asyncTreasureId, new PlayerLootDetail(lootedTimeStamp, List.of())).whenComplete((voidz, ex) -> {
+                                                            plugin.getDatabaseManager().setPlayerData(plugin.getServer().getOfflinePlayer(uuid), asyncTreasureId, new PlayerLootDetail(Instant.ofEpochMilli(lootedTimeStamp), List.of())).whenComplete((voidz, ex) -> {
                                                                 if (ex == null) {
                                                                     plugin.getComponentLogger().debug("Imported player data for name {} / uuid {} from path {}", playerName, uuid, filePath);
 

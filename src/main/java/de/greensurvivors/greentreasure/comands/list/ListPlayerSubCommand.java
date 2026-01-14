@@ -23,7 +23,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 
-import java.text.DateFormat;
 import java.util.*;
 
 public class ListPlayerSubCommand extends ASubCommand {
@@ -172,7 +171,7 @@ public class ListPlayerSubCommand extends ASubCommand {
                         Placeholder.component(PlaceHolderKey.TIME.getKey(),
                             (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ?
                                 plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :
-                                Component.text(DateFormat.getDateTimeInstance().format(new Date(playerLootDetail_result.lastChangedTimeStamp()))))));
+                                Component.text(plugin.getMessageManager().formatTime(playerLootDetail_result.lastChangedInstant())))));
 
                     if (super.numOfEntriesStillToDo <= 0) {
                         sendMessage();

@@ -21,6 +21,7 @@ import org.bukkit.permissions.Permissible;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -108,7 +109,7 @@ public class PeekSubCommand extends ASubCommand {
                                     }
 
                                     plugin.getCommandInventoriesListener().addPeekingTreasure(player.openInventory(nowPeeking),
-                                        new PeekedTreasure(null, treasureInfo.treasureId(), System.currentTimeMillis(), System.currentTimeMillis()));
+                                        new PeekedTreasure(null, treasureInfo.treasureId(), Instant.now(), Instant.now()));
                                 });
                             } else {
                                 final @NotNull OfflinePlayer playerToPeek;
@@ -155,7 +156,7 @@ public class PeekSubCommand extends ASubCommand {
                                             new InventoryHolderWrapper<>(
                                                 container,
                                                 true,
-                                                playerLootDetail == null ? null : playerLootDetail.firstLootedTimeStamp()
+                                                playerLootDetail == null ? null : playerLootDetail.firstLootedInstant()
                                             ),
                                             container.getInventory().getSize(),
                                             title
@@ -165,7 +166,7 @@ public class PeekSubCommand extends ASubCommand {
                                             new InventoryHolderWrapper<>(
                                                 container,
                                                 true,
-                                                playerLootDetail == null ? null : playerLootDetail.firstLootedTimeStamp()
+                                                playerLootDetail == null ? null : playerLootDetail.firstLootedInstant()
                                             ),
                                             container.getInventory().getType(),
                                             title
@@ -185,8 +186,8 @@ public class PeekSubCommand extends ASubCommand {
                                         new PeekedTreasure(
                                             playerToPeek.getUniqueId(),
                                             treasureInfo.treasureId(),
-                                            playerLootDetail == null ? System.currentTimeMillis() : playerLootDetail.firstLootedTimeStamp(),
-                                            playerLootDetail == null ? System.currentTimeMillis() : playerLootDetail.lastChangedTimeStamp()
+                                            playerLootDetail == null ? Instant.now() : playerLootDetail.firstLootedInstant(),
+                                            playerLootDetail == null ? Instant.now() : playerLootDetail.lastChangedInstant()
                                         )
                                     );
                                     plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
