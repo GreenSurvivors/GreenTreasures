@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
+import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
@@ -76,7 +77,7 @@ public class DatabaseManager {
     private final @NotNull GreenTreasure plugin;
     /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
     private volatile @NotNull ExecutorService asyncExecutor;
-    private volatile @Nullable HikariDataSource dataSource = null;
+    private volatile @MonotonicNonNull HikariDataSource dataSource = null;
     // connection information
     private volatile @NotNull String host = "localhost", database = "database";
     private volatile @Nullable String loginUserName = null, password = null;

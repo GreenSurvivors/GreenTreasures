@@ -106,7 +106,7 @@ public class MessageManager {
         return dateTimeFormatter.format(temporalAccessor);
     }
 
-    public @NotNull Instant parseTime(final @NotNull String string) throws DateTimeException {
+    public @NotNull Instant parseInstant(final @NotNull String string) throws DateTimeException {
         return dateTimeFormatter.parse(string, Instant::from);
     }
 
@@ -281,17 +281,17 @@ public class MessageManager {
      * saves all missing lang files from resources to the plugins datafolder
      */
     private void initLangFiles() {
-        CodeSource src = this.getClass().getProtectionDomain().getCodeSource();
+        final @Nullable CodeSource src = this.getClass().getProtectionDomain().getCodeSource();
         if (src != null) {
-            URL jarUrl = src.getLocation();
-            try (ZipInputStream zipStream = new ZipInputStream(jarUrl.openStream())) {
+            final @NotNull URL jarUrl = src.getLocation();
+            try (final @NotNull ZipInputStream zipStream = new ZipInputStream(jarUrl.openStream())) {
                 ZipEntry zipEntry;
                 while ((zipEntry = zipStream.getNextEntry()) != null) {
                     if (zipEntry.isDirectory()) {
                         continue;
                     }
 
-                    String entryName = zipEntry.getName();
+                    final @NotNull String entryName = zipEntry.getName();
 
                     if (BUNDLE_FILE_NAME_PATTERN.matcher(entryName).matches()) {
                         File langFile = new File(new File(plugin.getDataFolder(), BUNDLE_NAME), entryName);

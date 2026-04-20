@@ -92,11 +92,13 @@ public class SetForgetSubCommand extends ASubCommand {
 
                             @Nullable Instant start = null;
                             if (args.length > ++i) {
+                                String timeStr = String.join(" ", Arrays.copyOfRange(args, i, args.length));
                                 try {
-                                    start = plugin.getMessageManager().parseTime(args[i]);
+                                    start = plugin.getMessageManager().parseInstant(timeStr);
                                 } catch (DateTimeException e){
                                     plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_TIME,
-                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[i]));
+                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), timeStr));
+                                    return;
                                 }
                             }
 

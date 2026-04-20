@@ -69,8 +69,7 @@ public class MainCommand extends Command { // todo adapt to Brigadier
      * @param sender sender of this command looking at a container
      * @return container or null if the living entity is not looking at a container
      */
-    @Nullable
-    public Container getContainer(final @NotNull CommandSender sender) { // todo move and make static
+    public @Nullable Container getContainer(final @NotNull CommandSender sender) { // todo move and make static
         if (sender instanceof LivingEntity livingEntity) {
             // is the player looking at a container?
             Block block = livingEntity.getTargetBlockExact(5);
