@@ -70,7 +70,7 @@ public class ListNearbyCommand extends ASubCommand {
                                     final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
                                     if (args.length >= 4) {
                                         //limit page to how many exits
-                                        pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[3])));
+                                        pageNow = Math.clamp(Integer.parseInt(args[3]), 1, numPages);
                                     } else {
                                         pageNow = 1;
                                     }

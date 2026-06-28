@@ -1,19 +1,19 @@
 plugins {
     `java-library`
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
     id("xyz.jpenilla.run-paper") version "3.0.2"
 }
 
 group = "de.greensurvivors"
 description = "Like TreasureChest but with less bugs!"
 version = buildString {
-    append(project.properties["plugin_version"])
+    append(getProperty("plugin_version"))
 
-    if ((project.properties["is_release"] as String).toBoolean().not()) {
+    if (getProperty("is_release").toBoolean().not()) {
         append("-Snapshot")
     }
 
-    append("+${project.properties["minecraft_version"]}")
+    append("+${getProperty("minecraft_version")}")
 }
 
 // todo remove with 26.1
@@ -22,8 +22,8 @@ paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArt
 
 java {
     // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
-    toolchain.languageVersion = JavaLanguageVersion.of("${rootProject.properties["java_version"]}")
-    sourceCompatibility = JavaVersion.toVersion(rootProject.properties["java_version"]!!)
+    toolchain.languageVersion = JavaLanguageVersion.of(getProperty("java_version"))
+    sourceCompatibility = JavaVersion.toVersion(getProperty("java_version"))
 }
 
 repositories {
@@ -40,20 +40,24 @@ repositories {
 }
 
 dependencies {
-    paperweight.paperDevBundle("${project.properties["minecraft_version"]}-R0.1-SNAPSHOT")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${project.properties["worldGuard_version"]}")
+    paperweight.paperDevBundle("${getProperty("minecraft_version")}.build.+")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${getProperty("worldGuard_version")}")
 
-    compileOnly("com.zaxxer:HikariCP:${project.properties["hikariCP_version"]}")
-    compileOnly("com.github.ben-manes.caffeine:caffeine:${project.properties["caffeine_version"]}") // caches
-    compileOnly("org.apache.commons:commons-collections4:${project.properties["commonsCollections_version"]}")
-    compileOnly("com.github.f4b6a3:ulid-creator:${project.properties["ulidCreator_version"]}")
+    compileOnly("com.zaxxer:HikariCP:${getProperty("hikariCP_version")}")
+    compileOnly("com.github.ben-manes.caffeine:caffeine:${getProperty("caffeine_version")}") // caches
+    compileOnly("com.github.f4b6a3:ulid-creator:${getProperty("ulidCreator_version")}")
 }
 
 tasks {
     processResources {
         filteringCharset = Charsets.UTF_8.name() // We want UTF-8 for everything
 
-        expand(project.properties)
+        expand(providers.gradlePropertiesPrefixedBy("")
+            .get()
+            .toMutableMap() // f you gradle for being inconvenient in newer versions
+            .plus("version" to version)
+            .plus("description" to description)
+            .plus("group" to group))
     }
 
     compileJava {
@@ -61,7 +65,7 @@ tasks {
 
         // Set the release flag. This configures what version bytecode the compiler will emit, as well as what JDK APIs are usable.
         // See https://openjdk.java.net/jeps/247 for more information.
-        options.release = project.properties["java_version"].toString().toInt()
+        options.release = getProperty("java_version").toInt()
     }
 
     javadoc {
@@ -71,8 +75,8 @@ tasks {
     runServer {
         downloadPlugins {
             // make sure to double-check the version id on the Modrinth version page
-            modrinth("worldedit", project.properties["worldEdit_runVersion"].toString())
-            modrinth("worldguard", project.properties["worldGuard_runVersion"].toString())
+            modrinth("worldedit", getProperty("worldEdit_runVersion"))
+            modrinth("worldguard", getProperty("worldGuard_runVersion"))
         }
 
         // disable bstats, as it isn't needed for dev environment
@@ -88,3 +92,5 @@ tasks {
         jvmArgs("-Dcom.mojang.eula.agree=true")
     }
 }
+
+private fun getProperty(value: String): String = providers.gradleProperty(value).get()

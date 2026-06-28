@@ -9,7 +9,6 @@ softdepend:
   - WorldGuard
 libraries:
   - com.github.ben-manes.caffeine:caffeine:${caffeine_version}
-  - org.apache.commons:commons-collections4:${commonsCollections_version}
   - com.zaxxer:HikariCP:${hikariCP_version}
   - com.github.f4b6a3:ulid-creator:${ulidCreator_version}
 description: ${description}

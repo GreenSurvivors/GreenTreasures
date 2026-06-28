@@ -9,7 +9,7 @@ import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
@@ -105,11 +105,11 @@ public class ListSubCommand extends ASubCommand {
                 }
             }
 
-            return suggestions.stream().filter(s -> StringUtils.startsWithIgnoreCase(s, args[1])).toList();
+            return suggestions.stream().filter(s -> Strings.CI.startsWith(s, args[1])).toList();
         } else {
             for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
                 if (entry.getKey().equalsIgnoreCase(args[1]) && entry.getValue().checkPermission(sender)) {
-                    return entry.getValue().onTabComplete(sender, args).stream().filter(s -> StringUtils.startsWithIgnoreCase(s, args[args.length - 1])).toList();
+                    return entry.getValue().onTabComplete(sender, args).stream().filter(s -> Strings.CI.startsWith(s, args[args.length - 1])).toList();
                 }
             }
 

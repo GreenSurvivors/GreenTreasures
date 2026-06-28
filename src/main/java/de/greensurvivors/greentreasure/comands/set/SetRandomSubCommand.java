@@ -62,7 +62,7 @@ public class SetRandomSubCommand extends ASubCommand {
                             if (parsedNumber != null) {
                                 @Range(from = 0, to = 10000) short nonEmptyPermyriad = (short) (parsedNumber.doubleValue() * 100);
 
-                                nonEmptyPermyriad = (short) Math.max(Math.min(nonEmptyPermyriad, 10000), 0);
+                                nonEmptyPermyriad = (short) Math.clamp(nonEmptyPermyriad, 0, 10000);
 
                                 int finalSlotPercentage = nonEmptyPermyriad;
                                 plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->

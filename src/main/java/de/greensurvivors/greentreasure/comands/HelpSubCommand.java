@@ -4,7 +4,7 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.language.LangPath;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
@@ -65,7 +65,7 @@ public class HelpSubCommand extends ASubCommand {
             final List<String> suggestions = new ArrayList<>();
 
             for (Map.Entry<String, ASubCommand> entry : plugin.getMainCommand().getSubCommands().entrySet()) {
-                if (entry.getValue().checkPermission(sender) && StringUtils.startsWithIgnoreCase(entry.getKey(), args[1])) {
+                if (entry.getValue().checkPermission(sender) && Strings.CI.startsWith(entry.getKey(), args[1])) {
                     suggestions.add(entry.getKey());
                 }
             }

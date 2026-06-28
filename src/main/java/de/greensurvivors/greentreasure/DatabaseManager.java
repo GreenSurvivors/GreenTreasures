@@ -6,7 +6,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.dataobjects.refreshInfo.*;
-import org.apache.commons.collections4.list.SetUniqueList;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
@@ -662,8 +661,10 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull Ulid>> getTreasureIds() {
-        final @NotNull CompletableFuture<@NotNull SetUniqueList<@NotNull Ulid>> resultFuture = new CompletableFuture<>();
+    // note: yes it has to return a list and not a set, because its entries have to be addressable by index
+    /// guarantees no duplicate Ulids in the returned List
+    public @NotNull CompletableFuture<@NotNull List<@NotNull Ulid>> getTreasureIds() {
+        final @NotNull CompletableFuture<@NotNull List<@NotNull Ulid>> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
             if (!hasConnection()) {
@@ -677,13 +678,13 @@ public class DatabaseManager {
                  final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)) {
 
                 try (final ResultSet resultSet = preparedStatement.executeQuery()) {
-                    final @NotNull SetUniqueList<@NotNull Ulid> resultList = SetUniqueList.setUniqueList(new ArrayList<>());
+                    final @NotNull Set<@NotNull Ulid> resultFilter = new HashSet<>();
 
                     while (resultSet.next()) {
-                        resultList.add(Ulid.from(resultSet.getBytes(TREASURE_ID_KEY)));
+                        resultFilter.add(Ulid.from(resultSet.getBytes(TREASURE_ID_KEY)));
                     }
 
-                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(resultList));
+                    Bukkit.getScheduler().runTask(plugin, () -> resultFuture.complete(new ArrayList<>(resultFilter)));
                 }
             } catch (SQLException e) {
                 Bukkit.getScheduler().runTask(plugin, () -> resultFuture.completeExceptionally(e));

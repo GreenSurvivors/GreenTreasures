@@ -5,7 +5,7 @@ import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.language.LangPath;
 import de.greensurvivors.greentreasure.language.PlaceHolderKey;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.Strings;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
 import org.bukkit.block.Container;
@@ -122,11 +122,11 @@ public class MainCommand extends Command { // todo adapt to Brigadier
                 }
             }
 
-            return suggestions.stream().filter(s -> StringUtils.startsWithIgnoreCase(s, args[0])).toList();
+            return suggestions.stream().filter(s -> Strings.CI.startsWith(s, args[0])).toList();
         } else {
             for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
                 if (entry.getKey().equalsIgnoreCase(args[0]) && entry.getValue().checkPermission(sender)) {
-                    return entry.getValue().onTabComplete(sender, args).stream().filter(s -> StringUtils.startsWithIgnoreCase(s, args[args.length - 1])).toList();
+                    return entry.getValue().onTabComplete(sender, args).stream().filter(s -> Strings.CI.startsWith(s, args[args.length - 1])).toList();
                 }
             }
 

@@ -73,7 +73,7 @@ public class ListWhoSubCommand extends ASubCommand {
                                 if (args.length >= 3) {
                                     if (Utils.isInt(args[2])) {
                                         //limit page to how many exits
-                                        pageNow = Math.max(1, Math.min(numPages, Integer.parseInt(args[2])));
+                                        pageNow = Math.clamp(Integer.parseInt(args[2]), 1, numPages);
                                     } else {
                                         plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
                                             Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
