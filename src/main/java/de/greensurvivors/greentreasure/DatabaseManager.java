@@ -21,7 +21,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
 public class DatabaseManager {
@@ -69,13 +68,12 @@ public class DatabaseManager {
     private static final @NotNull PlayerProfile
         // in case a treasure was shared (@ is not permitted as a valid char and therefor always unique)
         // uuid created by UUID.nameUUIDFromBytes(("OfflinePlayer:@shared").getBytes(StandardCharsets.UTF_8))
-        // note: at time of writing choosing an invalid name here is totally fine, despite what the javadoc of the createProfileExact method says
-        // there are currently no checks for a valid username!
+        // note: while valid premium names are stricter, at the time of writing any ascii char in range of ' '..\u007F is totally fine.
         SHARED_PROFILE = Bukkit.createProfileExact(UUID.fromString("c1fadf20-80f9-3e87-b5f2-548a5d33c7dc"), "@shared");
     /// there is no specific missing table exception. Our best guess is to use this pattern.
     private static final @NotNull Pattern MISSING_TABLE_PATTERN = Pattern.compile("Table '.*?' doesn't exist$");
     private final @NotNull GreenTreasure plugin;
-    /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)} because the bukkit scheduler waits to the next tick to start a task.
+    /// we use this instead of {@link org.bukkit.scheduler.BukkitScheduler#runTaskAsynchronously(Plugin, Runnable)}, so we don't block a plattform thread while waiting for io.
     private volatile @NotNull ExecutorService asyncExecutor;
     private volatile @MonotonicNonNull HikariDataSource dataSource = null;
     // connection information
@@ -89,20 +87,17 @@ public class DatabaseManager {
     }
 
     private void createExecutorService() {
-        // we expect a burst of requests and long time nothing.
-        // so don't hold any thread in the dry periods, but grow as big as we need to
-        // log errors with the plugins logger
-        final @NotNull AtomicLong count = new AtomicLong(0L);
-        final @NotNull ThreadFactory threadFactory = runnable -> {
-            Thread thread = Executors.defaultThreadFactory().newThread(runnable);
-            Objects.requireNonNull(thread);
+        // We expect a burst of requests and long time nothing.
+        // So don't hold any thread in the dry periods,
+        // don't block any plattform thread while waiting for the database,
+        // but grow as big as we need to.
+        // Log errors via the plugins logger
+        final @NotNull ThreadFactory threadFactory = Thread.ofVirtual()
+            .name("GreenTreasure Database thread - ", 0)
+            .uncaughtExceptionHandler(new UncaughtExceptionHandler(plugin.getComponentLogger()))
+            .factory();
 
-            thread.setName(String.format("GreenTreasure Database thread - %1$d", count.getAndIncrement()));
-            thread.setUncaughtExceptionHandler(new UncaughtExceptionHandler(plugin.getComponentLogger()));
-
-            return thread;
-        };
-        asyncExecutor = new ThreadPoolExecutor(5, Integer.MAX_VALUE, 30L, TimeUnit.SECONDS, new SynchronousQueue<>(), threadFactory);
+        asyncExecutor = Executors.newThreadPerTaskExecutor(threadFactory);
     }
 
     public @NotNull Map<@NotNull String, @NotNull Object> serializeDatabaseConnectionConfig() {
@@ -991,12 +986,10 @@ public class DatabaseManager {
     public void closeConnection() {
         if (dataSource != null && !dataSource.isClosed()) {
             try {
-                if (asyncExecutor != null) {
-                    asyncExecutor.shutdown();
+                asyncExecutor.shutdown();
 
-                    if (!asyncExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
-                        plugin.getComponentLogger().error("Error: the timeout of 3 seconds elapsed and the database executor still hasn't returned! Data loss is imminent!");
-                    }
+                if (!asyncExecutor.awaitTermination(3, TimeUnit.SECONDS)) {
+                    plugin.getComponentLogger().error("Error: the timeout of 3 seconds elapsed and the database executor still hasn't returned! Data loss is imminent!");
                 }
             } catch (InterruptedException e) {
                 plugin.getComponentLogger().error("Couldn't gracefully shut down database thread pool. You may encounter data loss!", e);
