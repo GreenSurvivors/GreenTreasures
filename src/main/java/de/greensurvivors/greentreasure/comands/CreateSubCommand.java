@@ -14,10 +14,7 @@ import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class CreateSubCommand extends ASubCommand {
 
@@ -63,10 +60,10 @@ public class CreateSubCommand extends ASubCommand {
                             plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
                                     Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                        container.customName() == null ?
-                                            Component.translatable(container.getBlock().getType().getBlockTranslationKey()) :
-                                            container.customName()
-                                    )));
+                                        Objects.requireNonNullElseGet(
+                                            container.customName(),
+                                            () -> Component.translatable(container.getBlock().translationKey())
+                                    ))));
                         } else {
                             plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_ALREADY_TREASURE);
                         }

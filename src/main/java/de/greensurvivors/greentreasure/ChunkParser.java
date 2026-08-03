@@ -58,8 +58,8 @@ public class ChunkParser {
     public ChunkParser(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
 
-        // requesting all nearby chunks at the same time works fine for the intended case of small radii,
-        // however, if the user does something stupid, the server will eat up all the ram and die, or worse will hang itself
+        // requesting all nearby chunks at the same time works fine for the intended case of small radii.
+        // However, if the user does something stupid the server will eat up all the ram and die, or worse will hang itself
         // so we will throttle the chunk requesting process by CHUNKS_TO_LOAD_PARALLEL per tick.
         // One "optimization" I did make, was that every time the same chunk gets requested, the request will get bundled and complete
         // at the same time as every other request for that very chunk.
@@ -301,6 +301,8 @@ public class ChunkParser {
                     final @NotNull SortedSet<@NotNull Location> sortedLocations = new TreeSet<>(LOCATION_COMPARATOR);
                     sortedLocations.addAll(locations);
 
+                    // shut up, treasureInfo can never be null here
+                    //noinspection NullableProblems
                     entries.add(new ObjectObjectImmutablePair<>(treasureInfo, sortedLocations));
                 }
             }

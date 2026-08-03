@@ -18,9 +18,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * this is a technical class to handle the inventories opened by commands
@@ -120,12 +118,17 @@ public class CommandInventoriesListener implements Listener {
                 if (treasureInfo != null) {
                     new PeekingDoneEvent((Player) event.getPlayer(), treasureInfo, peekedTreasure.playerPeekedUUID()).callEvent();
 
+                    @SuppressWarnings("NullableProblems") // shut up, if the stack is null, an empty stack is used instead
+                    final @NotNull List<@NotNull ItemStack> list = Arrays.stream(eInventory.getContents())
+                        .map(stack -> Objects.requireNonNullElseGet(stack, ItemStack::empty))
+                        .toList();
+
                     if (treasureInfo.isShared() || peekedTreasure.playerPeekedUUID() == null) {
                         plugin.getDatabaseManager().setPlayerData(null, treasureId,
-                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), list));
                     } else {
                         plugin.getDatabaseManager().setPlayerData(Bukkit.getOfflinePlayer(peekedTreasure.playerPeekedUUID()), treasureId,
-                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), Arrays.stream(eInventory.getContents()).map(s -> s == null ? ItemStack.empty() : s).toList()));
+                            new PlayerLootDetail(peekedTreasure.fistTimeStamp(), peekedTreasure.lastTimeStamp(), list));
                     }
                 }
             });

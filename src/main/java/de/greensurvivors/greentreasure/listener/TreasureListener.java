@@ -33,6 +33,7 @@ import org.bukkit.event.inventory.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -40,7 +41,6 @@ import org.jetbrains.annotations.Nullable;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class TreasureListener implements Listener {
     //list of open inventories, needed to have shared treasures and saving the contents of a treasure after the inventory view was closed
@@ -103,11 +103,15 @@ public class TreasureListener implements Listener {
                             }
                         }
 
+                        // shut up, if a stack is null it will get mapped to an empty stack instead
+                        //noinspection NullableProblems
                         plugin.getDatabaseManager().setPlayerData(treasureInfo.isShared() ? null : ePlayer, treasureId,
                             new PlayerLootDetail(
                                 wrapper.getFistLootedInstant(),
                                 Instant.now(),
-                                Arrays.stream(eInventory.getContents()).collect(Collectors.toCollection(ArrayList::new))
+                                Arrays.stream(eInventory.getContents())
+                                    .map(stack -> Objects.requireNonNullElseGet(stack, ItemStack::empty))
+                                    .toList()
                             )
                         );
                     }

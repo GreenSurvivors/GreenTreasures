@@ -43,8 +43,7 @@ public class ListTreasuresSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 
@@ -118,13 +117,13 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " "); //page will be added by super
 
             // header
-            super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_HEADER,
+            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_HEADER,
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
                 Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
         }
 
         public void addEntry(final @NotNull TreasureInfo treasureInfo, final @NotNull Ulid treasureId) {
-            super.numOfEntriesStillToDo--;
+            numOfEntriesStillToDo--;
 
             //build treasureInfo
             final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
@@ -140,9 +139,9 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 treasureInfoComponentBuilder.appendSpace().append(treasureInfo.getRefreshInfo().infoMessage());
             }
 
-            super.componentResult.add(treasureInfoComponentBuilder);
+            componentResult.add(treasureInfoComponentBuilder);
 
-            if (super.numOfEntriesStillToDo <= 0) {
+            if (numOfEntriesStillToDo <= 0) {
                 sendMessage();
             }
         }

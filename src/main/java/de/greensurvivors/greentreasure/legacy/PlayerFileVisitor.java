@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Instant;
-import java.util.List;
+import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -125,7 +125,7 @@ class PlayerFileVisitor extends ALegacyFileVisitor {
                                                 NumberConversions.square(y - block.getY()) +
                                                 NumberConversions.square(z - block.getZ()) < 0.25,
                                         resultEither ->
-                                            resultEither.consume(voidz -> successCollector.finish(false),
+                                            resultEither.consume(_ -> successCollector.finish(false),
                                                 tileEntities -> {
                                                     if (tileEntities.isEmpty() || !(tileEntities.iterator().next() instanceof Container container)) {
                                                         plugin.getComponentLogger().warn("Could not load legacy player data {} because the block at world={}, x={}, y={}, z={} is not a container.", filePath, worldName, x, y, z);
@@ -134,15 +134,20 @@ class PlayerFileVisitor extends ALegacyFileVisitor {
                                                         final @Nullable Ulid asyncTreasureId = plugin.getTreasureManager().getTreasureId(container);
 
                                                         if (asyncTreasureId != null) {
-                                                            plugin.getDatabaseManager().setPlayerData(plugin.getServer().getOfflinePlayer(uuid), asyncTreasureId, new PlayerLootDetail(Instant.ofEpochMilli(lootedTimeStamp), List.of())).whenComplete((voidz, ex) -> {
-                                                                if (ex == null) {
-                                                                    plugin.getComponentLogger().debug("Imported player data for name {} / uuid {} from path {}", playerName, uuid, filePath);
+                                                            plugin.getDatabaseManager()
+                                                                .setPlayerData(
+                                                                    plugin.getServer().getOfflinePlayer(uuid),
+                                                                    asyncTreasureId,
+                                                                    new PlayerLootDetail(Instant.ofEpochMilli(lootedTimeStamp), Collections.emptyList()))
+                                                                .whenComplete((_, ex) -> {
+                                                                    if (ex == null) {
+                                                                        plugin.getComponentLogger().debug("Imported player data for name {} / uuid {} from path {}", playerName, uuid, filePath);
 
-                                                                    successCollector.finish(false);
-                                                                } else {
-                                                                    successCollector.finish(false);
-                                                                    plugin.getComponentLogger().warn("Couldn't properly import player data name {} / uuid {} from path {}", uuid, playerName, filePath, ex);
-                                                                }
+                                                                        successCollector.finish(false);
+                                                                    } else {
+                                                                        successCollector.finish(false);
+                                                                        plugin.getComponentLogger().warn("Couldn't properly import player data name {} / uuid {} from path {}", uuid, playerName, filePath, ex);
+                                                                    }
                                                             });
                                                         } else {
                                                             plugin.getComponentLogger().warn("[PlayerData] Couldn't get treasure id from block at: Location{world={},x={},y={},z={}}. Skipping.", worldName, x, y, z);

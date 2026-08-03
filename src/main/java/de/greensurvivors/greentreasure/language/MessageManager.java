@@ -47,9 +47,7 @@ public class MessageManager {
     protected static final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
     protected final @NotNull Plugin plugin;
     protected ResourceBundle lang;
-    /**
-     * caches every component without placeholder for faster access in future and loads missing values automatically
-     */
+    ///caches every component without placeholder for faster access in future and loads missing values automatically
     protected final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
         path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
     protected @MonotonicNonNull DateTimeFormatter dateTimeFormatter;

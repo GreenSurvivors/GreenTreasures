@@ -134,14 +134,14 @@ public class ListNearbyCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
-            super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_HEADER,
+            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_HEADER,
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
                 Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
         }
 
         public void addEntry(final Map.Entry<TreasureInfo, SortedSet<Location>> entry) {
-            synchronized (super.MUTEX) {
-                super.numOfEntriesStillToDo--;
+            synchronized (MUTEX) {
+                numOfEntriesStillToDo--;
 
                 //build treasureInfo
                 final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
@@ -163,9 +163,9 @@ public class ListNearbyCommand extends ASubCommand {
                     treasureInfoComponentBuilder.appendSpace().append(entry.getKey().getRefreshInfo().infoMessage());
                 }
 
-                super.componentResult.add(treasureInfoComponentBuilder);
+                componentResult.add(treasureInfoComponentBuilder);
 
-                if (super.numOfEntriesStillToDo <= 0) {
+                if (numOfEntriesStillToDo <= 0) {
                     sendMessage();
                 }
             }

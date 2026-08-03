@@ -8,13 +8,14 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.util.List;
 import java.util.Objects;
 
 public final class TreasureInfo {
     private final @NotNull Ulid treasureId;
-    private final @NotNull List<@Nullable ItemStack> itemLoot;
+    private final @NotNull @Unmodifiable List<@Nullable ItemStack> itemLoot;
     private final @NotNull ARefreshInfo refreshInfo;
     private final @Range(from = 0, to = 10000) int nonEmptyPermyriad;
     private final boolean isUnlimited;
@@ -48,7 +49,7 @@ public final class TreasureInfo {
         return treasureId;
     }
 
-    public @NotNull List<@Nullable ItemStack> itemLoot() {
+    public @NotNull @Unmodifiable List<@Nullable ItemStack> itemLoot() {
         return itemLoot;
     }
 

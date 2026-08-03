@@ -8,41 +8,41 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 
 public enum PermissionManager {
-    //right to open a treasure
+    // open a treasure
     TREASURE_OPEN(new Permission("greentreasure.open")),
 
-    //right to use /gt about
+    // use /gt about
     TREASURE_ABOUT(new Permission("greentreasure.about")),
-    //right to reload the plugin /gt reload
+    // reload the plugin /gt reload
     TREASURE_RELOAD(new Permission("greentreasure.reload")),
 
-    //right to create a new treasure /gt create
+    // create a new treasure /gt create
     TREASURE_CREATE(new Permission("greentreasure.create")),
-    //right to delete a treasure /gt delete
+    // delete a treasure /gt delete
     TREASURE_DELETE(new Permission("greentreasure.delete")),
-    //right to edit the contents of a treasure inventory /gt edit
+    // edit the contents of a treasure inventory /gt edit
     TREASURE_EDIT_CONTENT(new Permission("greentreasure.editcontent")),
-    //right to peek the inventory (of another player)s treasure /gt peek
+    // peek the inventory (of another player) treasure /gt peek
     TREASURE_PEEK(new Permission("greentreasure.peek")),
-    //right to reset the opening status of a or all players /gt set forget and /gt forget-all
+    // reset the opening status of a or all players /gt set forget and /gt forget-all
     TREASURE_FORGET(new Permission("greentreasure.forget")),
 
-    //right to set the random slot chance /gt set random <percentage>
+    // set the random slot chance /gt set random <percentage>
     TREASURE_SET_RANDOM(new Permission("greentreasure.set.random")),
-    //right to set a treasure unlimited times lootable /gt set unlimited <true/false>
+    // set a treasure unlimited times lootable /gt set unlimited <true/false>
     TREASURE_SET_UNLIMITED(new Permission("greentreasure.set.unlimited")),
-    //right to set the inventory of a treasure shared between all players
+    // set the inventory of a treasure shared between all players
     TREASURE_SET_SHARED(new Permission("greentreasure.set.shared")),
-    //right to set the forget-period of a treasure ready to be looted again
+    // set the forget-period of a treasure ready to be looted again
     TREASURE_SET_FORGET(new Permission("greentreasure.set.forget")),
-    //right to set a message override for finding a treasure with fresh loot /gt set findfreshmsg <new message>
+    // set a message override for finding a treasure with fresh loot /gt set findfreshmsg <new message>
     TREASURE_SET_FIND_FRESH_MSG_OVERRIDE(new Permission("greentreasure.set.findfreshmsg")),
-    //right to set a message override for finding a treasure that was already looted /gt set findlootedmsg <new message>
+    // set a message override for finding a treasure that was already looted /gt set findlootedmsg <new message>
     TREASURE_SET_FIND_LOOTED_MSG_OVERRIDE(new Permission("greentreasure.set.findlootedmsg")),
 
-    //right to list what treasures a player has already looted
+    // list what treasures a player has already looted
     TREASURE_LIST_PLAYERS(new Permission("greentreasure.list.player")),
-    //right to list all treasures
+    // list all treasures
     TREASURE_LIST_TREASURES(new Permission("greentreasure.list.treasures")),
     TREASURE_LIST_WHO(new Permission("greentreasure.list.who")),
     TREASURE_LIST_NEAR(new Permission("greentreasure.list.near")),

@@ -51,8 +51,7 @@ public class SetForgetSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 

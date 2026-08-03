@@ -14,6 +14,7 @@ import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.sql.*;
 import java.time.Duration;
@@ -117,7 +118,7 @@ public class DatabaseManager {
     }
 
     /**
-     * loads SQL- login details from a map (config).
+     * loads SQL-login details from a map (config).
      */
     public void reload(final @Nullable Map<@NotNull String, @NotNull Object> databaseData) {
         if (databaseData == null) {
@@ -227,7 +228,7 @@ public class DatabaseManager {
         return resultFuture;
     }
 
-    public @NotNull CompletableFuture<@Nullable List<ItemStack>> getTreasureContents(final @NotNull String treasureId) {
+    public @NotNull CompletableFuture<@Nullable @Unmodifiable List<ItemStack>> getTreasureContents(final @NotNull String treasureId) {
         final @NotNull CompletableFuture<@Nullable List<ItemStack>> resultFuture = new CompletableFuture<>();
 
         asyncExecutor.execute(() -> {
@@ -249,7 +250,7 @@ public class DatabaseManager {
                     if (resultSet.next()) {
                         //get list from blob
                         final @NotNull Blob blob = resultSet.getBlob(TREASURE_CONTENT_KEY);
-                        final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
+                        final @NotNull List<ItemStack> items = List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length())));
                         blob.free();
 
                         plugin.getComponentLogger().debug("successfully got treasure contents for get request for treasure id {}, on thread {}", treasureId, Thread.currentThread().getName());
@@ -610,7 +611,7 @@ public class DatabaseManager {
                         return null;
                     }
 
-                    final @NotNull List<ItemStack> items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
+                    final @NotNull List<ItemStack> items = List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length())));
                     blob.free();
 
                     final @NotNull ARefreshInfo forgetContainer;
@@ -817,7 +818,7 @@ public class DatabaseManager {
                         if (blob == null || blob.length() <= 0) {
                             items = null;
                         } else {
-                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
+                            items = List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length())));
                             blob.free();
                         }
 
@@ -954,7 +955,7 @@ public class DatabaseManager {
                         if (blob == null || blob.length() <= 0) {
                             items = null;
                         } else {
-                            items = new ArrayList<>(List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length()))));
+                            items = List.of(ItemStack.deserializeItemsFromBytes(blob.getBytes(1, (int) blob.length())));
                             blob.free();
                         }
 

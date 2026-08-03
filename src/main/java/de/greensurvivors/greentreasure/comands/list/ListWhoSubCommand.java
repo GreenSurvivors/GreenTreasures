@@ -47,8 +47,7 @@ public class ListWhoSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 
@@ -128,7 +127,7 @@ public class ListWhoSubCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
-            super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
+            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
                 Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
                 Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)
@@ -136,7 +135,7 @@ public class ListWhoSubCommand extends ASubCommand {
         }
 
         public void addEntry(final @NotNull UUID uuid, final @NotNull PlayerLootDetail playerLootDetail) {
-            super.numOfEntriesStillToDo--;
+            numOfEntriesStillToDo--;
 
             @Nullable Component who = null;
             final @Nullable Player onlinePlayer = Bukkit.getPlayer(uuid);
@@ -151,7 +150,7 @@ public class ListWhoSubCommand extends ASubCommand {
                 }
             }
 
-            super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_BODY,
+            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_BODY,
                 Placeholder.component(PlaceHolderKey.PLAYER.getKey(), who == null ? plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED) : who),
                 Placeholder.component(PlaceHolderKey.TIME.getKey(),
                     (playerLootDetail.unLootedStuff() == null) ?
@@ -160,7 +159,7 @@ public class ListWhoSubCommand extends ASubCommand {
                 )
             ));
 
-            if (super.numOfEntriesStillToDo <= 0) {
+            if (numOfEntriesStillToDo <= 0) {
                 sendMessage();
             }
         }

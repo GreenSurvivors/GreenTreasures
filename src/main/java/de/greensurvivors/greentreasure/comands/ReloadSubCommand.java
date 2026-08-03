@@ -29,8 +29,7 @@ public class ReloadSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 

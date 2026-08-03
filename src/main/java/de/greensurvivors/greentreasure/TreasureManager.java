@@ -74,10 +74,11 @@ public class TreasureManager {
         if (treasureId != null) {
             dataHolder.getPersistentDataContainer().remove(idKey);
 
-            return plugin.getDatabaseManager().deleteTreasure(treasureId).
-                thenApply(void_ -> Boolean.TRUE);
+            return plugin.getDatabaseManager().
+                deleteTreasure(treasureId).
+                thenApply(_ -> Boolean.TRUE);
         } else {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.completedFuture(Boolean.FALSE);
         }
     }
 

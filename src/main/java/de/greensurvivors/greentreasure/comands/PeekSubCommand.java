@@ -44,13 +44,12 @@ public class PeekSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 
     /**
-     * let's the command sender open the treasure-inventory for another player
+     * lets the command sender open the treasure-inventory for another player
      * /gt peek (takes the commandSender self)
      * /gt peek playerName
      * /gt peek uuid
@@ -77,7 +76,7 @@ public class PeekSubCommand extends ASubCommand {
                                     final @NotNull Inventory nowPeeking;
                                     final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
-                                    if (playerLootDetail == null || playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty()) {
+                                    if (playerLootDetail == null || playerLootDetail.isEmpty()) {
                                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_SHARED,
                                             Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED)));
 
@@ -173,7 +172,7 @@ public class PeekSubCommand extends ASubCommand {
                                         );
                                     }
 
-                                    if ((playerLootDetail == null || playerLootDetail.unLootedStuff() == null || playerLootDetail.unLootedStuff().isEmpty())) {
+                                    if ((playerLootDetail == null || playerLootDetail.isEmpty())) {
                                         plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
                                             Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name));
 

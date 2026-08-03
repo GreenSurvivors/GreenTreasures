@@ -3,14 +3,13 @@ package de.greensurvivors.greentreasure.dataobjects;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-/**
- * all important information about a treasure a player may or may not have opened before
- */
+/// all important information about a treasure a player may or may not have opened before
 public final class PlayerLootDetail {
     private final @NotNull Instant lastChangedInstant;
     private final @NotNull Instant firstLootedInstant;
@@ -32,7 +31,8 @@ public final class PlayerLootDetail {
      * @param unLootedStuff      the list of items a player has not looted yet.
      *                           Might be null if the player never opened the inventory
      */
-    public PlayerLootDetail(final @Nullable Instant firstLootedInstant, final @NotNull Instant lastChangedInstant, final @Nullable List<@NotNull ItemStack> unLootedStuff) {
+    public PlayerLootDetail(final @Nullable Instant firstLootedInstant, final @NotNull Instant lastChangedInstant,
+                            final @Nullable List<@NotNull ItemStack> unLootedStuff) {
         this.firstLootedInstant = Objects.requireNonNullElse(firstLootedInstant, lastChangedInstant);
         this.lastChangedInstant = lastChangedInstant;
         this.unLootedStuff = unLootedStuff;
@@ -42,8 +42,12 @@ public final class PlayerLootDetail {
         return lastChangedInstant;
     }
 
-    public @Nullable List<@NotNull ItemStack> unLootedStuff() {
+    public @Nullable @Unmodifiable List<@NotNull ItemStack> unLootedStuff() {
         return unLootedStuff;
+    }
+
+    public boolean isEmpty() {
+        return unLootedStuff() == null || unLootedStuff().isEmpty();
     }
 
     @Override

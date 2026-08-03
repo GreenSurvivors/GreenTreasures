@@ -29,7 +29,7 @@ public class MainCommand extends Command { // todo adapt to Brigadier
 
     public MainCommand(final @NotNull GreenTreasure plugin) {
         super(CMD);
-        super.setAliases(List.of("gt", "tchest", "treasurechest"));
+        setAliases(List.of("gt", "tchest", "treasurechest"));
         this.plugin = plugin;
 
         Bukkit.getServer().getCommandMap().register(plugin.getName().toLowerCase(Locale.ENGLISH), this);

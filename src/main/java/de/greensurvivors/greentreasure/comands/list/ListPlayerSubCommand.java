@@ -42,8 +42,7 @@ public class ListPlayerSubCommand extends ASubCommand {
     }
 
     @Override
-    @NotNull
-    public Component getHelpText() {
+    public @NotNull Component getHelpText() {
         return null;
     }
 
@@ -154,7 +153,7 @@ public class ListPlayerSubCommand extends ASubCommand {
             }
 
             // header
-            super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_HEADER,
+            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_HEADER,
                 Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerDisplay),
                 Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
                 Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
@@ -162,18 +161,18 @@ public class ListPlayerSubCommand extends ASubCommand {
 
         public void addEntry(final Ulid treasureId) {
             plugin.getDatabaseManager().getPlayerData(Bukkit.getOfflinePlayer(uuidToGetListOf), treasureId).thenAccept(playerLootDetail_result -> {
-                synchronized (super.MUTEX) {
-                    super.numOfEntriesStillToDo--;
+                synchronized (MUTEX) {
+                    numOfEntriesStillToDo--;
 
                     //build treasureInfo
-                    super.componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_BODY,
+                    componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_BODY,
                         Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
                         Placeholder.component(PlaceHolderKey.TIME.getKey(),
                             (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ?
                                 plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :
                                 Component.text(plugin.getMessageManager().formatTime(playerLootDetail_result.lastChangedInstant())))));
 
-                    if (super.numOfEntriesStillToDo <= 0) {
+                    if (numOfEntriesStillToDo <= 0) {
                         sendMessage();
                     }
                 }
