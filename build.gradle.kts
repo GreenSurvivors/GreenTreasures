@@ -41,7 +41,10 @@ repositories {
 
 dependencies {
     paperweight.paperDevBundle("${getProperty("minecraft_version")}.build.+")
-    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${getProperty("worldGuard_version")}")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${getProperty("worldGuard_version")}") {
+        exclude("com.google.guava", "guava")
+        exclude("com.google.code.gson", "gson")
+    }
 
     compileOnly("com.zaxxer:HikariCP:${getProperty("hikariCP_version")}")
     compileOnly("com.github.ben-manes.caffeine:caffeine:${getProperty("caffeine_version")}") // caches

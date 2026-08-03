@@ -68,6 +68,7 @@ public class PeekSubCommand extends ASubCommand {
                             // unlimited treasure
                             if (treasureInfo.isUnlimited()) {
                                 plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_UNLIMITED);
+                                return;
                             }
 
                             if (treasureInfo.isShared()) {

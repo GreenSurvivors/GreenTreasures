@@ -9,7 +9,6 @@ import net.minecraft.core.UUIDUtil;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.io.FilenameUtils;
 import org.bukkit.block.Container;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.util.NumberConversions;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -79,7 +78,7 @@ class PlayerFileVisitor extends ALegacyFileVisitor {
 
     protected void processPlayer(final @NotNull Path filePath, final @NotNull String playerName, final @NotNull UUID uuid) {
         final @NotNull UUID offlineUUID = UUIDUtil.createOfflinePlayerUUID(playerName);
-        final @NotNull Path playerDirPath = ((CraftServer) plugin.getServer()).getServer().playerDataStorage.getPlayerDir().toPath();
+        final @NotNull Path playerDirPath = plugin.getServer().getLevelDirectory().resolve("players", "data");
         if (Files.exists(playerDirPath.resolve(uuid + ".dat")) ||
             Files.exists(playerDirPath.resolve(uuid + ".dat_old")) ||
 
