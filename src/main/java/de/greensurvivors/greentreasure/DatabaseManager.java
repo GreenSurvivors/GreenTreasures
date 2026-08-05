@@ -1028,24 +1028,29 @@ public class DatabaseManager {
     protected void updateTableTreasure() {
         if (dataSource != null) {
             try (final @NotNull Connection connection = dataSource.getConnection()){
-                @NotNull String statementStr = "ALTER TABLE " + TREASURE_TABLE;
-                int changesToMake = 0;
+                @NotNull String statementStr = "ALTER TABLE " + TREASURE_TABLE + " ";
+                boolean changesToMake = false;
 
                 // todo someone smart probably can just call getColumns with a null key for the column key and check the resultset. I didn't understand the JavaDocs nor the result itself...
-                if (connection.getMetaData().getColumns(null, null, TREASURE_TABLE, TREASURE_REFRESH_DURATION_LEGACY_KEY).next()) {
-                    statementStr += "RENAME COLUMN " + TREASURE_REFRESH_DURATION_LEGACY_KEY + " TO " + TREASURE_REFRESH_DURATION_KEY;
-                    changesToMake++;
-                }
-                if (!connection.getMetaData().getColumns(null, null, TREASURE_TABLE, TREASURE_REFRESH_START_TIME_KEY).next()) {
-                    if (changesToMake > 0) {
-                        statementStr += ", ";
+                try (final @NotNull ResultSet columnsSet = connection.getMetaData().getColumns(connection.getCatalog(), null, TREASURE_TABLE, TREASURE_REFRESH_DURATION_LEGACY_KEY)) {
+                    if (columnsSet.next()) {
+                        statementStr += "RENAME COLUMN " + TREASURE_REFRESH_DURATION_LEGACY_KEY + " TO " + TREASURE_REFRESH_DURATION_KEY;
+                        changesToMake = true;
                     }
-
-                    statementStr += TREASURE_REFRESH_START_TIME_KEY + " BIGINT NULL DEFAULT NULL";
-                    changesToMake++;
                 }
 
-                if (changesToMake > 0) {
+                try (final @NotNull ResultSet columnsSet = connection.getMetaData().getColumns(connection.getCatalog(), null, TREASURE_TABLE, TREASURE_REFRESH_START_TIME_KEY)) {
+                    if (!columnsSet.next()) {
+                        if (changesToMake) {
+                            statementStr += ", ";
+                        }
+
+                        statementStr += "ADD " + TREASURE_REFRESH_START_TIME_KEY + " BIGINT NULL DEFAULT NULL";
+                        changesToMake = true;
+                    }
+                }
+
+                if (changesToMake) {
                     try (final @NotNull PreparedStatement preparedStatement = connection.prepareStatement(statementStr)){
                         preparedStatement.executeUpdate();
 
