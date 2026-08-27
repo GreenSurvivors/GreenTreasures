@@ -2,7 +2,7 @@ package de.greensurvivors.greentreasure.dataobjects.refreshInfo;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +17,7 @@ public class NoForget extends ARefreshInfo {
 
     @Override
     public @NotNull Component infoMessage() { // unused
-        return plugin.getMessageManager().getLang(LangPath.REFRESH_MSG_INFO_NEVER);
+        return LangKey.REFRESH_MSG_INFO_NEVER.create();
     }
 
     @Override

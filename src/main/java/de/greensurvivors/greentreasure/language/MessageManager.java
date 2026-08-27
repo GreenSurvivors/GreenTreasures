@@ -1,59 +1,105 @@
 package de.greensurvivors.greentreasure.language;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
-import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
-import org.apache.commons.io.FileUtils;
+import net.kyori.adventure.text.minimessage.translation.MiniMessageTranslator;
+import net.kyori.adventure.translation.GlobalTranslator;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.plugin.Plugin;
-import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.CodeSource;
-import java.time.DateTimeException;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAccessor;
 import java.util.*;
-import java.util.logging.Level;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
-/**
- * manages all translatable and placeholders used by this plugin.
- */
-public class MessageManager {
+/// manages all translatable and placeholders used by this plugin.
+public class MessageManager extends MiniMessageTranslator {
     // please note: since minutes and months both are identified by m, it is intentional for this pattern to NOT be
     // case-insensitive!
     protected static final @NotNull Pattern DURATION_PATTERN = Pattern.compile("(?<amount>-?\\d+)(?<unit>[tTsSmhHdDwWMyY])");
-    protected static final String BUNDLE_NAME = "lang";
-    protected static final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_.*)?.properties");
-    protected final @NotNull Plugin plugin;
-    protected ResourceBundle lang;
-    ///caches every component without placeholder for faster access in future and loads missing values automatically
-    protected final LoadingCache<LangPath, Component> langCache = Caffeine.newBuilder().build(
-        path -> MiniMessage.miniMessage().deserialize(getStringFromLang(path)));
-    protected @MonotonicNonNull DateTimeFormatter dateTimeFormatter;
+    protected static final @NotNull String BUNDLE_NAME = "lang";
+    protected static final @NotNull Pattern BUNDLE_FILE_NAME_PATTERN = Pattern.compile(BUNDLE_NAME + "(?:_(?<langTag>.*))?.properties$");
+    protected final @NotNull Key key;
+    protected final @NotNull Logger logger;
+    protected final @NotNull Path dataFolder;
+    protected final @NotNull URL jarUrl;
+    protected final @NotNull Map<@NotNull Locale, @NotNull ResourceBundle> translations = new ConcurrentHashMap<>();
 
-    public MessageManager(final @NotNull Plugin plugin) {
-        this.plugin = plugin;
+    /// used when instancing from the same jar file and class loader
+    public MessageManager(final @NotNull @KeyPattern.Namespace String namespace,
+                          final @NotNull Logger logger,
+                          final @NotNull Path dataFolder) throws IllegalStateException {
+        this(namespace, logger, dataFolder, MessageManager.class);
+    }
+
+    /// used when instancing from another jar file / another class loader
+    public MessageManager(final @NotNull @KeyPattern.Namespace String namespace,
+                          final @NotNull Logger logger,
+                          final @NotNull Path dataFolder,
+                          final @NotNull Class<?> aClass) throws IllegalStateException {
+        this.key = Key.key(namespace, BUNDLE_NAME);
+        this.logger = logger;
+        this.dataFolder = dataFolder;
+
+        final @Nullable CodeSource src = aClass.getProtectionDomain().getCodeSource(); // I'm sure there is a better way to get the resources
+        if (src == null) {
+            throw new IllegalStateException("Can't find code source!");
+        }
+        jarUrl = src.getLocation(); // todo there is something here with the Module, just like ResourceBundle does it
+
+        GlobalTranslator.translator().addSource(this);
+    }
+
+    @Override
+    protected @Nullable String getMiniMessageString(@NotNull String translationKey, final @NotNull Locale locale) {
+        // not (re)loaded yet
+        if (translations.isEmpty()) {
+            logger.debug("requested translation for key {} and locale {}, before anything was loaded!", translationKey, locale.toLanguageTag());
+            return null;
+        }
+
+        // the translation keys are not namespaced, so we add our namespace artificially, which in turn we need to remove now
+        if (!translationKey.startsWith(this.key.namespace())) {
+            return null;
+        }
+        // + 1 for the dot
+        translationKey = translationKey.substring(key.namespace().length() + 1);
+
+        try {
+            return findBundle(locale).getString(translationKey);
+        } catch (final @NotNull MissingResourceException | @NotNull ClassCastException e) {
+            logger.debug("couldn't find path: \"{}\" in lang files using fallback.", translationKey, e);
+            return null;
+        }
+    }
+
+    @Override
+    public @NotNull Key name() {
+        return key;
     }
 
     /**
@@ -99,31 +145,6 @@ public class MessageManager {
         return Component.text(timeStr.toString());
     }
 
-    public @NotNull String formatTime(final @NotNull TemporalAccessor temporalAccessor) {
-        return dateTimeFormatter.format(temporalAccessor);
-    }
-
-    public @NotNull Instant parseInstant(final @NotNull String string) throws DateTimeException {
-        return dateTimeFormatter.parse(string, Instant::from);
-    }
-
-    /**
-     * formats a location to a Component
-     *
-     * @return the formatted string or "-" if the location was null
-     */
-    public @NotNull Component formatLocation(final @Nullable Location loc) {
-        if (loc != null) {
-            return getLang(LangPath.FORMAT_LOCATION,
-                Placeholder.unparsed(PlaceHolderKey.WORLD.getKey(), loc.getWorld().getName()),
-                Placeholder.unparsed(PlaceHolderKey.X.getKey(), Integer.toString(loc.getBlockX())),
-                Placeholder.unparsed(PlaceHolderKey.Y.getKey(), Integer.toString(loc.getBlockY())),
-                Placeholder.unparsed(PlaceHolderKey.Z.getKey(), Integer.toString(loc.getBlockZ()))
-            );
-        }
-        return Component.text("-");
-    }
-
     /**
      * Try to get a time period of a string.
      * First try ISO-8601 duration, and afterward our own implementation
@@ -136,7 +157,7 @@ public class MessageManager {
         try { //try Iso
             return Duration.parse(period);
         } catch (DateTimeParseException e) {
-            plugin.getComponentLogger().debug("Couldn't get time period \"{}\" as duration. Trying to parse manual next.", period, e);
+            logger.debug("Couldn't get time period \"{}\" as duration. Trying to parse manual next.", period, e);
         }
 
         Matcher matcher = DURATION_PATTERN.matcher(period);
@@ -159,60 +180,109 @@ public class MessageManager {
                 };
 
             } catch (NumberFormatException e) {
-                plugin.getComponentLogger().warn("Couldn't get time period for {}", period, e);
+                logger.warn("Couldn't get time period for {}", period, e);
             }
         }
         return duration == Duration.ZERO ? null : duration;
     }
 
-    private @NotNull String getStringFromLang(@NotNull LangPath path) {
-        try {
-            return lang.getString(path.getPath());
-        } catch (MissingResourceException | ClassCastException e) {
-            plugin.getLogger().log(Level.WARNING, "couldn't find path: \"" + path.getPath() + "\" in lang files using fallback.", e);
-            return path.getDefaultValue();
-        }
-    }
-
-    /**
-     * reload language file.
-     */
-    public void reload(final @NotNull Locale locale) {
-        lang = null; // reset last bundle
+    /// reload language file, best done async or at start up
+    public void reload() {
+        translations.clear();
 
         // save all missing keys
         initLangFiles();
 
-        plugin.getLogger().info("Locale set to language: " + locale.toLanguageTag());
-        File langDictionary = new File(plugin.getDataFolder(), BUNDLE_NAME);
-
-        URL[] urls;
+        // todo somehow make this process lazy,
+        //  without having misses with complicated lang tags (lang_en loads first, but then lang_en_us gets requested, but finds the fallback in the map)
+        //  or checking if the resource bunde exists on disk every miss
+        // load ALL available translations
+        final @NotNull Path langDictionary = dataFolder.resolve(BUNDLE_NAME);
         try {
-            urls = new URL[]{langDictionary.toURI().toURL()};
-            lang = ResourceBundle.getBundle(BUNDLE_NAME, locale, new URLClassLoader(urls));
+            final @NotNull URL @NotNull [] urls = new URL[]{langDictionary.toUri().toURL()};
+            final @NotNull URLClassLoader urlClassLoader = new URLClassLoader(urls);
 
-        } catch (SecurityException | MalformedURLException e) {
-            plugin.getLogger().log(Level.WARNING, "Exception while reading lang bundle. Using internal", e);
-        } catch (MissingResourceException ignored) { // how? missing write access?
-            plugin.getLogger().log(Level.WARNING, "No translation file for lang " + locale.toLanguageTag() + " found on disc. Using internal");
+            try (final @NotNull DirectoryStream<@NotNull Path> stream = Files.newDirectoryStream(langDictionary, Files::isRegularFile)) {
+                for (final @NotNull Path filePath : stream) {
+                    final @NotNull Matcher matcher = BUNDLE_FILE_NAME_PATTERN.matcher(filePath.getFileName().toString());
+
+                    if (matcher.matches()) {
+                        final @Nullable String langTag = matcher.group("langTag");
+                        final @NotNull Locale locale;
+
+                        if (langTag == null) {
+                            locale = Locale.ROOT;
+                        } else {
+                            locale = Locale.forLanguageTag(langTag.replace('_', '-'));
+                        }
+
+                        try {
+                            translations.put(locale, ResourceBundle.getBundle(BUNDLE_NAME, locale, urlClassLoader));
+                        } catch (MissingResourceException _) { // how? missing write access?
+                            logger.warn("No translation file for lang {} found on disc.", locale.toLanguageTag());
+                        }
+                    }
+                }
+            } catch (final @NotNull IOException e) {
+                logger.error("Could not find any ResourceBundles to load!", e);
+            }
+        } catch (final @NotNull SecurityException | @NotNull MalformedURLException e) {
+            logger.warn("Exception while reading lang bundle. Using internal", e);
         }
+    }
 
-        if (lang == null) { // fallback, since we are always trying to save defaults this never should happen
-            try {
-                lang = PropertyResourceBundle.getBundle(BUNDLE_NAME, locale, plugin.getClass().getClassLoader());
-            } catch (MissingResourceException e) {
-                plugin.getLogger().log(Level.SEVERE, "Couldn't get Ressource bundle \"lang\" for locale \"" + locale.toLanguageTag() + "\". Messages WILL be broken!", e);
+    /**
+     * formats a location to a Component
+     *
+     * @return the formatted string or "-" if the location was null
+     */
+    public static @NotNull Component formatLocation(final @Nullable Location loc) {
+        if (loc != null) {
+            return LangKey.FORMAT_LOCATION.create(
+                PlaceHolder.WORLD.string(loc.getWorld().getName()),
+                PlaceHolder.X.numeric(loc.getBlockX()),
+                PlaceHolder.Y.numeric(loc.getBlockY()),
+                PlaceHolder.Z.numeric(loc.getBlockZ())
+            );
+        }
+        return Component.text("-");
+    }
+
+    /// prepend the message with the plugins prefix before sending it to the audience.
+    public void sendPrefixed(final @NotNull Audience audience, final @NotNull Component message) {
+        audience.sendMessage(Component.text()
+            .append(LangKey.PLUGIN_PREFIX.create())
+            .appendSpace()
+            .append(message));
+    }
+
+    /// send a translatable component to the audience, prefixed with this plugins prefix.
+    public void sendPrefixed(final @NotNull Audience audience, final @NotNull LangKey path) {
+        sendPrefixed(audience, path.create());
+    }
+
+    protected @NotNull ResourceBundle findBundle(final @NotNull Locale locale) {
+        @Nullable ResourceBundle bundle = translations.get(locale);
+        if (bundle == null) {
+            // nothing but a simple shortcut because fetching it everytime we need is just too lengthy
+            final @NotNull ResourceBundle.Control control = ResourceBundle.Control.getControl(
+                ResourceBundle.Control.FORMAT_PROPERTIES);
+
+            for (final @Nullable Locale candidate : control.getCandidateLocales(BUNDLE_NAME, locale)) {
+                bundle = translations.get(candidate);
+
+                if (bundle != null) {
+                    return bundle;
+                }
+            }
+
+            bundle = translations.get(control.getFallbackLocale(BUNDLE_NAME, locale)); // try default locale
+            if (bundle == null) {
+                bundle = translations.get(Locale.ROOT); // should never be null unless
             }
         }
 
-        // clear component cache
-        langCache.invalidateAll();
-        langCache.cleanUp();
-        langCache.asMap().clear();
-
-        dateTimeFormatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT, FormatStyle.MEDIUM).
-            withLocale(locale).
-            withZone(TimeZone.getDefault().toZoneId());
+        return bundle;
     }
 
     private @NotNull String saveConvert(final @NotNull String theString, final boolean escapeSpace) {
@@ -274,109 +344,63 @@ public class MessageManager {
         return convertedStrBuilder.toString();
     }
 
-    /**
-     * saves all missing lang files from resources to the plugins datafolder
-     */
-    private void initLangFiles() {
-        final @Nullable CodeSource src = this.getClass().getProtectionDomain().getCodeSource();
-        if (src != null) {
-            final @NotNull URL jarUrl = src.getLocation();
-            try (final @NotNull ZipInputStream zipStream = new ZipInputStream(jarUrl.openStream())) {
-                ZipEntry zipEntry;
-                while ((zipEntry = zipStream.getNextEntry()) != null) {
-                    if (zipEntry.isDirectory()) {
-                        continue;
-                    }
+    /// saves all missing lang files from resources to the plugins datafolder
+    private void initLangFiles() { // note: we can't easily merge this with the bundle loading in reload, since the disk may have more translation files than the jar. todo this however, still makes us do double the file lookup and matches for everything that gets shipped.
+        try (final @NotNull ZipInputStream zipStream = new ZipInputStream(jarUrl.openStream())) {
+            @Nullable ZipEntry zipEntry;
+            while ((zipEntry = zipStream.getNextEntry()) != null) {
+                if (zipEntry.isDirectory()) {
+                    continue;
+                }
 
-                    final @NotNull String entryName = zipEntry.getName();
+                final @NotNull String entryName = zipEntry.getName();
 
-                    if (BUNDLE_FILE_NAME_PATTERN.matcher(entryName).matches()) {
-                        File langFile = new File(new File(plugin.getDataFolder(), BUNDLE_NAME), entryName);
-                        if (!langFile.exists()) { // don't overwrite existing files
-                            FileUtils.copyToFile(zipStream, langFile);
-                        } else { // add defaults to file to expand in case there are key-value pairs missing
-                            Properties defaults = new Properties();
-                            // don't close reader, since we need the stream to be still open for the next entry!
-                            defaults.load(new InputStreamReader(zipStream, StandardCharsets.UTF_8));
+                if (BUNDLE_FILE_NAME_PATTERN.matcher(entryName).matches()) {
+                    final @NotNull Path langFile = dataFolder.resolve(BUNDLE_NAME, entryName);
+                    if (!Files.exists(langFile)) { // don't overwrite existing files
+                        Files.copy(zipStream, langFile);
+                    } else { // add defaults to file to expand in case there are key-value pairs missing
+                        final @NotNull Properties defaults = new Properties();
+                        // don't close reader, since we need the stream to be still open for the next entry!
+                        defaults.load(new InputStreamReader(zipStream, StandardCharsets.UTF_8));
 
-                            Properties current = new Properties();
-                            try (InputStreamReader reader = new InputStreamReader(new FileInputStream(langFile), StandardCharsets.UTF_8)) {
-                                current.load(reader);
-                            } catch (Exception e) {
-                                plugin.getLogger().log(Level.WARNING, "couldn't get current properties file for " + entryName + "!", e);
-                                continue;
-                            }
+                        final @NotNull Properties current = new Properties();
+                        try (BufferedReader reader = Files.newBufferedReader(langFile, StandardCharsets.UTF_8)) {
+                            current.load(reader);
+                        } catch (Exception e) {
+                            logger.warn("couldn't get current properties file for " + entryName + "!", e);
+                            continue;
+                        }
 
-                            try (FileWriter fw = new FileWriter(langFile, StandardCharsets.UTF_8, true);
-                                 // we are NOT using Properties#store since it gets rid of comments and doesn't guarantee ordering
-                                 BufferedWriter bw = new BufferedWriter(fw)) {
-                                boolean updated = false; // only write comment once
-                                for (Map.Entry<Object, Object> translationPair : defaults.entrySet()) {
-                                    if (current.get(translationPair.getKey()) == null) {
-                                        if (!updated) {
-                                            bw.write("# New Values where added. Is everything else up to date? Time of update: " + new Date());
-                                            bw.newLine();
-
-                                            plugin.getLogger().fine("Updated langfile \"" + entryName + "\". Might want to check the new translation strings out!");
-
-                                            updated = true;
-                                        }
-
-                                        String key = saveConvert((String) translationPair.getKey(), true);
-                                        /* No need to escape embedded and trailing spaces for value, hence
-                                         * pass false to flag.
-                                         */
-                                        String val = saveConvert((String) translationPair.getValue(), false);
-                                        bw.write((key + "=" + val));
+                        // we are NOT using Properties#store since it gets rid of comments and doesn't guarantee ordering
+                        try (final @NotNull BufferedWriter bw = Files.newBufferedWriter(langFile, StandardOpenOption.CREATE, StandardOpenOption.WRITE, StandardOpenOption.APPEND)) {
+                            boolean updated = false; // only write comment once
+                            for (final @NotNull Map.Entry<@NotNull Object, @NotNull Object> translationPair : defaults.entrySet()) {
+                                if (current.get(translationPair.getKey()) == null) {
+                                    if (!updated) {
+                                        bw.write("# New Values where added. Is everything else up to date? Time of update: " + Instant.now().toString());
                                         bw.newLine();
-                                    } // current already knows the key
-                                } // end of for
-                            } // end of try
-                        } // end of else (file exists)
-                    } // doesn't match
-                } // end of elements
-            } catch (IOException e) {
-                plugin.getLogger().log(Level.WARNING, "Couldn't save lang files", e);
-            }
-        } else {
-            plugin.getLogger().warning("Couldn't save lang files: no CodeSource!");
+
+                                        logger.trace("Updated langfile \"{}\". Might want to check the new translation strings out!", entryName);
+
+                                        updated = true;
+                                    }
+
+                                    final @NotNull String key = saveConvert((String) translationPair.getKey(), true);
+                                    /* No need to escape embedded and trailing spaces for value, hence
+                                     * pass false to flag.
+                                     */
+                                    final @NotNull String val = saveConvert((String) translationPair.getValue(), false);
+                                    bw.write((key + "=" + val));
+                                    bw.newLine();
+                                } // current already knows the key
+                            } // end of for
+                        } // end of try
+                    } // end of else (file exists)
+                } // doesn't match
+            } // end of elements
+        } catch (final @NotNull IOException e) {
+            logger.warn("Couldn't save lang files", e);
         }
-    }
-
-    /**
-     * prepend the message with the plugins prefix before sending it to the audience.
-     */
-    public void sendMessage(final @NotNull Audience audience, final @NotNull Component messages) {
-        audience.sendMessage(Component.text().append(langCache.get(LangPath.PLUGIN_PREFIX)).appendSpace().append(messages));
-    }
-
-    /**
-     * get a component from lang file and apply the given tag resolver.
-     * Note: might be slightly slower than {@link #getLang(LangPath)} since this can not use cache.
-     */
-    public @NotNull Component getLang(@NotNull LangPath path, @NotNull TagResolver... resolver) {
-        return MiniMessage.miniMessage().deserialize(getStringFromLang(path), resolver);
-    }
-
-    /**
-     * get a component from lang file
-     */
-    public @NotNull Component getLang(@NotNull LangPath path) {
-        return langCache.get(path);
-    }
-
-    /**
-     * send a component from the lang file to the audience, prefixed with this plugins prefix.
-     */
-    public void sendLang(@NotNull Audience audience, @NotNull LangPath path) {
-        sendMessage(audience, getLang(path));
-    }
-
-    /**
-     * send a component from the lang file to the audience, prefixed with this plugins prefix and applying the given tag resolver.
-     * Note: might be slightly slower than {@link #sendLang(Audience, LangPath)} since this can not use cache.
-     */
-    public void sendLang(@NotNull Audience audience, @NotNull LangPath path, @NotNull TagResolver... resolver) {
-        sendMessage(audience, getLang(path, resolver));
     }
 }

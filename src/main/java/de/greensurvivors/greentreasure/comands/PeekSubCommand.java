@@ -5,10 +5,9 @@ import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Container;
@@ -67,7 +66,7 @@ public class PeekSubCommand extends ASubCommand {
                         if (treasureInfo != null) {
                             // unlimited treasure
                             if (treasureInfo.isUnlimited()) {
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_UNLIMITED);
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_UNLIMITED);
                                 return;
                             }
 
@@ -78,11 +77,11 @@ public class PeekSubCommand extends ASubCommand {
                                     final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
                                     if (playerLootDetail == null || playerLootDetail.isEmpty()) {
-                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_SHARED,
-                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED)));
+                                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_GENERATE_SHARED.create(
+                                            PlaceHolder.TREASURE_ID.component(LangKey.CMD_LIST_WHO_SHARED.create())));
 
-                                        final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_SHARED,
-                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                                        final @NotNull Component title = LangKey.TREASURE_TITLE_PEEK_SHARED.create(
+                                            PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)));
 
                                         if (container.getInventory().getType() == InventoryType.CHEST) {
                                             nowPeeking = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
@@ -92,10 +91,10 @@ public class PeekSubCommand extends ASubCommand {
 
                                         Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
 
-                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_WARNING);
                                     } else {
-                                        final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_SHARED,
-                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                                        final @NotNull Component title = LangKey.TREASURE_TITLE_PEEK_SHARED.create(
+                                            PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)));
 
                                         if (container.getInventory().getType() == InventoryType.CHEST) {
                                             nowPeeking = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
@@ -105,7 +104,7 @@ public class PeekSubCommand extends ASubCommand {
 
                                         // get items left there last time
                                         Utils.setContents(nowPeeking, playerLootDetail.unLootedStuff());
-                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_WARNING);
                                     }
 
                                     plugin.getCommandInventoriesListener().addPeekingTreasure(player.openInventory(nowPeeking),
@@ -122,13 +121,13 @@ public class PeekSubCommand extends ASubCommand {
                                             playerToPeek = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
 
                                             if (!playerToPeek.hasPlayedBefore()) {
-                                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                                plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                                                    PlaceHolder.TEXT.string(args[1])));
                                                 return;
                                             }
                                         } catch (IllegalArgumentException ignored) {
-                                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                                                PlaceHolder.TEXT.string(args[1])));
                                             return;
                                         }
                                     }
@@ -146,9 +145,9 @@ public class PeekSubCommand extends ASubCommand {
                                         name = Component.text(playerToPeek.getUniqueId().toString());
                                     }
 
-                                    final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_PEEK_PLAYER,
-                                        Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name),
-                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                                    final @NotNull Component title = LangKey.TREASURE_TITLE_PEEK_PLAYER.create(
+                                        PlaceHolder.PLAYER.component(name),
+                                        PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)));
                                     final @NotNull Inventory nowPeeking;
 
                                     if (container.getInventory().getType() == InventoryType.CHEST) {
@@ -174,8 +173,8 @@ public class PeekSubCommand extends ASubCommand {
                                     }
 
                                     if ((playerLootDetail == null || playerLootDetail.isEmpty())) {
-                                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_GENERATE_PLAYER,
-                                            Placeholder.component(PlaceHolderKey.PLAYER.getKey(), name));
+                                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_GENERATE_PLAYER.create(
+                                            PlaceHolder.PLAYER.component(name)));
 
                                         Utils.setContents(nowPeeking, treasureInfo.itemLoot(), treasureInfo.nonEmptyPermyriad());
                                     } else {
@@ -190,21 +189,21 @@ public class PeekSubCommand extends ASubCommand {
                                             playerLootDetail == null ? Instant.now() : playerLootDetail.lastChangedInstant()
                                         )
                                     );
-                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_PEEK_WARNING);
+                                    plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_PEEK_WARNING);
                                 });
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                         }
                     });
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
                 }
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

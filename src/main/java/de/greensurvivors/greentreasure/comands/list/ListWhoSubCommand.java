@@ -10,12 +10,10 @@ import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Container;
@@ -74,8 +72,8 @@ public class ListWhoSubCommand extends ASubCommand {
                                         //limit page to how many exits
                                         pageNow = Math.clamp(Integer.parseInt(args[2]), 1, numPages);
                                     } else {
-                                        plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
-                                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                                        plugin.getMessageManager().sendPrefixed(audience, LangKey.ARG_NOT_A_NUMBER.create(
+                                            PlaceHolder.TEXT.string(args[2])));
                                         return;
                                     }
                                 } else {
@@ -96,18 +94,18 @@ public class ListWhoSubCommand extends ASubCommand {
                                 }
 
                             } else {
-                                plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_WHO_EMPTY);
+                                plugin.getMessageManager().sendPrefixed(audience, LangKey.CMD_LIST_WHO_EMPTY);
                             }
                         });
                     } else {
-                        plugin.getMessageManager().sendLang(audience, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                        plugin.getMessageManager().sendPrefixed(audience, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
                 });
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;
@@ -127,10 +125,10 @@ public class ListWhoSubCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
-            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_HEADER,
-                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
-                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)
+            componentResult.add(LangKey.CMD_LIST_WHO_HEADER.create(
+                PlaceHolder.TREASURE_ID.string(treasureId.toString()),
+                PlaceHolder.NUMBER.numeric(pageNow),
+                PlaceHolder.LAST_PAGE.numeric(lastPage)
             ));
         }
 
@@ -150,13 +148,11 @@ public class ListWhoSubCommand extends ASubCommand {
                 }
             }
 
-            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_BODY,
-                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), who == null ? plugin.getMessageManager().getLang(LangPath.CMD_LIST_WHO_SHARED) : who),
-                Placeholder.component(PlaceHolderKey.TIME.getKey(),
-                    (playerLootDetail.unLootedStuff() == null) ?
-                        plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :
-                        Component.text(plugin.getMessageManager().formatTime(playerLootDetail.lastChangedInstant()))
-                )
+            componentResult.add(LangKey.CMD_LIST_WHO_BODY.create(
+                PlaceHolder.PLAYER.component(who == null ? LangKey.CMD_LIST_WHO_SHARED.create() : who),
+                (playerLootDetail.unLootedStuff() == null) ?
+                    PlaceHolder.TIME.component(LangKey.CMD_LIST_PLAYER_NEVER.create()) :
+                    PlaceHolder.TIME.temporal(playerLootDetail.lastChangedInstant())
             ));
 
             if (numOfEntriesStillToDo <= 0) {

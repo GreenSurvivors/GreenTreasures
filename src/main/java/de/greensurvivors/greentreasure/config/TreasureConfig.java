@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Locale;
 
 public class TreasureConfig {
-    protected final @NotNull ConfigOption<@NotNull Locale> locale = new ConfigOption<>("language", Locale.ENGLISH);
     protected final @NotNull ConfigOption<@NotNull Boolean> importLegacy = new ConfigOption<>("import_legacy", false);
     protected final @NotNull ConfigOption<@NotNull BreakBehavior> breakBehavior = new ConfigOption<>("break_behavior", BreakBehavior.ALL_BREAK_GLOBAL);
     protected static final @NotNull String CONFIG_KEY_SQL = "SQL";
@@ -21,9 +20,7 @@ public class TreasureConfig {
         this.plugin = plugin;
     }
 
-    /**
-     * Load main configuration.
-     */
+    /// Load main configuration.
     public void reload() {
         plugin.reloadConfig();
 
@@ -42,16 +39,6 @@ public class TreasureConfig {
         } else {
             plugin.getComponentLogger().error("Could not load database!");
         }
-
-        // load language
-        final @Nullable String localeStr = config.getString(locale.getPath());
-        if (localeStr == null) {
-            locale.setValue(null);
-        } else {
-            locale.setValue(Locale.forLanguageTag(localeStr.replace("_", "-")));
-        }
-
-        plugin.getMessageManager().reload(locale.getValueOrFallback());
 
         // import legacy
         if (config.getBoolean(importLegacy.getPath(), importLegacy.getValueOrFallback())) {

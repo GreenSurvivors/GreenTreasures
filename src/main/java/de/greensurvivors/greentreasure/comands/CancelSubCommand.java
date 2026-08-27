@@ -2,10 +2,9 @@ package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -48,9 +47,9 @@ public class CancelSubCommand extends ASubCommand {
             if (args.length >= 2) {
                 if (args[1].equals(IMPORT1) || args[1].equals(IMPORT2)) {
                     if (plugin.getLegacyDataImporter().cancelImport()) {
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_SUCCESS_IMPORT);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_SUCCESS_IMPORT);
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_ERROR_NO_RUNNING);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_ERROR_NO_RUNNING);
                     }
                 } else {
                     final @Nullable OfflinePlayer playerToCancelAllProcessesFrom;
@@ -61,37 +60,37 @@ public class CancelSubCommand extends ASubCommand {
                         try {
                             playerToCancelAllProcessesFrom = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
                         } catch (final @NotNull IllegalArgumentException ignored) {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                                PlaceHolder.TEXT.string(args[1])));
 
                             return true;
                         }
                     }
                     if (playerToCancelAllProcessesFrom.hasPlayedBefore()) {
                         if (plugin.getChunkParser().cancelProcessForUUID(playerToCancelAllProcessesFrom.getUniqueId())) {
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_SUCCESS_OTHER,
-                                Placeholder.unparsed(PlaceHolderKey.PLAYER.getKey(), playerToCancelAllProcessesFrom.getName()));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_SUCCESS_OTHER.create(
+                                PlaceHolder.PLAYER.string(playerToCancelAllProcessesFrom.getName())));
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_ERROR_NO_RUNNING);
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_ERROR_NO_RUNNING);
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                            PlaceHolder.TEXT.string(args[1])));
                     }
                 }
             } else {
                 if (sender instanceof final @NotNull Player player) {
                     if (plugin.getChunkParser().cancelProcessForUUID(player.getUniqueId())) {
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_SUCCESS_SELF);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_SUCCESS_SELF);
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.CMD_CANCEL_ERROR_NO_RUNNING);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CANCEL_ERROR_NO_RUNNING);
                     }
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
                 }
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

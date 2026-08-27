@@ -1,22 +1,22 @@
 package de.greensurvivors.greentreasure.dataobjects;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.List;
 
 public abstract class AListCmdHelper {
     protected final @NotNull Object MUTEX = new Object();
-    protected final @NotNull ArrayList<@NotNull ComponentLike> componentResult = new ArrayList<>();
+    protected final @NotNull List<@NotNull ComponentLike> componentResult = new ArrayList<>();
     protected final @NotNull GreenTreasure plugin;
     protected final @NotNull String command;
     private final int pageNow, lastPage;
@@ -35,29 +35,29 @@ public abstract class AListCmdHelper {
     }
 
     protected void sendMessage() {
-        TextComponent.Builder footerBuilder = Component.text();
+        final @NotNull TextComponent.Builder footerBuilder = Component.text();
 
-        footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_OUTER));
+        footerBuilder.append(LangKey.CMD_LIST_FOOTER_OUTER.create());
 
         if (pageNow > 1) {
-            footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_BACK,
-                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow - 1)).
+            footerBuilder.append(LangKey.CMD_LIST_FOOTER_BACK.create(
+                    PlaceHolder.NUMBER.numeric(pageNow - 1)).
                 clickEvent(ClickEvent.runCommand("/" + command + (pageNow - 1))));
         } else {
-            footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));
+            footerBuilder.append(LangKey.CMD_LIST_FOOTER_NONE.create());
         }
 
-        footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_INNER));
+        footerBuilder.append(LangKey.CMD_LIST_FOOTER_INNER.create());
 
         if (pageNow < lastPage) {
-            footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NEXT,
-                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow + 1)).
+            footerBuilder.append(LangKey.CMD_LIST_FOOTER_NEXT.create(
+                    PlaceHolder.NUMBER.numeric(pageNow + 1)).
                 clickEvent(ClickEvent.runCommand("/" + command + (pageNow + 1))));
         } else {
-            footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_NONE));
+            footerBuilder.append(LangKey.CMD_LIST_FOOTER_NONE.create());
         }
 
-        footerBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_FOOTER_OUTER));
+        footerBuilder.append(LangKey.CMD_LIST_FOOTER_OUTER.create());
 
         componentResult.add(footerBuilder.build());
 

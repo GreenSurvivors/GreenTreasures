@@ -2,7 +2,7 @@ package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import net.kyori.adventure.text.Component;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -43,9 +43,9 @@ public class ReloadSubCommand extends ASubCommand {
         if (checkPermission(sender)) {
             plugin.reload();
 
-            plugin.getMessageManager().sendLang(sender, LangPath.CMD_RELOAD_SUCCESS);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_RELOAD_SUCCESS);
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

@@ -2,10 +2,9 @@ package de.greensurvivors.greentreasure.dataobjects.refreshInfo;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -23,8 +22,8 @@ public class InstantUnlock extends ARefreshInfo {
 
     @Override
     public @NotNull Component infoMessage() {
-        return plugin.getMessageManager().getLang(LangPath.REFRESH_MSG_INFO_INSTANT_UNLOCK,
-            Placeholder.unparsed(PlaceHolderKey.START.getKey(), plugin.getMessageManager().formatTime(start)));
+        return LangKey.REFRESH_MSG_INFO_INSTANT_UNLOCK.create(
+            PlaceHolder.START.temporal(start));
     }
 
     @Override

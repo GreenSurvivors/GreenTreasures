@@ -4,11 +4,10 @@ import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -61,8 +60,8 @@ public class DeleteSubCommand extends ASubCommand {
                         if (args[1].equalsIgnoreCase(LOCAL)) {
                             isGlobal = false;
                         } else if (!args[1].equalsIgnoreCase(GLOBAL)) {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_UNKNOWN,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_UNKNOWN.create(
+                                PlaceHolder.TEXT.string(args[1])));
                             return true;
                         }
                     }
@@ -71,44 +70,44 @@ public class DeleteSubCommand extends ASubCommand {
                     if (isGlobal) {
                         plugin.getTreasureManager().deleteTreasure(container).thenAccept(success -> {
                             if (success) {
-                                plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_GLOBAL_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.REMOVE_GLOBAL_SUCCESS.create(
+                                    PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container))));
                             } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_ERROR,
-                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.REMOVE_ERROR.create(
+                                    PlaceHolder.TREASURE_ID.component(
                                         Utils.getDisplayName(container)),
-                                    Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                    PlaceHolder.CMD.component(
                                         Component.text().
                                             content(command).
                                             clickEvent(ClickEvent.suggestCommand(command))
                                     )
-                                );
+                                ));
                             }
                         });
                     } else {
                         if (plugin.getTreasureManager().deleteTreasureLocal(container)){
-                            plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_LOCAL_SUCCESS,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.REMOVE_LOCAL_SUCCESS.create(
+                                PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container))));
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.REMOVE_ERROR,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.REMOVE_ERROR.create(
+                                PlaceHolder.TREASURE_ID.component(
                                     Utils.getDisplayName(container)),
-                                Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                PlaceHolder.CMD.component(
                                     Component.text().
                                         content(command).
                                         clickEvent(ClickEvent.suggestCommand(command))
                                 )
-                            );
+                            ));
                         }
                     }
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                 }
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

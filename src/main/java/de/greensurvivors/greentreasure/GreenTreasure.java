@@ -28,7 +28,7 @@ public class GreenTreasure extends JavaPlugin {
     public GreenTreasure() {
         databaseManager = new DatabaseManager(this);
         treasureManager = new TreasureManager(this);
-        messageManager = new MessageManager(this);
+        messageManager = new MessageManager(getPluginMeta().namespace(), getComponentLogger(), getDataPath());
         configHandler = new TreasureConfig(this);
     }
 
@@ -39,7 +39,7 @@ public class GreenTreasure extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        // order is important, the config depends on the database, treasure and messages
+        // order is important, the config depends on the database and treasure
         commandInventoriesListener = new CommandInventoriesListener(this);
         reload();
 
@@ -80,6 +80,7 @@ public class GreenTreasure extends JavaPlugin {
 
     public void reload() {
         configHandler.reload();
+        messageManager.reload();
         commandInventoriesListener.clearInventories();
     }
 

@@ -3,10 +3,9 @@ package de.greensurvivors.greentreasure.comands;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.block.Container;
@@ -57,8 +56,8 @@ public class ForgetSubCommand extends ASubCommand {
                     if (treasureInfo != null) {
                         if (treasureInfo.isShared()) {
                             plugin.getDatabaseManager().forgetPlayer(null, treasureInfo.treasureId()).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_SHARED_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container))));
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_FORGET_SHARED_SUCCESS.create(
+                                    PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)))));
                         }
 
                         final OfflinePlayer playerToForget;
@@ -70,8 +69,8 @@ public class ForgetSubCommand extends ASubCommand {
                                 try {
                                     playerToForget = Bukkit.getOfflinePlayer(UUID.fromString(args[1]));
                                 } catch (IllegalArgumentException ignored) {
-                                    plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                        Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                                        PlaceHolder.TEXT.string(args[1])));
                                     return;
                                 }
                             }
@@ -79,7 +78,7 @@ public class ForgetSubCommand extends ASubCommand {
                             if (sender instanceof OfflinePlayer offlinePlayer) {
                                 playerToForget = offlinePlayer;
                             } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
                                 return;
                             }
                         }
@@ -98,23 +97,23 @@ public class ForgetSubCommand extends ASubCommand {
                                     }
                                 }
 
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_FORGET_USER_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)),
-                                    Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerName));
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_FORGET_USER_SUCCESS.create(
+                                    PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)),
+                                    PlaceHolder.PLAYER.component(playerName)));
                             });
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                                PlaceHolder.TEXT.string(args[1])));
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
                 });
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

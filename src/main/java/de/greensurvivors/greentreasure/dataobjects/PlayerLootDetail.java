@@ -16,7 +16,7 @@ public final class PlayerLootDetail {
     private final @Nullable List<@NotNull ItemStack> unLootedStuff;
 
     /**
-     * @param lastChangedInstant the unix time in milliseconds a player last has opened the treasure
+     * @param lastChangedInstant the unix time a player last has opened the treasure
      *                           This will set the firstLootedTimeStamp to lastChangedInstant
      * @param unLootedStuff      the list of items a player has not looted yet.
      *                           Might be null if the player never opened the inventory
@@ -26,8 +26,8 @@ public final class PlayerLootDetail {
     }
 
     /**
-     * @param firstLootedInstant the unix time in milliseconds a player fist has opened the treasure
-     * @param lastChangedInstant the unix time in milliseconds a player last has opened the treasure
+     * @param firstLootedInstant the unix time a player fist has opened the treasure
+     * @param lastChangedInstant the unix time a player last has opened the treasure
      * @param unLootedStuff      the list of items a player has not looted yet.
      *                           Might be null if the player never opened the inventory
      */

@@ -3,8 +3,8 @@ package de.greensurvivors.greentreasure;
 import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.dataobjects.either.Either;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import it.unimi.dsi.fastutil.Pair;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMaps;
@@ -14,7 +14,6 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.*;
 import net.kyori.adventure.audience.Audience;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import org.apache.logging.log4j.util.TriConsumer;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -327,12 +326,12 @@ public class ChunkParser {
             if ((chunksToLoadDoneNumber % CHUNKS_TO_PROCESS_BETWEEN_MESSAGES) == 0) { // ~ every 10 seconds report back
                 double percent = (double) chunksToLoadDoneNumber / (double) totalChunksToLoad.get() * 100.0d;
 
-                plugin.getMessageManager().sendLang(audience, LangPath.CHUNK_PROCESS_WORK,
-                    Formatter.number(PlaceHolderKey.X.getKey(), cx),
-                    Formatter.number(PlaceHolderKey.Z.getKey(), cz),
-                    Formatter.number(PlaceHolderKey.PERCENT.getKey(), percent),
-                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), chunksToLoadDoneNumber),
-                    Formatter.number(PlaceHolderKey.MAX.getKey(), totalChunksToLoad.get()));
+                plugin.getMessageManager().sendPrefixed(audience, LangKey.CHUNK_PROCESS_WORK.create(
+                    PlaceHolder.X.numeric(cx),
+                    PlaceHolder.Z.numeric(cz),
+                    PlaceHolder.PERCENT.numeric(percent),
+                    PlaceHolder.NUMBER.numeric(chunksToLoadDoneNumber),
+                    PlaceHolder.MAX.numeric(totalChunksToLoad.get())));
             }
         }
     }

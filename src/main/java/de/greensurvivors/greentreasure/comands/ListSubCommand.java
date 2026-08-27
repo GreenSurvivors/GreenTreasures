@@ -5,10 +5,9 @@ import de.greensurvivors.greentreasure.comands.list.ListNearbyCommand;
 import de.greensurvivors.greentreasure.comands.list.ListPlayerSubCommand;
 import de.greensurvivors.greentreasure.comands.list.ListTreasuresSubCommand;
 import de.greensurvivors.greentreasure.comands.list.ListWhoSubCommand;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang3.Strings;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
@@ -68,18 +67,18 @@ public class ListSubCommand extends ASubCommand {
                     if (entry.getValue().checkPermission(sender)) {
                         return entry.getValue().onCommand(sender, args);
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
                     }
 
                     return true;
                 }
             }
 
-            plugin.getMessageManager().sendLang(sender, LangPath.ARG_UNKNOWN,
-                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_UNKNOWN.create(
+                PlaceHolder.TEXT.string(args[1])));
             return false;
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
         }
 
         return true;

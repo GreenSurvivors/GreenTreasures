@@ -9,13 +9,11 @@ import de.greensurvivors.greentreasure.comands.ListSubCommand;
 import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -59,8 +57,8 @@ public class ListPlayerSubCommand extends ASubCommand {
                     try {
                         uuidToGetListOf = UUID.fromString(args[2]);
                     } catch (IllegalArgumentException ignored) {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_PLAYER,
-                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_PLAYER.create(
+                            PlaceHolder.TEXT.string(args[2])));
                         return false;
                     }
                 }
@@ -79,8 +77,8 @@ public class ListPlayerSubCommand extends ASubCommand {
                                 //limit page to how many exits
                                 pageNow = Math.clamp(Integer.parseInt(args[3]), 1, numPages);
                             } else {
-                                plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
-                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[3]));
+                                plugin.getMessageManager().sendPrefixed(audience, LangKey.ARG_NOT_A_NUMBER.create(
+                                    PlaceHolder.TEXT.string(args[3])));
                                 return;
                             }
                         } else {
@@ -101,16 +99,16 @@ public class ListPlayerSubCommand extends ASubCommand {
                     } else {
                         final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
-                        plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_PLAYER_EMPTY,
-                            Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
+                        plugin.getMessageManager().sendPrefixed(audience, LangKey.CMD_LIST_PLAYER_EMPTY.create(
+                            PlaceHolder.CMD.component(Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd)))));
                     }
                 });
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
                 return false;
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;
@@ -153,10 +151,10 @@ public class ListPlayerSubCommand extends ASubCommand {
             }
 
             // header
-            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_HEADER,
-                Placeholder.component(PlaceHolderKey.PLAYER.getKey(), playerDisplay),
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
-                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
+            componentResult.add(LangKey.CMD_LIST_PLAYER_HEADER.create(
+                PlaceHolder.PLAYER.component(playerDisplay),
+                PlaceHolder.NUMBER.numberChoice(pageNow),
+                PlaceHolder.LAST_PAGE.numberChoice(lastPage)));
         }
 
         public void addEntry(final Ulid treasureId) {
@@ -165,12 +163,12 @@ public class ListPlayerSubCommand extends ASubCommand {
                     numOfEntriesStillToDo--;
 
                     //build treasureInfo
-                    componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_BODY,
-                        Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                        Placeholder.component(PlaceHolderKey.TIME.getKey(),
-                            (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ?
-                                plugin.getMessageManager().getLang(LangPath.CMD_LIST_PLAYER_NEVER) :
-                                Component.text(plugin.getMessageManager().formatTime(playerLootDetail_result.lastChangedInstant())))));
+                    componentResult.add(LangKey.CMD_LIST_PLAYER_BODY.create(
+                        PlaceHolder.TREASURE_ID.string(treasureId.toString()),
+                        (playerLootDetail_result == null || playerLootDetail_result.unLootedStuff() == null) ?
+                            PlaceHolder.TIME.component(LangKey.CMD_LIST_PLAYER_NEVER.create()) :
+                            PlaceHolder.TIME.temporal(playerLootDetail_result.lastChangedInstant())
+                    ));
 
                     if (numOfEntriesStillToDo <= 0) {
                         sendMessage();

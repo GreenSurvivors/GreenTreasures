@@ -1,7 +1,7 @@
 package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import org.apache.commons.lang3.Strings;
@@ -46,14 +46,14 @@ public class HelpSubCommand extends ASubCommand {
             // collect all messages to send at once
             ArrayList<Component> components = new ArrayList<>();
             //wiki
-            components.add(plugin.getMessageManager().getLang(LangPath.CMD_HELP_WIKI));
+            components.add(LangKey.CMD_HELP_WIKI.create());
 
             //todo explain commands
 
             // send components
-            plugin.getMessageManager().sendMessage(sender, Component.join(JoinConfiguration.newlines(), components));
+            plugin.getMessageManager().sendPrefixed(sender, Component.join(JoinConfiguration.newlines(), components));
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

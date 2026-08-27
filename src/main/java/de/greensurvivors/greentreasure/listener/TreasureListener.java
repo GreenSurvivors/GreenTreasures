@@ -12,9 +12,9 @@ import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
 import de.greensurvivors.greentreasure.event.TreasureBreakEvent;
 import de.greensurvivors.greentreasure.event.TreasureCloseEvent;
 import de.greensurvivors.greentreasure.event.TreasureOpenEvent;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import de.greensurvivors.greentreasure.language.MessageManager;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import io.papermc.paper.block.TileStateInventoryHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -22,6 +22,7 @@ import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.minimessage.translation.Argument;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Container;
 import org.bukkit.entity.Player;
@@ -169,7 +170,7 @@ public class TreasureListener implements Listener {
      */
     @EventHandler(ignoreCancelled = true)
     private void onOpenTreasure(final @NotNull InventoryOpenEvent event) {
-        if (event.getPlayer() instanceof Player ePlayer) {
+        if (event.getPlayer() instanceof Player player) {
             final @NotNull Inventory eInventory = event.getInventory();
             final @Nullable TreasureInfo treasureInfo = plugin.getTreasureManager().getTreasureInfoUrgently(plugin.getTreasureManager().getTreasureId(event.getView()));
 
@@ -188,12 +189,12 @@ public class TreasureListener implements Listener {
                 }
 
                 //test permission
-                if (ePlayer.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
+                if (player.hasPermission(PermissionManager.TREASURE_OPEN.get())) {
                     if (treasureInfo.isUnlocked()) {
                         final @NotNull Component eTitle = event.getView().title();
 
                         // call api event: TreasureOpenEvent
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
                         treasureOpenEvent.callEvent();
 
                         // evaluate result
@@ -219,28 +220,29 @@ public class TreasureListener implements Listener {
                             if (inventoryView != null && !treasureInfo.isUnlimited()) {
                                 // shared and already open inventory with our custom owner and with limited stock.
                                 // Just share the inventory to keep it sync across all players
-                                ePlayer.openInventory(inventoryView.getTopInventory());
+                                player.openInventory(inventoryView.getTopInventory());
                             } else if (treasureInfo.isUnlimited()) {
-                                handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, null);
+                                handleTreasureOpen(player, treasureInfo, eInventory, eTitle, null);
                             } else {
                                 //load global treasure async
                                 plugin.getDatabaseManager().getPlayerData(null, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
-                                    handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, playerLootDetail));
+                                    handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
                             }
                         } else { // not globally shared
-                            plugin.getDatabaseManager().getPlayerData(ePlayer, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
-                                handleTreasureOpen(ePlayer, treasureInfo, eInventory, eTitle, playerLootDetail));
+                            plugin.getDatabaseManager().getPlayerData(player, treasureInfo.treasureId()).thenAccept(playerLootDetail ->
+                                handleTreasureOpen(player, treasureInfo, eInventory, eTitle, playerLootDetail));
                         }
                     } else {
-                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, true);
+                        TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, true);
                         treasureOpenEvent.callEvent();
 
                         switch (treasureOpenEvent.getResult()) {
                             case DEFAULT -> {
-                                plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_FIND_LOCKED,
-                                    Placeholder.component(PlaceHolderKey.TEXT.getKey(), event.getView().title()),
-                                    Placeholder.component(PlaceHolderKey.TIME.getKey(),
-                                        MessageManager.formatDuration(treasureInfo.getRefreshInfo().getTimeUntilFresh(null))));
+                                plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_LOCKED.create(
+                                    PlaceHolder.TEXT.component(event.getView().title()),
+                                    PlaceHolder.TIME.component(
+                                        MessageManager.formatDuration(treasureInfo.getRefreshInfo().getTimeUntilFresh(null)))
+                                ));
                                 // don't open the original block inventory
                                 event.setCancelled(true);
                             }
@@ -251,12 +253,12 @@ public class TreasureListener implements Listener {
 
                     }
                 } else {
-                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(ePlayer, treasureInfo, false);
+                    TreasureOpenEvent treasureOpenEvent = new TreasureOpenEvent(player, treasureInfo, false);
                     treasureOpenEvent.callEvent();
 
                     switch (treasureOpenEvent.getResult()) {
                         case DEFAULT -> {
-                            plugin.getMessageManager().sendLang(ePlayer, LangPath.NO_PERMISSION);
+                            plugin.getMessageManager().sendPrefixed(player, LangKey.NO_PERMISSION);
                             // don't open the original block inventory
                             event.setCancelled(true);
                         }
@@ -318,16 +320,16 @@ public class TreasureListener implements Listener {
         final @Nullable String messageOverride = isFresh ? treasureInfo.rawFindFreshMessageOverride() : treasureInfo.rawFindLootedMessageOverride();
 
         if (messageOverride != null) {
-            plugin.getMessageManager().sendMessage(player, MiniMessage.miniMessage().deserialize(messageOverride,
+            plugin.getMessageManager().sendPrefixed(player, MiniMessage.miniMessage().deserialize(messageOverride,
                 getTagResolvers(player, treasureInfo, title, playerLootDetail)));
         } else if (!isFresh) { // already looted limited
-            plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_ALREADY_LOOTED,
-                getTagResolvers(player, treasureInfo, title, playerLootDetail));
+            plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_ALREADY_LOOTED.create(
+                Argument.tagResolver(getTagResolvers(player, treasureInfo, title, playerLootDetail))));
         } else {
             if (treasureInfo.isUnlimited()) {
-                plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_UNLIMITED);
+                plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_UNLIMITED);
             } else {
-                plugin.getMessageManager().sendLang(player, LangPath.ACTION_FIND_LIMITED);
+                plugin.getMessageManager().sendPrefixed(player, LangKey.ACTION_FIND_LIMITED);
             }
         }
     }
@@ -341,12 +343,12 @@ public class TreasureListener implements Listener {
             resolvers = new TagResolver[3];
         } else {
             resolvers = new TagResolver[4];
-            resolvers[3] = Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatDuration(timeUntilFresh));
+            resolvers[3] = Placeholder.component(PlaceHolder.TIME.getKey(), MessageManager.formatDuration(timeUntilFresh));
         }
 
-        resolvers[0] = Placeholder.component(PlaceHolderKey.PLAYER.getKey(), player.displayName());
-        resolvers[1] = Placeholder.component(PlaceHolderKey.TEXT.getKey(), title);
-        resolvers[2] = Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited());
+        resolvers[0] = Placeholder.component(PlaceHolder.PLAYER.getKey(), player.displayName());
+        resolvers[1] = Placeholder.component(PlaceHolder.TEXT.getKey(), title);
+        resolvers[2] = Formatter.booleanChoice(PlaceHolder.UNLIMITED.getKey(), treasureInfo.isUnlimited());
 
         return resolvers;
     }
@@ -392,42 +394,42 @@ public class TreasureListener implements Listener {
                             if (isGlobal) {
                                 plugin.getTreasureManager().deleteTreasure(persistentDataHolder).thenAccept(success -> {
                                     if (success) {
-                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_GLOBAL_SUCCESS,
-                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                                Utils.getDisplayName((Container) persistentDataHolder)));
+                                        plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_GLOBAL_SUCCESS.create(
+                                            PlaceHolder.TREASURE_ID.component(
+                                                Utils.getDisplayName((Container) persistentDataHolder))));
                                     } else {
                                         final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
-                                        plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_ERROR,
-                                            Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                        plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_ERROR.create(
+                                            PlaceHolder.TREASURE_ID.component(
                                                 Utils.getDisplayName((Container) persistentDataHolder)),
-                                            Placeholder.component(PlaceHolderKey.CMD.getKey(),
-                                                Component.text().
-                                                    content(command).
-                                                    clickEvent(ClickEvent.suggestCommand(command))
+                                            PlaceHolder.CMD.component(
+                                                Component.text()
+                                                    .content(command)
+                                                    .clickEvent(ClickEvent.suggestCommand(command))
                                             )
-                                        );
+                                        ));
                                     }
                                 });
                             } else {
                                 if (plugin.getTreasureManager().deleteTreasureLocal(persistentDataHolder)) {
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_LOCAL_SUCCESS,
-                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
-                                            Utils.getDisplayName((Container) persistentDataHolder)));
+                                    plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_LOCAL_SUCCESS.create(
+                                        PlaceHolder.TREASURE_ID.component(
+                                            Utils.getDisplayName((Container) persistentDataHolder))));
                                 }  else {
                                     final @NotNull String command = "/" + MainCommand.CMD + " " + plugin.getMainCommand().getDeleteSubCmd().getAliases().iterator().next();
-                                    plugin.getMessageManager().sendLang(ePlayer, LangPath.REMOVE_ERROR,
-                                        Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                    plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.REMOVE_ERROR.create(
+                                        PlaceHolder.TREASURE_ID.component(
                                             Utils.getDisplayName((Container) persistentDataHolder)),
-                                        Placeholder.component(PlaceHolderKey.CMD.getKey(),
+                                        PlaceHolder.CMD.component(
                                             Component.text().
                                                 content(command).
                                                 clickEvent(ClickEvent.suggestCommand(command))
                                         )
-                                    );
+                                    ));
                                 }
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(ePlayer, LangPath.ACTION_REMOVE_DENIED);
+                            plugin.getMessageManager().sendPrefixed(ePlayer, LangKey.ACTION_REMOVE_DENIED);
                         }
                     }
                 }

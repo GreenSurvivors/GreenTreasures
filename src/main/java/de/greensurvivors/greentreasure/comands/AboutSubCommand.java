@@ -2,11 +2,10 @@ package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
@@ -48,19 +47,19 @@ public class AboutSubCommand extends ASubCommand {
             // collect all messages to send at once
             List<Component> components = new ArrayList<>();
             // header
-            components.add(plugin.getMessageManager().getLang(LangPath.CMD_ABOUT_PLUGIN_HEADER));
+            components.add(LangKey.CMD_ABOUT_PLUGIN_HEADER.create());
             // version (update ?)
-            components.add(plugin.getMessageManager().getLang(LangPath.CMD_ABOUT_PLUGIN_VERSION,
-                Placeholder.unparsed(PlaceHolderKey.NUMBER.getKey(), plugin.getPluginMeta().getVersion())));
+            components.add(LangKey.CMD_ABOUT_PLUGIN_VERSION.create(
+                PlaceHolder.NUMBER.string(plugin.getPluginMeta().getVersion())));
 
             //description
-            components.add(plugin.getMessageManager().getLang(LangPath.CMD_ABOUT_PLUGIN_DESCRIPTION,
-                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), plugin.getPluginMeta().getDescription())));
+            components.add(LangKey.CMD_ABOUT_PLUGIN_DESCRIPTION.create(
+                PlaceHolder.TEXT.string(plugin.getPluginMeta().getDescription())));
 
             // send components
             sender.sendMessage(Component.join(JoinConfiguration.newlines(), components));
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

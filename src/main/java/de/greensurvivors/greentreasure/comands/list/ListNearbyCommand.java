@@ -9,15 +9,14 @@ import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.MessageManager;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Entity;
@@ -54,8 +53,8 @@ public class ListNearbyCommand extends ASubCommand {
                     if (Utils.isInt(args[2])) {
 
                         if (args.length >= 4 && !Utils.isInt(args[3])) {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[3]));
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_A_NUMBER.create(
+                                PlaceHolder.TEXT.string(args[3])));
                             return false;
                         }
 
@@ -100,21 +99,21 @@ public class ListNearbyCommand extends ASubCommand {
                                 } else {
                                     final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
-                                    plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_NEARBY_TREASURES_EMPTY,
-                                        Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
+                                    plugin.getMessageManager().sendPrefixed(audience, LangKey.CMD_LIST_NEARBY_TREASURES_EMPTY.create(
+                                        PlaceHolder.CMD.component(Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd)))));
                                 }
                             });
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                            Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_A_NUMBER.create(
+                            PlaceHolder.TEXT.string(args[2])));
                         return false;
                     }
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
                     return false;
                 }
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
             }
         }
 
@@ -134,9 +133,9 @@ public class ListNearbyCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
 
             // header
-            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_HEADER,
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
-                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
+            componentResult.add(LangKey.CMD_LIST_NEARBY_TREASURES_HEADER.create(
+                PlaceHolder.NUMBER.numeric(pageNow),
+                PlaceHolder.LAST_PAGE.numeric(lastPage)));
         }
 
         public void addEntry(final Map.Entry<TreasureInfo, SortedSet<Location>> entry) {
@@ -146,15 +145,15 @@ public class ListNearbyCommand extends ASubCommand {
                 //build treasureInfo
                 final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
 
-                treasureInfoComponentBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_NEARBY_TREASURES_BODY,
-                    Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), entry.getKey().treasureId().toString()),
-                    Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) entry.getKey().nonEmptyPermyriad()) / 100.0d),
-                    Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), entry.getKey().isShared()),
-                    Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), entry.getKey().isUnlimited()),
-                    Placeholder.component(PlaceHolderKey.LOCATION.getKey(),
+                treasureInfoComponentBuilder.append(LangKey.CMD_LIST_NEARBY_TREASURES_BODY.create(
+                    PlaceHolder.TREASURE_ID.string(entry.getKey().treasureId().toString()),
+                    PlaceHolder.NUMBER.numeric(((double) entry.getKey().nonEmptyPermyriad()) / 100.0d),
+                    PlaceHolder.SHARED.boolChoice(entry.getKey().isShared()),
+                    PlaceHolder.UNLIMITED.boolChoice(entry.getKey().isUnlimited()),
+                    PlaceHolder.LOCATION.component(
                         Component.join(JoinConfiguration.commas(true),
                             entry.getValue().stream().map(location ->
-                                plugin.getMessageManager().formatLocation(location). // todo make the command configurable, since many plugins use /tppos
+                                MessageManager.formatLocation(location). // todo make the command configurable, since many plugins use /tppos
                                     clickEvent(ClickEvent.suggestCommand("/tp " + location.getX() + " " + location.getY() + " " + location.getZ()))
                             ).toList()))
                 ));

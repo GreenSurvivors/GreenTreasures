@@ -3,11 +3,9 @@ package de.greensurvivors.greentreasure.comands.set;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.comands.ASubCommand;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
@@ -65,24 +63,24 @@ public class SetRandomSubCommand extends ASubCommand {
 
                                 int finalSlotPercentage = nonEmptyPermyriad;
                                 plugin.getDatabaseManager().setRandom(treasureInfo.treasureId(), nonEmptyPermyriad).thenRun(() ->
-                                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_SET_RANDOM_SUCCESS,
-                                        Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((float) finalSlotPercentage) / 100.0f)));
+                                    plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_SET_RANDOM_SUCCESS.create(
+                                        PlaceHolder.NUMBER.numeric(((float) finalSlotPercentage) / 100.0f))));
                             } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ARG_NOT_A_NUMBER,
-                                    Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_A_NUMBER.create(
+                                    PlaceHolder.TEXT.string(args[2])));
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
                         }
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                     }
                 });
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

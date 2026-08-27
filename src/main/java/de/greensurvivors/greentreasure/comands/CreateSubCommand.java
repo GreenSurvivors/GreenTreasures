@@ -3,10 +3,9 @@ package de.greensurvivors.greentreasure.comands;
 import com.github.f4b6a3.ulid.Ulid;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.inventory.ItemStack;
@@ -58,24 +57,24 @@ public class CreateSubCommand extends ASubCommand {
                             container.update(true, false);
 
                             plugin.getDatabaseManager().setTreasureContents(newTreasureId, itemStacks).thenRun(() ->
-                                plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_SUCCESS,
-                                    Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(),
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CREATE_SUCCESS.create(
+                                    PlaceHolder.TREASURE_ID.component(
                                         Objects.requireNonNullElseGet(
                                             container.customName(),
                                             () -> Component.translatable(container.getBlock().translationKey())
-                                    ))));
+                                    )))));
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_ALREADY_TREASURE);
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CREATE_ERROR_ALREADY_TREASURE);
                         }
                     });
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.CMD_CREATE_ERROR_INVALID_CONTAINER);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_CREATE_ERROR_INVALID_CONTAINER);
                 }
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

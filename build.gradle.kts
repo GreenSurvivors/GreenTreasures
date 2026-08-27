@@ -16,10 +16,6 @@ version = buildString {
     append("+${getProperty("minecraft_version")}")
 }
 
-// todo remove with 26.1
-// we only work with paper and downstream!
-paperweight.reobfArtifactConfiguration = io.papermc.paperweight.userdev.ReobfArtifactConfiguration.MOJANG_PRODUCTION
-
 java {
     // Configure the java toolchain. This allows gradle to auto-provision JDK 21 on systems that only have JDK 8 installed for example.
     toolchain.languageVersion = JavaLanguageVersion.of(getProperty("java_version"))
@@ -58,9 +54,9 @@ tasks {
         expand(providers.gradlePropertiesPrefixedBy("")
             .get()
             .toMutableMap() // f you gradle for being inconvenient in newer versions
-            .plus("version" to version)
-            .plus("description" to description)
-            .plus("group" to group))
+            .plus("version" to project.version)
+            .plus("description" to project.description)
+            .plus("group" to project.group))
     }
 
     compileJava {

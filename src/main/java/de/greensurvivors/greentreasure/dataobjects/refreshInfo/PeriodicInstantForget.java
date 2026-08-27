@@ -2,11 +2,10 @@ package de.greensurvivors.greentreasure.dataobjects.refreshInfo;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import de.greensurvivors.greentreasure.language.MessageManager;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,9 +26,9 @@ public class PeriodicInstantForget extends ARefreshInfo {
 
     @Override
     public @NotNull Component infoMessage() {
-        return plugin.getMessageManager().getLang(LangPath.REFRESH_MSG_INFO_PERIODIC_INSTANT,
-            Placeholder.unparsed(PlaceHolderKey.START.getKey(), plugin.getMessageManager().formatTime(start)),
-            Placeholder.component(PlaceHolderKey.TIME.getKey(), MessageManager.formatDuration(forgetDuration)));
+        return LangKey.REFRESH_MSG_INFO_PERIODIC_INSTANT.create(
+            PlaceHolder.START.temporal(start),
+            PlaceHolder.TIME.component(MessageManager.formatDuration(forgetDuration)));
     }
 
     @Override
@@ -85,7 +84,7 @@ public class PeriodicInstantForget extends ARefreshInfo {
     @Override
     public String toString() {
         return "TimedForget[" +
-            "start:" + plugin.getMessageManager().formatTime(start) +
+            "start:" + start +
             "duration:" + forgetDuration + "]";
     }
 }

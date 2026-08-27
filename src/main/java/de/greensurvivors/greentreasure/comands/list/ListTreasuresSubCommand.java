@@ -10,14 +10,12 @@ import de.greensurvivors.greentreasure.comands.MainCommand;
 import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
 import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.minimessage.tag.resolver.Formatter;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
@@ -63,8 +61,8 @@ public class ListTreasuresSubCommand extends ASubCommand {
                             //limit page to how many exits
                             pageNow = Math.clamp(Integer.parseInt(args[2]), 1, numPages);
                         } else {
-                            plugin.getMessageManager().sendLang(audience, LangPath.ARG_NOT_A_NUMBER,
-                                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[2]));
+                            plugin.getMessageManager().sendPrefixed(audience, LangKey.ARG_NOT_A_NUMBER.create(
+                                PlaceHolder.TEXT.string(args[2])));
                             return;
                         }
                     } else {
@@ -95,12 +93,12 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 } else {
                     final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
 
-                    plugin.getMessageManager().sendLang(audience, LangPath.CMD_LIST_TREASURES_EMPTY,
-                        Placeholder.component(PlaceHolderKey.CMD.getKey(), Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd))));
+                    plugin.getMessageManager().sendPrefixed(audience, LangKey.CMD_LIST_TREASURES_EMPTY.create(
+                        PlaceHolder.CMD.component(Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd)))));
                 }
             });
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;
@@ -117,9 +115,9 @@ public class ListTreasuresSubCommand extends ASubCommand {
                 MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " "); //page will be added by super
 
             // header
-            componentResult.add(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_HEADER,
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), pageNow),
-                Formatter.number(PlaceHolderKey.LAST_PAGE.getKey(), lastPage)));
+            componentResult.add(LangKey.CMD_LIST_TREASURES_HEADER.create(
+                PlaceHolder.NUMBER.numeric(pageNow),
+                PlaceHolder.LAST_PAGE.numeric(lastPage)));
         }
 
         public void addEntry(final @NotNull TreasureInfo treasureInfo, final @NotNull Ulid treasureId) {
@@ -128,11 +126,11 @@ public class ListTreasuresSubCommand extends ASubCommand {
             //build treasureInfo
             final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
 
-            treasureInfoComponentBuilder.append(plugin.getMessageManager().getLang(LangPath.CMD_LIST_TREASURES_BODY,
-                Placeholder.unparsed(PlaceHolderKey.TREASURE_ID.getKey(), treasureId.toString()),
-                Formatter.number(PlaceHolderKey.NUMBER.getKey(), ((double) treasureInfo.nonEmptyPermyriad()) / 100.0d),
-                Formatter.booleanChoice(PlaceHolderKey.SHARED.getKey(), treasureInfo.isShared()),
-                Formatter.booleanChoice(PlaceHolderKey.UNLIMITED.getKey(), treasureInfo.isUnlimited())
+            treasureInfoComponentBuilder.append(LangKey.CMD_LIST_TREASURES_BODY.create(
+                PlaceHolder.TREASURE_ID.string(treasureId.toString()),
+                PlaceHolder.NUMBER.numeric(((double) treasureInfo.nonEmptyPermyriad()) / 100.0d),
+                PlaceHolder.SHARED.boolChoice(treasureInfo.isShared()),
+                PlaceHolder.UNLIMITED.boolChoice(treasureInfo.isUnlimited())
             ));
 
             if (treasureInfo.doesForget() || !treasureInfo.isUnlocked()) {

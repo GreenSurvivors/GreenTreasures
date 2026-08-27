@@ -4,10 +4,9 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
@@ -61,8 +60,8 @@ public class EditSubCommand extends ASubCommand {
                 if (sender instanceof Player player) {
                     plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
                         if (treasureInfo != null) {
-                            final @NotNull Component title = plugin.getMessageManager().getLang(LangPath.TREASURE_TITLE_EDIT,
-                                Placeholder.component(PlaceHolderKey.TREASURE_ID.getKey(), Utils.getDisplayName(container)));
+                            final @NotNull Component title = LangKey.TREASURE_TITLE_EDIT.create(
+                                PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)));
 
                             final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
@@ -79,21 +78,21 @@ public class EditSubCommand extends ASubCommand {
                             if (view != null) {
                                 plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
                             } else {
-                                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_UNKNOWN);
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_UNKNOWN);
                                 plugin.getComponentLogger().warn("Could not open Inventory {} for Player {}", inventory, player);
                             }
                         } else {
-                            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_TREASURE);
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
                         }
                     });
                 } else {
-                    plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
                 }
             } else {
-                plugin.getMessageManager().sendLang(sender, LangPath.ERROR_NOT_LOOKING_AT_CONTAINER);
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
 
         return true;

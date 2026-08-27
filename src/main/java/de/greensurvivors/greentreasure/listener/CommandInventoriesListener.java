@@ -5,7 +5,7 @@ import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PeekedTreasure;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.event.PeekingDoneEvent;
-import de.greensurvivors.greentreasure.language.LangPath;
+import de.greensurvivors.greentreasure.language.LangKey;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -94,9 +94,9 @@ public class CommandInventoriesListener implements Listener {
                     // the IDE is confused with two annotations
                     //noinspection NullableProblems
                     plugin.getDatabaseManager().setTreasureContents(treasureId, Arrays.asList(eInventory.getContents())).
-                        thenRun(() -> plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ACTION_TREASURE_EDITED));
+                        thenRun(() -> plugin.getMessageManager().sendPrefixed(event.getPlayer(), LangKey.ACTION_TREASURE_EDITED));
                 } else {
-                    plugin.getMessageManager().sendLang(event.getPlayer(), LangPath.ERROR_UNKNOWN);
+                    plugin.getMessageManager().sendPrefixed(event.getPlayer(), LangKey.ERROR_UNKNOWN);
                 }
             });
         }

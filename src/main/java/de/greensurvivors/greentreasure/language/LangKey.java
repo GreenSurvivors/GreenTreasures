@@ -1,10 +1,19 @@
 package de.greensurvivors.greentreasure.language;
 
+import de.greensurvivors.greentreasure.GreenTreasure;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
+import net.kyori.adventure.text.TranslatableComponent;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.StyleBuilderApplicable;
+import net.kyori.adventure.translation.Translatable;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.PropertyKey;
 
 /// Paths of all translatable
-public enum LangPath {
+public enum LangKey implements Translatable {
     //actions
     ACTION_REMOVE_DENIED("action.remove.denied"),
     ACTION_FIND_ALREADY_LOOTED("action.find.looted"),
@@ -98,24 +107,36 @@ public enum LangPath {
     REFRESH_MSG_INFO_NEVER("refresh.msg.info.never"),
     REFRESH_MSG_INFO_INSTANT_UNLOCK("refresh.msg.info.instant_unlock");
 
-    private final @NotNull @PropertyKey(resourceBundle = "lang") String path;
-    private final @NotNull String defaultValue;
+    private final @NotNull @PropertyKey(resourceBundle = "lang") String translationKey;
+    private final @Nullable String fallback;
 
-    LangPath(final @NotNull String path) {
-        this.path = path;
-        this.defaultValue = path; // we don't need to define a default value, but if something couldn't get loaded we have to return at least helpful information
+    LangKey(final @NotNull String translationKey) {
+        this(translationKey, null); // minecraft will use the key, if no translation was found. No need to set it ourselves
     }
 
-    LangPath(final @NotNull String path, final @NotNull String defaultValue) {
-        this.path = path;
-        this.defaultValue = defaultValue;
+    LangKey(final @NotNull String translationKey, final @Nullable String fallback) {
+        this.translationKey = JavaPlugin.getPlugin(GreenTreasure.class).namespace() + "." + translationKey;
+        this.fallback = fallback;
     }
 
-    public @NotNull String getPath() {
-        return path;
+    @Override
+    public @NotNull String translationKey() {
+        return translationKey;
     }
 
-    public @NotNull String getDefaultValue() {
-        return defaultValue;
+    public @NotNull TranslatableComponent create() {
+        return Component.translatable(translationKey, fallback);
+    }
+
+    public @NotNull TranslatableComponent create(final @NotNull StyleBuilderApplicable @NotNull ... styles) {
+        return Component.translatable(translationKey, fallback, styles);
+    }
+
+    public @NotNull TranslatableComponent create(final @NotNull ComponentLike @NotNull ... args) {
+        return Component.translatable(translationKey, fallback, args);
+    }
+
+    public @NotNull TranslatableComponent create(final @NotNull Style style, final @NotNull ComponentLike @NotNull ... args) {
+        return Component.translatable(translationKey, fallback, style, args);
     }
 }

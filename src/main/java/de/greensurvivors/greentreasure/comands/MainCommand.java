@@ -2,9 +2,8 @@ package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import org.apache.commons.lang3.Strings;
 import org.bukkit.Bukkit;
 import org.bukkit.block.Block;
@@ -80,7 +79,7 @@ public class MainCommand extends Command { // todo adapt to Brigadier
                 return null;
             }
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.ERROR_SENDER_NOT_PLAYER);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
             return null;
         }
     }
@@ -93,15 +92,15 @@ public class MainCommand extends Command { // todo adapt to Brigadier
                     if (entry.getValue().checkPermission(sender)) {
                         entry.getValue().onCommand(sender, args);
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
                     }
 
                     return true;
                 }
             }
 
-            plugin.getMessageManager().sendLang(sender, LangPath.ARG_UNKNOWN,
-                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[0]));
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_UNKNOWN.create(
+                PlaceHolder.TEXT.string(args[0])));
             return false;
         } else {
             // plugin

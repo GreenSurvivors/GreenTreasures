@@ -2,10 +2,9 @@ package de.greensurvivors.greentreasure.comands;
 
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.comands.set.*;
-import de.greensurvivors.greentreasure.language.LangPath;
-import de.greensurvivors.greentreasure.language.PlaceHolderKey;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.command.CommandSender;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +14,7 @@ import java.util.*;
 public class SetSubCommand extends ASubCommand {
     private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
 
-    public SetSubCommand(@NotNull GreenTreasure plugin) {
+    public SetSubCommand(final @NotNull GreenTreasure plugin) {
         super(plugin);
 
         registerSubCommand(new SetForgetSubCommand(plugin));
@@ -33,7 +32,7 @@ public class SetSubCommand extends ASubCommand {
     }
 
     @Override
-    protected boolean checkPermission(@NotNull Permissible permissible) {
+    protected boolean checkPermission(final @NotNull Permissible permissible) {
         return subCommands.values().stream().anyMatch(sub -> sub.checkPermission(permissible));
     }
 
@@ -48,32 +47,32 @@ public class SetSubCommand extends ASubCommand {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length > 1) {
             for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
                 if (entry.getKey().equalsIgnoreCase(args[1])) {
                     if (entry.getValue().checkPermission(sender)) {
                         return entry.getValue().onCommand(sender, args);
                     } else {
-                        plugin.getMessageManager().sendLang(sender, LangPath.NO_PERMISSION);
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
                     }
 
                     return true;
                 }
             }
 
-            plugin.getMessageManager().sendLang(sender, LangPath.ARG_UNKNOWN,
-                Placeholder.unparsed(PlaceHolderKey.TEXT.getKey(), args[1]));
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_UNKNOWN
+                .create(PlaceHolder.TEXT.string(args[1])));
             return false;
         } else {
-            plugin.getMessageManager().sendLang(sender, LangPath.CMD_ERROR_NOT_ENOUGH_ARGS);
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
         }
 
         return true;
     }
 
     @Override
-    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+    public @NotNull List<@NotNull String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length <= 2) {
             final Set<String> suggestions = new HashSet<>();
 

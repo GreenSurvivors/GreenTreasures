@@ -1000,9 +1000,7 @@ public class DatabaseManager {
         }
     }
 
-    /**
-     * creates missing treasure table
-     */
+    /// creates missing treasure table
     protected void createTableTreasure() {
         if (dataSource != null) {
             final String statementStr = "CREATE TABLE IF NOT EXISTS " + TREASURE_TABLE + " (" +
