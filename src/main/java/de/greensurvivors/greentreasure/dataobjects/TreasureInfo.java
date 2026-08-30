@@ -25,7 +25,7 @@ public final class TreasureInfo {
 
     /**
      * @param itemLoot          the inventory with its loot items
-     //* @param timeUntilForget   the time period the treasure has to be not opened until it restocks
+     * @param refreshInfo       the settings when a Treasure restocks
      * @param nonEmptyPermyriad the chance a slot has to appear when opening the treasure for the fist time
      * @param isUnlimited       if the treasure is lootable an unlimited amount of times
      * @param isShared          if the inventory a treasure has is globally shared

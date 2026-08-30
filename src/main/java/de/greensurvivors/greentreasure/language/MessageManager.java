@@ -201,6 +201,8 @@ public class MessageManager extends MiniMessageTranslator {
         try {
             final @NotNull URL @NotNull [] urls = new URL[]{langDictionary.toUri().toURL()};
             final @NotNull URLClassLoader urlClassLoader = new URLClassLoader(urls);
+            // don't deal with anything else than properties
+            final @NotNull ResourceBundle.Control control = ResourceBundle.Control.getControl(ResourceBundle.Control.FORMAT_PROPERTIES);
 
             try (final @NotNull DirectoryStream<@NotNull Path> stream = Files.newDirectoryStream(langDictionary, Files::isRegularFile)) {
                 for (final @NotNull Path filePath : stream) {
@@ -213,11 +215,16 @@ public class MessageManager extends MiniMessageTranslator {
                         if (langTag == null) {
                             locale = Locale.ROOT;
                         } else {
-                            locale = Locale.forLanguageTag(langTag.replace('_', '-'));
+                            try {
+                                locale =  new Locale.Builder().setLanguageTag(langTag.replace('_', '-')).build();
+                            } catch (final @NotNull IllformedLocaleException  e) {
+                                logger.warn("Couldn't read locale " + langTag, e);
+                                continue;
+                            }
                         }
 
                         try {
-                            translations.put(locale, ResourceBundle.getBundle(BUNDLE_NAME, locale, urlClassLoader));
+                            translations.put(locale, ResourceBundle.getBundle(BUNDLE_NAME, locale, urlClassLoader, control));
                         } catch (MissingResourceException _) { // how? missing write access?
                             logger.warn("No translation file for lang {} found on disc.", locale.toLanguageTag());
                         }

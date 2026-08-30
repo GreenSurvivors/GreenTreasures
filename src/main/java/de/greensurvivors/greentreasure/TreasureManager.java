@@ -28,7 +28,7 @@ public class TreasureManager {
     public TreasureManager(final @NotNull GreenTreasure plugin) {
         this.plugin = plugin;
         this.idKey = new NamespacedKey(plugin, "id");
-        this.treasures = Caffeine.newBuilder().buildAsync((id, executor) -> plugin.getDatabaseManager().loadTreasure(id));
+        this.treasures = Caffeine.newBuilder().buildAsync((id, _) -> plugin.getDatabaseManager().loadTreasure(id));
 
         ulidFactory = UlidFactory.newMonotonicInstance(() -> Utils.RANDOM_GENERATOR.nextLong());
     }

@@ -29,20 +29,20 @@ public class Utils {
     public static final @NotNull RandomGenerator RANDOM_GENERATOR = RandomGeneratorFactory.all().
         filter(fact -> fact.stateBits() >= 128).
         // don't go overboard, we don't need the big ones
-            filter(fact -> fact.stateBits() < 384).
+        filter(fact -> fact.stateBits() < 384).
         filter(fact -> fact.period().compareTo(MAX_PERIOD) < 1).
         // use legacy (< java 17) last since they are slow and insecure, except SecureRandom, witch is extra slow, only if we really have to
-            min(new BooleanComparator<RandomGeneratorFactory<RandomGenerator>>(fact -> fact.group().equalsIgnoreCase("Legacy")).
+        min(new BooleanComparator<RandomGeneratorFactory<RandomGenerator>>(fact -> fact.group().equalsIgnoreCase("Legacy")).
             // prefer hardware accelerated RNGs
-                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isHardware)).
+            thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isHardware)).
             // note: the period comparing is inverse, the biggest one will get sorted first!
-                thenComparing((f, g) -> g.period().compareTo(f.period())).
+            thenComparing((f, g) -> g.period().compareTo(f.period())).
             // if everything else is satisfied, we may as well prefer a stochastic one
-                thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isStochastic)).
+            thenComparing(new BooleanComparator<>(RandomGeneratorFactory::isStochastic)).
             // last we compare by name, to be consistent between startups, since default ordering isn't guaranteed
-                thenComparing(RandomGeneratorFactory::name)).
+            thenComparing(RandomGeneratorFactory::name)).
         // fallback if everything fails
-            orElse(RandomGeneratorFactory.of("Random")).
+        orElse(RandomGeneratorFactory.of("Random")).
         create();
 
     private Utils() {
