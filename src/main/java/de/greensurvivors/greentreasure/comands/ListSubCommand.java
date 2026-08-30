@@ -1,143 +1,118 @@
 package de.greensurvivors.greentreasure.comands;
 
-import de.greensurvivors.greentreasure.config.TreasureConfig;
-import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.listener.TreasureListener;
-import de.greensurvivors.greentreasure.permission.Perm;
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.comands.list.ListNearbyCommand;
+import de.greensurvivors.greentreasure.comands.list.ListPlayerSubCommand;
+import de.greensurvivors.greentreasure.comands.list.ListTreasuresSubCommand;
+import de.greensurvivors.greentreasure.comands.list.ListWhoSubCommand;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
+import org.apache.commons.lang3.Strings;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
+import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 
-import java.text.DateFormat;
 import java.util.*;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.LIST;
+public class ListSubCommand extends ASubCommand {
+    public static final byte ENTRIES_PER_PAGE = 10;
+    private final @NotNull Map<@NotNull String, @NotNull ASubCommand> subCommands = new HashMap<>();
 
-public class ListSubCommand {
-    private static ListSubCommand instance;
+    public ListSubCommand(@NotNull GreenTreasure plugin) {
+        super(plugin);
 
-    public static ListSubCommand inst() {
-        if (instance == null)
-            instance = new ListSubCommand();
-        return instance;
+        registerSubCommand(new ListPlayerSubCommand(plugin));
+        registerSubCommand(new ListTreasuresSubCommand(plugin));
+        registerSubCommand(new ListWhoSubCommand(plugin));
+        registerSubCommand(new ListNearbyCommand(plugin));
+    }
+
+    private void registerSubCommand(final @NotNull ASubCommand subCommand) {
+        for (@NotNull String alias : subCommand.getAliases()) {
+            subCommands.put(alias, subCommand);
+        }
+    }
+
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return subCommands.values().stream().anyMatch(sub -> sub.checkPermission(permissible));
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("list");
+    }
+
+    @Override
+    public @NotNull Component getHelpText() {
+        return null;
     }
 
     /**
      * list all treasures on this server,
      * or if a player was given lists all looted treasures
-     * /gt list (list all treasures)
-     * /gt list playerName
-     * /gt list uuid
-     * @param commandSender sender of this command
+     * /gt list(0) treasures(1) [num - optional](2) - list all treasures
+     * /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
+     * /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
+     * /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
+     *
+     * @param sender sender of this command
      */
-    protected void handleList(CommandSender commandSender, String[] args){
-        UUID uuidToGetListOf;
-        if (args.length >= 2){
-            if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_PLAYERS)) {
-
-                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(args[1]);
-                if (offlinePlayer.hasPlayedBefore()){
-                    uuidToGetListOf = offlinePlayer.getUniqueId();
-                } else {
-                    try{
-                        uuidToGetListOf = UUID.fromString(args[1]);
-                    }catch (IllegalArgumentException ignored){
-                        commandSender.sendMessage(Lang.build(Lang.NO_SUCH_PLAYER.get().replace(Lang.VALUE, args[1])));
-                        return;
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+        if (args.length > 1) {
+            for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
+                if (entry.getKey().equalsIgnoreCase(args[1])) {
+                    if (entry.getValue().checkPermission(sender)) {
+                        return entry.getValue().onCommand(sender, args);
+                    } else {
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
                     }
+
+                    return true;
                 }
-
-                Set<Location> treasureLocations = TreasureListener.inst().getTreasureLocations();
-                final ArrayList<PlayerLootDetail> playerLootDetails = new ArrayList<>();
-
-                for(Iterator<Location> locationIterator = treasureLocations.iterator(); locationIterator.hasNext();) {
-                    final Location treasureLocation = locationIterator.next();
-                    final boolean lastEntry = !locationIterator.hasNext();
-
-                    TreasureConfig.inst().getPlayerLootDetailAsync(uuidToGetListOf, treasureLocation, playerLootDetail_result -> {
-                        playerLootDetails.add(playerLootDetail_result);
-
-                        if (lastEntry){
-                            // collect all messages to send at once
-                            List<Component> components = new ArrayList<>();
-                            // header
-                            components.add(Lang.build(Lang.LIST_HEADER_PLAYER.get().replace(Lang.VALUE, uuidToGetListOf.toString())));
-
-                            //build treasureInfo
-                            for (PlayerLootDetail playerLootDetail: playerLootDetails){
-                                components.add(Lang.build(Lang.LIST_PLAYER.get().
-                                        replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
-                                        replace(Lang.VALUE, playerLootDetail.unLootedStuff() == null ? Lang.LIST_NEVER.get() : DateFormat.getDateTimeInstance().format(new Date(playerLootDetail.lastLootedTimeStamp())))));
-                            }
-
-                            // send components
-                            commandSender.sendMessage(Lang.join(components));
-                        }
-                    });
-                }
-            } else {
-                commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
             }
 
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_UNKNOWN.create(
+                PlaceHolder.TEXT.string(args[1])));
+            return false;
         } else {
-            if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_LIST_TREASURES)) {
-                // collect all messages to send at once
-                List<Component> components = new ArrayList<>();
-                // header
-                components.add(Lang.build(Lang.LIST_HEADER_TREASURES.get()));
-
-                //build list
-                for (Location treasureLocation : TreasureListener.inst().getTreasureLocations()){
-                    TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(treasureLocation);
-
-                    String treasureInfoStr = Lang.LIST_TREASURE_BODY.get().
-                            replace(Lang.LOCATION, Lang.locationToString(treasureLocation)).
-                            replace(Lang.VALUE, String.valueOf(((double)treasureInfo.slotChance()) / 100.0d)).
-                            replace(Lang.GLOBAL, treasureInfo.isGlobal() ? Lang.TRUE.get() : Lang.FALSE.get()).
-                            replace(Lang.UNLIMITED, treasureInfo.isUnlimited() ? Lang.TRUE.get() : Lang.FALSE.get());
-
-                    if (treasureInfo.timeUntilForget() > 0){
-                        treasureInfoStr = treasureInfoStr + Lang.LIST_TREASURE_FORGETPERIOD.get().replace(Lang.VALUE, Lang.formatTimePeriod(treasureInfo.timeUntilForget()));
-                    }
-
-                    components.add(Lang.build(treasureInfoStr));
-                }
-
-                // send components
-                commandSender.sendMessage(Lang.join(components));
-            } else {
-                commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
-            }
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
         }
+
+        return true;
     }
 
     /**
      * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
+     *             partial argument to be completed
+     *             /gt list(0) treasures(1) [num - optional](2) - list all treasures
+     *             /gt list(0) player(1) playerName(2) [num- optional](3) - detail of all treasures of a player
+     *             /gt list(0) player(1) uuid(2) [num - optional](3) - detail of all treasures of a player
+     *             /gt list(0) who(1) [num - optional](2) (while looking at a container) - detail of all players of a treasure
      * @return suggestion of arguments, filtert by what's already written
      */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
-        switch (args.length){
-            case 1 -> {
-                return Collections.singletonList(LIST);
-            }
-            case 2 -> {
-                if (args[0].equalsIgnoreCase(LIST)) {
-                    Collection<? extends Player> onlinePlayers =  Bukkit.getOnlinePlayers();
-                    if (!onlinePlayers.isEmpty()){
-                        return onlinePlayers.stream().map(Player::getName).toList();
-                    }
+    @Override
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+        if (args.length <= 2) {
+            final Set<String> suggestions = new HashSet<>();
+
+            for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
+                if (entry.getValue().checkPermission(sender)) {
+                    suggestions.add(entry.getKey());
                 }
             }
+
+            return suggestions.stream().filter(s -> Strings.CI.startsWith(s, args[1])).toList();
+        } else {
+            for (Map.Entry<String, ASubCommand> entry : subCommands.entrySet()) {
+                if (entry.getKey().equalsIgnoreCase(args[1]) && entry.getValue().checkPermission(sender)) {
+                    return entry.getValue().onTabComplete(sender, args).stream().filter(s -> Strings.CI.startsWith(s, args[args.length - 1])).toList();
+                }
+            }
+
+            return List.of();
         }
-
-
-        return new ArrayList<>();
     }
 }

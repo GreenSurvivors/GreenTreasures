@@ -1,0 +1,173 @@
+package de.greensurvivors.greentreasure.comands.list;
+
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermissionManager;
+import de.greensurvivors.greentreasure.Utils;
+import de.greensurvivors.greentreasure.comands.ASubCommand;
+import de.greensurvivors.greentreasure.comands.ListSubCommand;
+import de.greensurvivors.greentreasure.comands.MainCommand;
+import de.greensurvivors.greentreasure.dataobjects.AListCmdHelper;
+import de.greensurvivors.greentreasure.dataobjects.DynamicPlayerAudience;
+import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.MessageManager;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
+import org.bukkit.Location;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.permissions.Permissible;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.*;
+
+public class ListNearbyCommand extends ASubCommand {
+    public ListNearbyCommand(@NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
+
+    @Override
+    protected boolean checkPermission(@NotNull Permissible permissible) {
+        return permissible.hasPermission(PermissionManager.TREASURE_LIST_NEAR.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("near", "nearby");
+    }
+
+    @Override
+    public @NotNull Component getHelpText() {
+        return null;
+    }
+
+    @Override
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            if (sender instanceof Entity entity) {
+                if (args.length >= 3) {
+                    if (Utils.isInt(args[2])) {
+
+                        if (args.length >= 4 && !Utils.isInt(args[3])) {
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_A_NUMBER.create(
+                                PlaceHolder.TEXT.string(args[3])));
+                            return false;
+                        }
+
+                        final Audience audience = DynamicPlayerAudience.fromAudience(entity);
+                        plugin.getChunkParser().getNearTreasures(entity.getLocation(), Math.abs(Integer.parseInt(args[2])), audience, entity.getUniqueId()).
+                            thenAccept(nearTreasures -> { // todo cache entries for some time to not not parse again for next page
+                                final int numOfTreasures = nearTreasures.size();
+
+                                if (numOfTreasures > 0) {
+                                    final int numPages = (int) Math.ceil((double) numOfTreasures / (double) ListSubCommand.ENTRIES_PER_PAGE);
+
+                                    final int pageNow; //please note: we are start counting with page 1, not 0 for convenience of users of this plugin
+                                    if (args.length >= 4) {
+                                        //limit page to how many exits
+                                        pageNow = Math.clamp(Integer.parseInt(args[3]), 1, numPages);
+                                    } else {
+                                        pageNow = 1;
+                                    }
+
+                                    //maximum of treasures out of all this page can display
+                                    final int MAX_TREASURES_THIS_PAGE = Math.min(numOfTreasures, pageNow * ListSubCommand.ENTRIES_PER_PAGE);
+                                    //maximum of entries this page can display
+                                    final int NUM_ENTRIES = MAX_TREASURES_THIS_PAGE - (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
+
+                                    final ListCmdNearTreasuresHelper helper = new ListCmdNearTreasuresHelper(plugin, audience, pageNow, numPages, NUM_ENTRIES);
+
+                                    //add the treasure info for the page
+                                    int num = (pageNow - 1) * ListSubCommand.ENTRIES_PER_PAGE;
+                                    Iterator<Map.Entry<@NotNull TreasureInfo, @NotNull SortedSet<@NotNull Location>>> iterator = nearTreasures.sequencedEntrySet().iterator();
+
+                                    // skip entries before this index
+                                    if (num > 0) {
+                                        for (int i = 0; i < num && iterator.hasNext(); i++) {
+                                            iterator.next();
+                                        }
+                                    }
+
+                                    while (num < MAX_TREASURES_THIS_PAGE && iterator.hasNext()) {
+                                        helper.addEntry(iterator.next());
+                                        num++;
+                                    }
+                                } else {
+                                    final @NotNull String cmd = MainCommand.CMD + " " + plugin.getMainCommand().getCreateSubCmd().getAliases().iterator().next();
+
+                                    plugin.getMessageManager().sendPrefixed(audience, LangKey.CMD_LIST_NEARBY_TREASURES_EMPTY.create(
+                                        PlaceHolder.CMD.component(Component.text(cmd).clickEvent(ClickEvent.runCommand(cmd)))));
+                                }
+                            });
+                    } else {
+                        plugin.getMessageManager().sendPrefixed(sender, LangKey.ARG_NOT_A_NUMBER.create(
+                            PlaceHolder.TEXT.string(args[2])));
+                        return false;
+                    }
+                } else {
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.CMD_ERROR_NOT_ENOUGH_ARGS);
+                    return false;
+                }
+            } else {
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
+            }
+        }
+
+        return true;
+    }
+
+    @Override
+    public @NotNull List<@NotNull String> onTabComplete(@NotNull CommandSender sender, @NotNull String @NotNull [] args) { // todo suggest a distance
+        return List.of();
+    }
+
+    private class ListCmdNearTreasuresHelper extends AListCmdHelper {
+
+        public ListCmdNearTreasuresHelper(final @NotNull GreenTreasure plugin, final @NotNull Audience audience, final int pageNow, final int lastPage, final int numEntries) {
+            super(plugin, audience, pageNow, lastPage, numEntries,
+                //page will be added by super
+                MainCommand.CMD + " " + plugin.getMainCommand().getListSubCmd().getAliases().iterator().next() + " " + getAliases().iterator().next() + " ");
+
+            // header
+            componentResult.add(LangKey.CMD_LIST_NEARBY_TREASURES_HEADER.create(
+                PlaceHolder.NUMBER.numeric(pageNow),
+                PlaceHolder.LAST_PAGE.numeric(lastPage)));
+        }
+
+        public void addEntry(final Map.Entry<TreasureInfo, SortedSet<Location>> entry) {
+            synchronized (MUTEX) {
+                numOfEntriesStillToDo--;
+
+                //build treasureInfo
+                final @NotNull TextComponent.Builder treasureInfoComponentBuilder = Component.text();
+
+                treasureInfoComponentBuilder.append(LangKey.CMD_LIST_NEARBY_TREASURES_BODY.create(
+                    PlaceHolder.TREASURE_ID.string(entry.getKey().treasureId().toString()),
+                    PlaceHolder.NUMBER.numeric(((double) entry.getKey().nonEmptyPermyriad()) / 100.0d),
+                    PlaceHolder.SHARED.boolChoice(entry.getKey().isShared()),
+                    PlaceHolder.UNLIMITED.boolChoice(entry.getKey().isUnlimited()),
+                    PlaceHolder.LOCATION.component(
+                        Component.join(JoinConfiguration.commas(true),
+                            entry.getValue().stream().map(location ->
+                                MessageManager.formatLocation(location). // todo make the command configurable, since many plugins use /tppos
+                                    clickEvent(ClickEvent.suggestCommand("/tp " + location.getX() + " " + location.getY() + " " + location.getZ()))
+                            ).toList()))
+                ));
+
+                if (entry.getKey().doesForget() || !entry.getKey().isUnlocked()) {
+                    treasureInfoComponentBuilder.appendSpace().append(entry.getKey().getRefreshInfo().infoMessage());
+                }
+
+                componentResult.add(treasureInfoComponentBuilder);
+
+                if (numOfEntriesStillToDo <= 0) {
+                    sendMessage();
+                }
+            }
+        }
+    }
+}

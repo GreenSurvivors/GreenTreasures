@@ -1,80 +1,106 @@
 package de.greensurvivors.greentreasure.comands;
 
+import de.greensurvivors.greentreasure.GreenTreasure;
+import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
-import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
-import de.greensurvivors.greentreasure.language.Lang;
-import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
-import de.greensurvivors.greentreasure.listener.TreasureListener;
-import de.greensurvivors.greentreasure.permission.Perm;
+import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
+import de.greensurvivors.greentreasure.language.LangKey;
+import de.greensurvivors.greentreasure.language.PlaceHolder;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.block.Container;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.InventoryView;
+import org.bukkit.permissions.Permissible;
+import org.bukkit.persistence.PersistentDataHolder;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-import static de.greensurvivors.greentreasure.comands.TreasureCommands.EDIT;
+public class EditSubCommand extends ASubCommand {
 
-public class EditSubCommand {
-    private static EditSubCommand instance;
+    public EditSubCommand(final @NotNull GreenTreasure plugin) {
+        super(plugin);
+    }
 
-    public static EditSubCommand inst() {
-        if (instance == null)
-            instance = new EditSubCommand();
-        return instance;
+    @Override
+    protected boolean checkPermission(final @NotNull Permissible permissible) {
+        return permissible.hasPermission(PermissionManager.TREASURE_EDIT_CONTENT.get());
+    }
+
+    @Override
+    public @NotNull Set<@NotNull String> getAliases() {
+        return Set.of("edit", "content");
+    }
+
+    @Override
+    public @NotNull Component getHelpText() {
+        return null;
     }
 
     /**
      * lets the commandSender edit a treasure inventory
      * note: two 2 players editing the same inventory at the same time is NOT supported right now
      * /gt edit
-     * @param commandSender sender of this command
+     *
+     * @param sender sender of this command
      */
-    protected void handleEdit(CommandSender commandSender){
-        if (Perm.hasPermission(commandSender, Perm.TREASURE_ADMIN, Perm.TREASURE_EDIT)) {
-            Container container = TreasureCommands.getContainer(commandSender);
+    public boolean onCommand(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
+        if (checkPermission(sender)) {
+            final @Nullable Container container = plugin.getMainCommand().getContainer(sender);
 
-            if (container != null){
-                if (commandSender instanceof Player player){
-                    Component eTitle = Lang.build("EDIT TREASURE");
-                    final Location location = Utils.cleanLocation(container.getLocation());
-                    TreasureInfo treasureInfo = TreasureListener.inst().getTreasure(location);
+            if (container != null) {
+                if (sender instanceof Player player) {
+                    plugin.getTreasureManager().getTreasureInfo(container).thenAccept(treasureInfo -> {
+                        if (treasureInfo != null) {
+                            final @NotNull Component title = LangKey.TREASURE_TITLE_EDIT.create(
+                                PlaceHolder.TREASURE_ID.component(Utils.getDisplayName(container)));
 
-                    if (treasureInfo != null) {
-                        Inventory nowEditing = Bukkit.createInventory(null, container.getInventory().getType(), eTitle);
-                        // clone every item stack and put it into the new inventory
-                        nowEditing.setContents(treasureInfo.itemLoot().stream().map(s -> s == null ? null : s.clone()).toArray(ItemStack[]::new));
+                            final @NotNull InventoryHolderWrapper<?> wrapper = new InventoryHolderWrapper<>((InventoryHolder & PersistentDataHolder) Utils.getTreasureHolder(container), true);
 
-                        CommandInventoriesListener.inst().addEditingTreasure(player.openInventory(nowEditing), location);
-                    } else {
-                        commandSender.sendMessage(Lang.build(Lang.NO_TREASURE.get()));
-                    }
+                            final @NotNull Inventory inventory;
+                            if (container.getInventory().getType() == InventoryType.CHEST) {
+                                inventory = Bukkit.createInventory(wrapper, container.getInventory().getSize(), title);
+                            } else {
+                                inventory = Bukkit.createInventory(wrapper, container.getInventory().getType(), title);
+                            }
+
+                            Utils.setContents(inventory, treasureInfo.itemLoot());
+                            final @Nullable InventoryView view = player.openInventory(inventory);
+
+                            if (view != null) {
+                                plugin.getCommandInventoriesListener().addEditingTreasure(view, treasureInfo.treasureId());
+                            } else {
+                                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_UNKNOWN);
+                                plugin.getComponentLogger().warn("Could not open Inventory {} for Player {}", inventory, player);
+                            }
+                        } else {
+                            plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_TREASURE);
+                        }
+                    });
                 } else {
-                    commandSender.sendMessage(Lang.build(Lang.NO_PLAYER.get()));
+                    plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_SENDER_NOT_PLAYER);
                 }
             } else {
-                commandSender.sendMessage(Lang.build(Lang.NOT_LOOKINGAT_CONTAINER.get()));
+                plugin.getMessageManager().sendPrefixed(sender, LangKey.ERROR_NOT_LOOKING_AT_CONTAINER);
             }
         } else {
-            commandSender.sendMessage(Lang.build(Lang.NO_PERMISSION_COMMAND.get()));
+            plugin.getMessageManager().sendPrefixed(sender, LangKey.NO_PERMISSION);
         }
+
+        return true;
     }
 
-    /**
-     * @param args The arguments passed to the command, including final
-     *     partial argument to be completed
-     * @return suggestion of arguments
-     */
-    protected List<String> handleTabCompleate(@NotNull String[] args){
+    public @NotNull List<@NotNull String> onTabComplete(final @NotNull CommandSender sender, final @NotNull String @NotNull [] args) {
         if (args.length == 1) {
-            return Collections.singletonList(EDIT);
+            return List.copyOf(getAliases());
         } else {
             return new ArrayList<>();
         }

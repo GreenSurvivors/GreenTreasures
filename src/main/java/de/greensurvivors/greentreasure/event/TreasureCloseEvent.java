@@ -10,11 +10,11 @@ import org.jetbrains.annotations.NotNull;
  * called if a treasure inventory view is closed
  */
 public class TreasureCloseEvent extends PlayerEvent {
-    private final HandlerList handlers = new HandlerList();
-    private final TreasureInfo treasureInfo;
+    private final static HandlerList handlers = new HandlerList();
+    private final @NotNull TreasureInfo treasureInfo;
 
     /**
-     * @param who the player who closes a treasure
+     * @param who          the player who closes a treasure
      * @param treasureInfo the information about a treasure
      */
     public TreasureCloseEvent(@NotNull Player who, @NotNull TreasureInfo treasureInfo) {
@@ -28,7 +28,11 @@ public class TreasureCloseEvent extends PlayerEvent {
         return handlers;
     }
 
-    public TreasureInfo getTreasureInfo() {
+    public static @NotNull HandlerList getHandlerList() {
+        return handlers;
+    }
+
+    public @NotNull TreasureInfo getTreasureInfo() {
         return treasureInfo;
     }
 }
