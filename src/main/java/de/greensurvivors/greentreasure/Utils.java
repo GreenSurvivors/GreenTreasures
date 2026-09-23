@@ -80,7 +80,8 @@ public class Utils {
 
     // for everyone wondering: Permyriad is like percent but for 10000
     /// clone every item stack and put it into the new inventory
-    public static void setContents(final @NotNull Inventory inventory, @NotNull List<@Nullable ItemStack> items, final @Range(from = 0, to = 10000) int nonEmptyPermyriad) {
+    public static void setContents(final @NotNull Inventory inventory, final @NotNull List<@Nullable ItemStack> items,
+                                   final @Range(from = 0, to = 10000) int nonEmptyPermyriad) {
         final int inventorySize = inventory.getSize();
         final @Nullable ItemStack @NotNull [] newContents = new ItemStack[inventorySize];
 
@@ -90,10 +91,10 @@ public class Utils {
         if (nonEmptyPermyriad > 0 && nonEmptyPermyriad < 10000) {
 
             // get all non-empty items, shuffle them and add the needed amount back at the right slot
-            for (int i1 = 0; i1 < maxSize; i1++) {
-                final @Nullable ItemStack itemStack = items.get(i1);
+            for (int i = 0; i < maxSize; i++) {
+                final @Nullable ItemStack itemStack = items.get(i);
                 if (itemStack != null && !itemStack.isEmpty()) {
-                    itemsToSlot.add(new ItemToSlot(itemStack, i1));
+                    itemsToSlot.add(new ItemToSlot(itemStack, i));
                 }
             }
 

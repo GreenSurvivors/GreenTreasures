@@ -6,9 +6,6 @@ import de.greensurvivors.greentreasure.language.MessageManager;
 import de.greensurvivors.greentreasure.legacy.LegacyDataImporter;
 import de.greensurvivors.greentreasure.listener.CommandInventoriesListener;
 import de.greensurvivors.greentreasure.listener.TreasureListener;
-import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.jetbrains.annotations.NotNull;
@@ -55,16 +52,6 @@ public class GreenTreasure extends JavaPlugin {
 
     public void shutdownForcefully() {
         getComponentLogger().error("Something went wrong, force disabling the plugin, brace for impact and send thoughts and prayers!");
-
-        // unregister our cmds
-        for (Command cmd : Bukkit.getCommandMap().getKnownCommands().values()) {
-            if (cmd instanceof PluginCommand pluginCommand) {
-                if (pluginCommand.getPlugin().getName().equalsIgnoreCase(getName())) {
-                    cmd.unregister(Bukkit.getCommandMap());
-                }
-            }
-        }
-
         getServer().getPluginManager().disablePlugin(this);
     }
 
