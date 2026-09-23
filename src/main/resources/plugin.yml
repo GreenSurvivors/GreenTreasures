@@ -7,9 +7,10 @@ softdepend:
   - TreasureChest
   - TreasureChestX
   - WorldGuard
+depend:
+  - CoreLib
 libraries:
   - com.github.ben-manes.caffeine:caffeine:${caffeine_version}
-  - com.zaxxer:HikariCP:${hikariCP_version}
   - com.github.f4b6a3:ulid-creator:${ulidCreator_version}
 description: ${description}
 author: GreensurvivorsTeam

@@ -42,7 +42,7 @@ dependencies {
         exclude("com.google.code.gson", "gson")
     }
 
-    compileOnly("com.zaxxer:HikariCP:${getProperty("hikariCP_version")}")
+    implementation("de.greensurvivors:CoreLib:${getProperty("core_lib_version")}")
     compileOnly("com.github.ben-manes.caffeine:caffeine:${getProperty("caffeine_version")}") // caches
     compileOnly("com.github.f4b6a3:ulid-creator:${getProperty("ulidCreator_version")}")
 }
@@ -77,6 +77,12 @@ tasks {
             modrinth("worldedit", getProperty("worldEdit_runVersion"))
             modrinth("worldguard", getProperty("worldGuard_runVersion"))
         }
+        pluginJars.from(
+            configurations.runtimeClasspath.map { configuration ->
+                configuration.files.filter { file -> file.name.startsWith("CoreLib", ignoreCase = true)
+                }
+            }
+        )
 
         // disable bstats, as it isn't needed for dev environment
         doFirst { // this happens after downloading the plugins above, but before the server starts

@@ -1,11 +1,11 @@
 package de.greensurvivors.greentreasure.listener;
 
 import com.github.f4b6a3.ulid.Ulid;
+import de.greensurvivors.greentreasure.BreakBehavior;
 import de.greensurvivors.greentreasure.GreenTreasure;
 import de.greensurvivors.greentreasure.PermissionManager;
 import de.greensurvivors.greentreasure.Utils;
 import de.greensurvivors.greentreasure.comands.MainCommand;
-import de.greensurvivors.greentreasure.config.TreasureConfig;
 import de.greensurvivors.greentreasure.dataobjects.InventoryHolderWrapper;
 import de.greensurvivors.greentreasure.dataobjects.PlayerLootDetail;
 import de.greensurvivors.greentreasure.dataobjects.TreasureInfo;
@@ -372,13 +372,13 @@ public class TreasureListener implements Listener {
                     // java being java again. I easily could do this in the switch, but then java thinks it would require a default branch,
                     // and I don't want a default branch. I want the compiler to scream at me, when (if ever) any other BreakBehaviors get added!
                     // Not yet because there could any get added somewhere in the future. The switch is always exclusive, shut up!
-                    if (plugin.getConfigHandler().getBreakBehavior() == TreasureConfig.BreakBehavior.ONLY_SHIFT_BREAKS_GLOBAL) {
+                    if (plugin.getConfigData().breakBehavior() == BreakBehavior.ONLY_SHIFT_BREAKS_GLOBAL) {
                         if (!ePlayer.isSneaking()) {
                             return;
                         }
                     }
 
-                    final boolean isGlobal = switch (plugin.getConfigHandler().getBreakBehavior()) {
+                    final boolean isGlobal = switch (plugin.getConfigData().breakBehavior()) {
                         case SHIFT_BREAKS_LOCAL -> !ePlayer.isSneaking();
                         case ALL_BREAK_GLOBAL, ONLY_SHIFT_BREAKS_GLOBAL ->  true;
                     };

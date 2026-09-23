@@ -1,10 +1,3 @@
-SQL:
-  password: '{hangeTh!sPas5wordNÖw!'
-  database: greentreasure_database
-  port: 3306
-  host: localhost
-  user: greentreasure
-
-language: en_en
+data-version: 1
 import_legacy: false
 break_behavior: ALL_BREAK_GLOBAL
